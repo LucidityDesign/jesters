@@ -39,7 +39,9 @@ open Jesters.xcodeproj
 ```
 
 Start the emulators (`npm run emulators` in `backend/functions`) and run the app in the simulator.
-**Test connection** signs in as a guest and calls the backend.
+Each simulator signs in as its own guest, so to play a game, run the app on three simulators
+(e.g. iPhone 16, iPhone 16 Plus and iPhone SE): create a game on one and join with its room key
+on the others. The emulator UI at http://127.0.0.1:4000 shows the Firestore documents live.
 
 Without a `GoogleService-Info.plist`, the app always uses the local emulators. With one, the
 Debug scheme still uses the emulators because of the launch argument `-useFirebaseEmulator YES`.

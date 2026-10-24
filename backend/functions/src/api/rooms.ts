@@ -5,7 +5,13 @@ import { type GameDoc, lobbyPlay } from "../game/model.js";
 import { generateRoomKey, normalizeRoomKey } from "../game/roomKey.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { fail, parse, requireAuth } from "./errors.js";
-import { CreateRoomInput, GameInput, JoinRoomInput, RemovePlayerInput } from "./schemas.js";
+import {
+  CreateRoomInput,
+  GameInput,
+  JoinRoomInput,
+  RemovePlayerInput,
+  UpdateSettingsInput,
+} from "./schemas.js";
 
 export const MAX_ACTIVE_GAMES = 20;
 const ROOM_KEY_ATTEMPTS = 5;
@@ -102,6 +108,24 @@ export const startGame = onCall(async (request) => {
       randomInt: secureRandomInt,
     });
     writeState(tx, gameId, game, null, state);
+  });
+  return { ok: true };
+});
+
+/** The host changes the rules while in the lobby. */
+export const updateSettings = onCall(async (request) => {
+  const uid = requireAuth(request.auth);
+  const input = parse(UpdateSettingsInput, request.data);
+
+  await getFirestore().runTransaction(async (tx) => {
+    const game = await getMemberGame(tx, input.gameId, uid);
+    if (game.hostUid !== uid) fail("NOT_HOST", "Only the host can change the rules.");
+    if (game.status !== "lobby") fail("ALREADY_STARTED", "This game has already started.");
+    tx.update(refs.game(input.gameId), {
+      settings: { ...game.settings, noEvenBids: input.noEvenBids },
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
   });
   return { ok: true };
 });

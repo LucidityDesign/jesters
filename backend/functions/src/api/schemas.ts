@@ -29,6 +29,8 @@ export const JoinRoomInput = z.object({
 
 export const GameInput = z.object({ gameId: GameId });
 
+export const UpdateSettingsInput = z.object({ gameId: GameId, noEvenBids: z.boolean() });
+
 export const RemovePlayerInput = z.object({ gameId: GameId, uid: z.string().min(1).max(128) });
 
 export const ChooseTrumpInput = z.object({ gameId: GameId, version: Version, suit: z.enum(SUITS) });

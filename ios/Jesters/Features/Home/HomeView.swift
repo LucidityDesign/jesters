@@ -1,61 +1,143 @@
 import SwiftUI
 
-/// Placeholder home screen for M0: verifies sign-in and the backend connection.
+struct GameRoute: Hashable {
+    let gameId: String
+}
+
 struct HomeView: View {
-    private enum Status: Equatable {
-        case idle
-        case checking
-        case connected(uid: String)
-        case failed(String)
+    @Environment(Session.self) private var session
+    @State private var model: HomeModel
+    @State private var path: [GameRoute] = []
+    @State private var isJoining = false
+    @State private var isEditingName = false
+    @State private var isCreating = false
+    @State private var errorMessage: String?
+
+    init(uid: String) {
+        _model = State(initialValue: HomeModel(uid: uid))
     }
 
-    @State private var status = Status.idle
-
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Jesters")
-                .font(.largeTitle.bold())
+        NavigationStack(path: $path) {
+            List {
+                Section {
+                    Button {
+                        Task { await createRoom() }
+                    } label: {
+                        Label("New game", systemImage: "plus.circle")
+                    }
+                    .disabled(isCreating)
 
-            statusText
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                    Button {
+                        isJoining = true
+                    } label: {
+                        Label("Join with key", systemImage: "key")
+                    }
 
-            Button("Test connection") {
-                Task { await checkConnection() }
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                gameSection("Your turn", games: model.myTurnGames)
+                gameSection("Other games", games: model.otherActiveGames)
+                gameSection("Finished", games: model.finishedGames)
+
+                if model.loadFailed {
+                    Text("Could not load your games.")
+                        .foregroundStyle(.secondary)
+                } else if model.isLoaded && model.games.isEmpty {
+                    Text("No games yet. Start a new game and invite your friends with the room key.")
+                        .foregroundStyle(.secondary)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(status == .checking)
+            .navigationTitle("Jesters")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isEditingName = true
+                    } label: {
+                        Label(session.displayName, systemImage: "person.crop.circle")
+                            .labelStyle(.titleAndIcon)
+                    }
+                }
+            }
+            .navigationDestination(for: GameRoute.self) { route in
+                GameView(gameId: route.gameId, uid: model.uid)
+            }
+            .sheet(isPresented: $isJoining) {
+                JoinSheet { gameId in
+                    path.append(GameRoute(gameId: gameId))
+                }
+            }
+            .sheet(isPresented: $isEditingName) {
+                NavigationStack {
+                    NameView(isFirstLaunch: false)
+                }
+            }
+            .task { await model.observe() }
         }
-        .padding()
     }
 
     @ViewBuilder
-    private var statusText: some View {
-        switch status {
-        case .idle:
-            Text("Not connected yet")
-        case .checking:
-            Text("Connecting…")
-        case .connected(let uid):
-            Text("Connected as \(uid)")
-        case .failed(let message):
-            Text("Connection failed: \(message)")
+    private func gameSection(_ title: LocalizedStringKey, games: [Identified<GameDoc>]) -> some View {
+        if !games.isEmpty {
+            Section(title) {
+                ForEach(games) { game in
+                    NavigationLink(value: GameRoute(gameId: game.id)) {
+                        GameRow(game: game.value, uid: model.uid)
+                    }
+                }
+            }
         }
     }
 
-    private func checkConnection() async {
-        status = .checking
+    private func createRoom() async {
+        isCreating = true
+        defer { isCreating = false }
         do {
-            _ = try await API.signInAsGuest()
-            let response = try await API.ping(message: "hello")
-            status = .connected(uid: response.uid)
+            let room = try await API.createRoom(name: session.displayName)
+            errorMessage = nil
+            path.append(GameRoute(gameId: room.gameId))
         } catch {
-            status = .failed(error.localizedDescription)
+            errorMessage = APIError.message(for: error)
         }
     }
 }
 
-#Preview {
-    HomeView()
+struct GameRow: View {
+    let game: GameDoc
+    let uid: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(game.players.map(\.name).formatted(.list(type: .and)))
+                .font(.headline)
+                .lineLimit(1)
+            Text(statusText)
+                .font(.subheadline)
+                .foregroundStyle(game.isMyTurn(uid) ? Color.accentColor : .secondary)
+        }
+    }
+
+    private var statusText: String {
+        switch game.status {
+        case .lobby:
+            return String(localized: "In the lobby · key \(game.roomKey)")
+        case .choosingTrump, .bidding, .playing:
+            let round = game.round?.number ?? 0
+            if game.isMyTurn(uid) {
+                return String(localized: "Your turn · round \(round)")
+            }
+            let name = game.turnSeat.map(game.name(atSeat:)) ?? "?"
+            return String(localized: "Waiting for \(name) · round \(round)")
+        case .finished:
+            let winners = game.leaders.map(game.name(atSeat:)).formatted(.list(type: .and))
+            return String(localized: "Finished · winner: \(winners)")
+        case .abandoned:
+            return String(localized: "Ended early")
+        }
+    }
 }

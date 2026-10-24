@@ -90,6 +90,22 @@ describe("rooms", () => {
     ).toBe("ROOM_FULL");
   });
 
+  it("lets only the host change the rules in the lobby", async () => {
+    const [anna, ben, cleo] = await newPlayers("Anna", "Ben", "Cleo");
+    const room = await setUpRoom([anna, ben, cleo]);
+
+    expect(
+      await rejection(ben.call("updateSettings", { gameId: room.gameId, noEvenBids: false })),
+    ).toBe("NOT_HOST");
+    await anna.call("updateSettings", { gameId: room.gameId, noEvenBids: false });
+    expect((await ben.read<Game>(`games/${room.gameId}`))?.settings).toEqual({ noEvenBids: false });
+
+    await anna.call("startGame", { gameId: room.gameId });
+    expect(
+      await rejection(anna.call("updateSettings", { gameId: room.gameId, noEvenBids: true })),
+    ).toBe("ALREADY_STARTED");
+  });
+
   it("lets the host remove players from the lobby", async () => {
     const players = await newPlayers("Anna", "Ben", "Cleo");
     const [anna, ben, cleo] = players;
