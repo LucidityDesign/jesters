@@ -38,7 +38,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run test:coverage
       - run: npm run test:emulator
 
   # Deploys need a Firebase project and Workload Identity Federation (see README).
