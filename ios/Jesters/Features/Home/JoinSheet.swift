@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct JoinSheet: View {
+    var initialKey: String?
     let onJoined: (String) -> Void
 
     @Environment(Session.self) private var session
@@ -46,6 +47,9 @@ struct JoinSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .onAppear {
+            if let initialKey, key.isEmpty { key = initialKey }
+        }
     }
 
     private func join() async {
@@ -56,6 +60,7 @@ struct JoinSheet: View {
             let gameId = try await API.joinRoom(key: normalizedKey, name: session.displayName)
             dismiss()
             onJoined(gameId)
+            await PushService.requestAuthorization()
         } catch {
             errorMessage = APIError.message(for: error)
         }

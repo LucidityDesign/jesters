@@ -22,7 +22,9 @@ final class Session {
     func signIn() async {
         signInFailed = false
         do {
-            uid = try await API.signInAsGuest()
+            let uid = try await API.signInAsGuest()
+            self.uid = uid
+            PushService.shared.setUser(uid)
             await saveProfile()
         } catch {
             signInFailed = true

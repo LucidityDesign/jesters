@@ -13,7 +13,9 @@ struct GameOverView: View {
     var body: some View {
         List {
             Section {
-                if game.status == .abandoned {
+                if game.expired == true {
+                    Text("This game was closed after 14 days without a move.")
+                } else if game.status == .abandoned {
                     let name = game.abandonedBy.flatMap(game.name(of:)) ?? "?"
                     Text("\(name) left, so the game ended early.")
                 } else {

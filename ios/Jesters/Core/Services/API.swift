@@ -78,6 +78,11 @@ enum API {
         try await Firestore.firestore().collection("users").document(uid).setData(profile, merge: true)
     }
 
+    /// One device per guest, so the list holds just this device's token.
+    static func saveFCMToken(uid: String, token: String) async throws {
+        try await Firestore.firestore().collection("users").document(uid).setData(["fcmTokens": [token]], merge: true)
+    }
+
     static func createRoom(name: String) async throws -> RoomResponse {
         try await call("createRoom", CreateRoomRequest(name: name))
     }

@@ -69,6 +69,8 @@ struct GameDoc: Codable, Sendable, Hashable {
     let turnUid: String?
     let results: [RoundResult]
     let abandonedBy: String?
+    /// Closed automatically after a long time without a move.
+    let expired: Bool?
     let updatedAt: Date?
 
     func seat(of uid: String) -> Int? {

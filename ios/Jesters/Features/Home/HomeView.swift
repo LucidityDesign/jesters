@@ -6,9 +6,11 @@ struct GameRoute: Hashable {
 
 struct HomeView: View {
     @Environment(Session.self) private var session
+    @Environment(Router.self) private var router
     @State private var model: HomeModel
     @State private var path: [GameRoute] = []
     @State private var isJoining = false
+    @State private var joinKey: String?
     @State private var isEditingName = false
     @State private var isCreating = false
     @State private var errorMessage: String?
@@ -29,6 +31,7 @@ struct HomeView: View {
                     .disabled(isCreating)
 
                     Button {
+                        joinKey = nil
                         isJoining = true
                     } label: {
                         Label("Join with key", systemImage: "key")
@@ -68,7 +71,7 @@ struct HomeView: View {
                 GameView(gameId: route.gameId, uid: model.uid)
             }
             .sheet(isPresented: $isJoining) {
-                JoinSheet { gameId in
+                JoinSheet(initialKey: joinKey) { gameId in
                     path.append(GameRoute(gameId: gameId))
                 }
             }
@@ -78,6 +81,17 @@ struct HomeView: View {
                 }
             }
             .task { await model.observe() }
+            .onChange(of: router.openGameId, initial: true) { _, gameId in
+                guard let gameId else { return }
+                router.openGameId = nil
+                path = [GameRoute(gameId: gameId)]
+            }
+            .onChange(of: router.joinKey, initial: true) { _, key in
+                guard let key else { return }
+                router.joinKey = nil
+                joinKey = key
+                isJoining = true
+            }
         }
     }
 
@@ -101,6 +115,7 @@ struct HomeView: View {
             let room = try await API.createRoom(name: session.displayName)
             errorMessage = nil
             path.append(GameRoute(gameId: room.gameId))
+            await PushService.requestAuthorization()
         } catch {
             errorMessage = APIError.message(for: error)
         }

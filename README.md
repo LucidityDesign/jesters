@@ -63,6 +63,24 @@ All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 f
      and put it in `ios/Jesters/Resources/` (it is git-ignored).
 3. Deploy manually: `cd backend/functions && npx firebase login && npm run deploy:dev`.
 
+### Push notifications
+
+1. In the Apple Developer account, create an **APNs authentication key** (.p8) and upload it in
+   the Firebase console under **Project settings → Cloud Messaging → Apple app configuration**
+   (for each Firebase project).
+2. In Xcode, select your development team for the `Jesters` target. The push entitlement is
+   already set in `project.yml`.
+3. Notifications need the real Firebase project (not the emulators) and a device, or a simulator
+   on an Apple-silicon Mac.
+
+The app asks for permission after the player creates or joins a game. Notification texts are
+translated on the device (`PUSH_*` keys in `Localizable.xcstrings`).
+
+### Invite links
+
+The app opens `jesters://join/<room key>` and pre-fills the join screen. It also understands
+`https://<domain>/join/<room key>`, which will work as soon as a domain with Universal Links is set up.
+
 ### Deploying from CI
 
 The `Backend` workflow deploys `main` to the dev project and `v*` tags to the prod project.

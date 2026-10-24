@@ -534,6 +534,193 @@
         }
       }
     },
+    "PUSH_EXPIRED": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The game was closed after 14 days without a move."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Spiel wurde nach 14 Tagen ohne Zug beendet."
+          }
+        }
+      }
+    },
+    "PUSH_FINISHED": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Winner: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewonnen: %@"
+          }
+        }
+      }
+    },
+    "PUSH_LEFT": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ left, so the game ended early."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat das Spiel verlassen, daher wurde es vorzeitig beendet."
+          }
+        }
+      }
+    },
+    "PUSH_REMINDER": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your game with %@ is waiting for you."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Spiel mit %@ wartet auf dich."
+          }
+        }
+      }
+    },
+    "PUSH_STARTED": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ started the game."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat das Spiel gestartet."
+          }
+        }
+      }
+    },
+    "PUSH_TITLE_GAME": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jesters"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jesters"
+          }
+        }
+      }
+    },
+    "PUSH_TITLE_GAME_OVER": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Game over"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spiel vorbei"
+          }
+        }
+      }
+    },
+    "PUSH_TITLE_YOUR_TURN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your turn"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du bist dran"
+          }
+        }
+      }
+    },
+    "PUSH_TURN_BID": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Round %1$@ with %2$@: how many tricks will you take?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runde %1$@ mit %2$@: Wie viele Stiche machst du?"
+          }
+        }
+      }
+    },
+    "PUSH_TURN_PLAY": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Round %1$@ with %2$@: it's your turn to play."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runde %1$@ mit %2$@: Du bist am Zug."
+          }
+        }
+      }
+    },
+    "PUSH_TURN_TRUMP": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Round %1$@ with %2$@: a Wizard was turned up. Choose trump."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runde %1$@ mit %2$@: Ein Zauberer wurde aufgedeckt. Wähle Trumpf."
+          }
+        }
+      }
+    },
     "Players (%lld of 6)": {
       "localizations": {
         "de": {
@@ -760,6 +947,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dieses Spiel gibt es nicht mehr."
+          }
+        }
+      }
+    },
+    "This game was closed after 14 days without a move.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Spiel wurde nach 14 Tagen ohne Zug beendet."
           }
         }
       }

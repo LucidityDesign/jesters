@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct JestersApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var session: Session
 
     init() {
@@ -13,6 +14,8 @@ struct JestersApp: App {
         WindowGroup {
             RootView()
                 .environment(session)
+                .environment(Router.shared)
+                .onOpenURL { url in Router.shared.handle(url) }
         }
     }
 }
