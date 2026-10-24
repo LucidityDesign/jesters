@@ -151,34 +151,38 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
 ## 4. Data model (Firestore)
 
 ```
-users/{uid}
-  displayName, fcmTokens[], createdAt
+users/{uid}                             // written by the app itself (fields checked by rules)
+  displayName, fcmTokens[]
   timeZone: "Europe/Berlin"             // IANA id from the device, updated on app start
   locale: "de-DE"                       // device language, for anything the server must phrase
 
 roomKeys/{key}                          // functions only
   gameId
 
-games/{gameId}                          // public, readable by participants
-  status: "lobby" | "bidding" | "choosingTrump" | "playing" | "finished" | "abandoned"
-  roomKey: "K7Q2XM"
-  hostUid, settings { noEvenBids: true }
-  players: [{ uid, name, seat }]
+games/{gameId}                          // readable by the game's players
+  status: "lobby" | "choosingTrump" | "bidding" | "playing" | "finished" | "abandoned"
+  roomKey: "K7Q2XM", hostUid, settings { noEvenBids: true }
+  players: [{ uid, name }]              // index = seat, in join order
   playerUids: [uid]                     // for "my games" queries
-  round: { number, dealerSeat, trumpCard, trumpSuit,
-           bids: { [uid]: int | null }, tricksWon: { [uid]: int } }
-  currentTrick: { leaderSeat, cards: [{ uid, card }], ledSuit }
-  lastTrick: { cards, winnerUid }       // so a returning player sees what happened
-  turnUid, turnSince
-  scores: [{ round, perPlayer: { [uid]: { bid, won, delta, total } } }]
+  active: bool                          // false once finished or abandoned
+  // Arrays below are indexed by seat.
+  round: { number, totalRounds, dealerSeat, trumpCard, trumpSuit,
+           bids: [int | null], tricksWon: [int], handSizes: [int] } | null
+  trick: { leaderSeat, cards: [card] } | null       // in play order from the leader
+  lastTrick: { leaderSeat, cards, winnerSeat } | null // so a returning player sees what happened
+  turnSeat, turnUid, turnSince
+  results: [{ round, bids: [int], won: [int], deltas: [int], totals: [int] }]
   version: int                          // incremented on every change
-  updatedAt
+  abandonedBy?, createdAt, updatedAt
 
-games/{gameId}/hands/{uid}              // private: readable only by request.auth.uid == uid
-  cards: [Card], legalCards: [Card]
+games/{gameId}/hands/{uid}              // readable only by that player
+  cards: [card]
+  legalCards: [card]                    // empty unless it is this player's turn to play
+  forbiddenBid: int | null              // the dealer's "no even bids" restriction, on their turn
 
 games/{gameId}/secret/state             // readable by no client (functions only)
-  deck: [Card]
+  state: "<engine GameState as JSON>"   // incl. hands and the undealt deck
+  schema: 1
 ```
 
 `Card` is encoded as a compact string: `"H14"` (Ace of hearts), `"S2"`, `"W1"`–`"W4"`
@@ -204,9 +208,15 @@ backend/
         round.ts         // dealing, trump, bidding (incl. no-even-bids), round transitions
         scoring.ts
         game.ts          // state machine: reduce(state, action) -> state | error
+      game/              // Firestore mapping
+        model.ts         // document shapes; engine state → public game / hand documents
+        store.ts         // document references; writeState() inside a transaction
+        roomKey.ts       // room key generation and normalization
       api/               // callable functions: thin wrappers around engine + transaction
         rooms.ts         // createRoom, joinRoom, removePlayer, leaveGame, startGame
-        actions.ts       // placeBid, chooseTrump, playCard
+        actions.ts       // chooseTrump, placeBid, playCard
+        schemas.ts       // Zod input validation
+        errors.ts        // error reasons sent to the app in HttpsError.details.reason
       notifications.ts   // Firestore trigger on turnUid change → FCM push
       scheduled.ts       // hourly reminders (09–21 h player-local), expire stale games, free room keys
     test/                // Vitest unit tests + emulator integration tests

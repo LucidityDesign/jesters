@@ -1,11 +1,37 @@
 rules_version = '2';
 
-// All game state is written by Cloud Functions (Admin SDK bypasses these rules).
-// Client read access is opened up per collection in M2; until then, deny everything.
+// All game state is written by Cloud Functions (the Admin SDK bypasses these rules).
+// Clients may only read their own games and hands, and edit their own profile.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    function signedIn() {
+      return request.auth != null;
     }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid && validProfile(request.resource.data);
+    }
+
+    function validProfile(data) {
+      return data.keys().hasOnly(['displayName', 'fcmTokens', 'timeZone', 'locale'])
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 24))
+        && (!('fcmTokens' in data) || (data.fcmTokens is list && data.fcmTokens.size() <= 10))
+        && (!('timeZone' in data) || (data.timeZone is string && data.timeZone.size() <= 64))
+        && (!('locale' in data) || (data.locale is string && data.locale.size() <= 35));
+    }
+
+    match /games/{gameId} {
+      // Also allows queries constrained with `where("playerUids", "array-contains", uid)`.
+      allow read: if signedIn() && request.auth.uid in resource.data.playerUids;
+
+      match /hands/{uid} {
+        allow read: if signedIn() && request.auth.uid == uid;
+      }
+
+      // games/{gameId}/secret/* has no rule: never readable by clients.
+    }
+
+    // roomKeys/* has no rule: never readable by clients.
   }
 }
