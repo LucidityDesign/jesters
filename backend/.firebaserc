@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "demo-jesters",
+    "dev": "jesters-dev",
+    "prod": "jesters-prod"
+  }
+}

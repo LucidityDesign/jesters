@@ -1,0 +1,38 @@
+{
+  "name": "jesters-functions",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:watch": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run --project unit",
+    "test:emulator": "npm run build && firebase emulators:exec --project demo-jesters --only auth,firestore,functions \"vitest run --project emulator\"",
+    "emulators": "npm run build && firebase emulators:start --project demo-jesters",
+    "deploy:dev": "firebase deploy --project dev",
+    "deploy:prod": "firebase deploy --project prod"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.13.0",
+    "firebase": "^13.1.0",
+    "firebase-tools": "^15.34.1",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

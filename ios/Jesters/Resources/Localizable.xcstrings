@@ -1,0 +1,34 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Connected as %@" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbunden als %@" } }
+      }
+    },
+    "Connecting…" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbinde…" } }
+      }
+    },
+    "Connection failed: %@" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbindung fehlgeschlagen: %@" } }
+      }
+    },
+    "Jesters" : {
+      "shouldTranslate" : false
+    },
+    "Not connected yet" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch nicht verbunden" } }
+      }
+    },
+    "Test connection" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verbindung testen" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// All game state is written by Cloud Functions (Admin SDK bypasses these rules).
+// Client read access is opened up per collection in M2; until then, deny everything.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

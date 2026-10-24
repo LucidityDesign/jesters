@@ -1,0 +1,63 @@
+name: Jesters
+options:
+  bundleIdPrefix: design.lucidity
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "13.1.1"
+targets:
+  Jesters:
+    type: application
+    platform: iOS
+    sources:
+      - Jesters
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: design.lucidity.jesters
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Jesters
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1"
+  JestersTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - JestersTests
+    dependencies:
+      - target: Jesters
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Jesters:
+    build:
+      targets:
+        Jesters: all
+    run:
+      config: Debug
+      commandLineArguments:
+        "-useFirebaseEmulator YES": true
+    test:
+      config: Debug
+      targets:
+        - JestersTests
