@@ -47,10 +47,14 @@ Untick that argument in the scheme to use the real project.
 
 ## Firebase project setup (needed only for deploying)
 
+All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 for the data location.
+
 1. Create two Firebase projects (e.g. `jesters-dev` and `jesters-prod`) and put their IDs into
-   `backend/.firebaserc`.
+   `backend/.firebaserc`. **Turn off Google Analytics** when creating them.
 2. In each project:
    - upgrade to the **Blaze** plan (required for Cloud Functions),
+   - whenever the console asks for a location (default resource location, Firestore, Cloud Scheduler), choose `europe-west3`,
+   - accept Google's data processing terms (GDPR) in the project's privacy settings,
    - enable **Authentication → Anonymous**,
    - create **Firestore** in `europe-west3` (Frankfurt), the same region as the functions,
    - add an **iOS app** with bundle ID `design.lucidity.jesters`, download `GoogleService-Info.plist`

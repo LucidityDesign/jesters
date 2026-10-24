@@ -19,6 +19,8 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 | Joining | Players join a room with a short **room key** (e.g. `K7Q2XM`), typed in or opened from a shared link. |
 | Bots | **None in v1.** Every seat is a human. The server never plays a card for a player. |
 | Design | **Very simple.** System fonts, colors and SF Symbols; cards drawn in SwiftUI; minimal animation; no custom artwork beyond the app icon. |
+| Region | **Europe.** All regional Google Cloud resources are in `europe-west3` (Frankfurt). Schedules use the `Europe/Berlin` time zone. Only EU-hosted services are used where there is a choice (see §2). |
+| Locales | The app follows the device's language and region (date, time and number formats; 24-hour clock where that is the local convention). Languages: English (base) and German; more European languages can be added through the string catalog. |
 
 ---
 
@@ -99,16 +101,25 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
   reimplement the follow-suit logic.
 
 ### Firebase services
-| Service | Purpose |
-|---|---|
-| Authentication | Anonymous auth only (guest identity per device) |
-| Cloud Functions (2nd gen, Node 22, TypeScript) | Room and game actions, push triggers, scheduled cleanup |
-| Cloud Firestore | Rooms/games, private hands, device push tokens |
-| Cloud Messaging (FCM → APNs) | "Your turn", "Game started", "Game finished" notifications |
-| Cloud Scheduler (`onSchedule`) | Daily reminder for turns pending > 24 h; expire abandoned rooms |
-| App Check (App Attest) | Only allow calls from the genuine app (important with anonymous auth) |
-| Emulator Suite | Local development and integration tests |
-| Crashlytics | Crash reporting |
+| Service | Location | Purpose |
+|---|---|---|
+| Cloud Firestore | `europe-west3` | Rooms/games, private hands, device push tokens |
+| Cloud Functions (2nd gen, Node 22, TypeScript) | `europe-west3` | Room and game actions, push triggers, scheduled jobs |
+| Cloud Scheduler (`onSchedule`) | `europe-west3`, time zone `Europe/Berlin` | Hourly reminder run (see §3); expire abandoned rooms |
+| Authentication | global (Google) | Anonymous auth only (guest identity per device) |
+| Cloud Messaging (FCM → APNs) | global (Google, Apple) | "Your turn", "Game started", "Game finished" notifications |
+| App Check (App Attest) | global (Google, Apple) | Only allow calls from the genuine app (important with anonymous auth) |
+| Emulator Suite | local | Local development and integration tests |
+
+**Data location:** all game data (games, hands, display names, push tokens) is stored and
+processed in Frankfurt. Firebase Authentication, FCM and App Check are global services with no
+region choice. With anonymous auth they only hold a random user ID and technical tokens, with no
+names or emails. **Google Analytics for Firebase is not enabled.** Crash reports come from Apple's
+built-in reporting (Xcode Organizer / TestFlight) instead of Crashlytics, so the app has no
+third-party crash or analytics SDK.
+
+**Time:** timestamps are always stored in UTC (Firestore `Timestamp`) and shown in the device's
+time zone. Server schedules are defined in `Europe/Berlin`, so they follow daylight saving time.
 
 ---
 
@@ -127,7 +138,10 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 - The host (room creator) starts the game when 3–6 players have joined and can remove
   players while in the lobby.
 - **Abandoned games:** without bots or turn timers, a game can stall. Mitigations in v1:
-  - a reminder push every 24 h to the player whose turn it is,
+  - a reminder push to the player whose turn it is, once their turn has been pending for 24 h
+    and then daily. Reminders are sent only between 09:00 and 21:00 in **the player's own time
+    zone** (stored on their profile), so nobody is woken at night. The scheduled job runs hourly
+    and picks the players who are in that window,
   - any player can **leave** a running game, which ends it for everyone
     (final scores are shown as "abandoned"),
   - games with no move for 14 days are closed automatically.
@@ -139,6 +153,8 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 ```
 users/{uid}
   displayName, fcmTokens[], createdAt
+  timeZone: "Europe/Berlin"             // IANA id from the device, updated on app start
+  locale: "de-DE"                       // device language, for anything the server must phrase
 
 roomKeys/{key}                          // functions only
   gameId
@@ -172,7 +188,7 @@ games/{gameId}/secret/state             // readable by no client (functions only
 - `games/{id}`: read if `request.auth.uid in resource.data.playerUids`; no client writes.
 - `hands/{uid}`: read only by the owner; no client writes.
 - `secret/*`, `roomKeys/*`: no client access.
-- `users/{uid}`: the owner can read and write `displayName` and `fcmTokens` only.
+- `users/{uid}`: the owner can read and write `displayName`, `fcmTokens`, `timeZone` and `locale` only.
 
 ---
 
@@ -192,7 +208,7 @@ backend/
         rooms.ts         // createRoom, joinRoom, removePlayer, leaveGame, startGame
         actions.ts       // placeBid, chooseTrump, playCard
       notifications.ts   // Firestore trigger on turnUid change → FCM push
-      scheduled.ts       // daily reminders, expire stale games, free room keys
+      scheduled.ts       // hourly reminders (09–21 h player-local), expire stale games, free room keys
     test/                // Vitest unit tests + emulator integration tests
   firestore.rules
   firestore.indexes.json
@@ -214,13 +230,21 @@ Shuffling uses `crypto.randomInt` (Fisher–Yates) on the server only.
 the app directly on that game. It also notifies all players when a game starts or ends.
 Invalid FCM tokens are removed when a send fails.
 
+Push texts are **localized on the device**: the server sends APNs `loc-key` / `loc-args`
+(e.g. `PUSH_YOUR_TURN_BID`, `["K7Q2XM", "5"]`), and the app's string catalog holds the
+translations. The server never needs to know the player's language.
+
 ---
 
 ## 6. iOS app (Swift / SwiftUI)
 
 - **Target:** iOS 17+, Swift 6, SwiftUI, Swift Concurrency, `@Observable` models.
 - **Dependencies (SPM):** `firebase-ios-sdk` (Auth, Firestore, Functions, Messaging,
-  AppCheck, Crashlytics). No other third-party dependencies.
+  AppCheck). No other third-party dependencies; no analytics or crash SDK.
+- **Localization:** one `Localizable.xcstrings` string catalog (English base, German). Dates,
+  times, numbers and relative times ("3 hours ago") always use `Locale.current` /
+  `FormatStyle`, never fixed formats, so European conventions (24-hour clock, `dd.MM.yyyy`,
+  decimal comma) come from the device. Timestamps are shown in `TimeZone.current`.
 
 ```
 ios/Jesters/
@@ -300,7 +324,7 @@ The random-move test clients exist only in the test suite; they are not a produc
 | **M2** | Backend API (≈2 wk) | Room keys, room and game callables, transactions, security rules, rules tests, end-to-end test |
 | **M3** | iOS MVP (≈2–3 wk) | Guest name, home, lobby, join by key, game screen, score sheet — a full game between 3 devices |
 | **M4** | Async and push (≈1 wk) | Turn pushes, deep link from push and share links, reminders, leave/abandon, stale-game cleanup |
-| **M5** | Beta and launch (≈2 wk) | Localization pass, accessibility, App Check, Crashlytics, privacy manifest, TestFlight beta, App Store listing, prod deploy |
+| **M5** | Beta and launch (≈2 wk) | Localization pass, accessibility, App Check, privacy manifest and privacy policy (GDPR), TestFlight beta, App Store listing in the EU storefronts first, prod deploy |
 
 **After v1 (maybe):** an optional account upgrade (Sign in with Apple) to keep games
 across devices, bots to fill empty seats, rule variants (blind bidding), an iPad layout,
@@ -317,5 +341,8 @@ chat and emotes.
   "leave = end game" and the 14-day expiry keep this manageable.
 - **Abuse with anonymous auth:** App Check, per-user rate limits on `createRoom`,
   and a maximum of 20 active games per guest.
+- **GDPR:** data is minimal (random ID, display name, push token, time zone) and stored in the EU.
+  Still needed: a privacy policy, an in-app way to delete one's data (`deleteMyData`
+  callable), and a data processing agreement with Google (accepted in the Firebase console).
 - **Push reliability:** if notifications are disabled, the home screen still sorts
   "your turn" games to the top and shows a badge.
