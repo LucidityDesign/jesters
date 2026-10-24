@@ -62,10 +62,14 @@ export interface GameDoc extends PublicPlay {
   /** Incremented on every change; clients may send it to detect stale views. */
   version: number;
   abandonedBy?: string;
+  /** Set when the game was closed automatically after a long time without a move. */
+  expired?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   /** When the current player's turn started (for reminders). */
   turnSince: Timestamp | null;
+  /** When the last turn reminder was sent (see notify/reminders.ts). */
+  lastReminderAt?: Timestamp;
 }
 
 /** `games/{gameId}/hands/{uid}`: readable only by that player. */

@@ -9,3 +9,5 @@ export {
   startGame,
   updateSettings,
 } from "./api/rooms.js";
+export { expireStaleGames, sendTurnReminders } from "./scheduled.js";
+export { onGameUpdated } from "./triggers.js";
