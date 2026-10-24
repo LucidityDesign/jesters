@@ -1,0 +1,5 @@
+# Install scripts these packages don't need here (an env hint, a version notice, an optional native regex module).
+ignoredBuiltDependencies:
+  - "@firebase/util"
+  - protobufjs
+  - re2

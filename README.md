@@ -17,15 +17,15 @@ so no real Firebase project or credentials are needed.
 
 ### Backend
 
-Requirements: Node.js 22 and Java 21+ (for the Firestore emulator).
+Requirements: Node.js 22, [pnpm](https://pnpm.io) (`corepack enable` installs the version from `package.json`) and Java 21+ (for the Firestore emulator).
 
 ```sh
 cd backend/functions
-npm install
-npm run lint && npm run typecheck
-npm test                 # unit tests
-npm run test:emulator    # integration tests against the emulators
-npm run emulators        # start the emulators (UI at http://127.0.0.1:4000)
+pnpm install
+pnpm lint && pnpm typecheck
+pnpm test                # unit tests
+pnpm test:emulator       # integration tests against the emulators
+pnpm emulators           # start the emulators (UI at http://127.0.0.1:4000)
 ```
 
 ### iOS
@@ -38,7 +38,7 @@ xcodegen generate        # creates Jesters.xcodeproj (not committed; run it agai
 open Jesters.xcodeproj
 ```
 
-Start the emulators (`npm run emulators` in `backend/functions`) and run the app in the simulator.
+Start the emulators (`pnpm emulators` in `backend/functions`) and run the app in the simulator.
 Each simulator signs in as its own guest, so to play a game, run the app on three simulators
 (e.g. iPhone 16, iPhone 16 Plus and iPhone SE): create a game on one and join with its room key
 on the others. The emulator UI at http://127.0.0.1:4000 shows the Firestore documents live.
@@ -61,7 +61,7 @@ All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 f
    - create **Firestore** in `europe-west3` (Frankfurt), the same region as the functions,
    - add an **iOS app** with bundle ID `design.lucidity.jesters`, download `GoogleService-Info.plist`
      and put it in `ios/Jesters/Resources/` (it is git-ignored).
-3. Deploy manually: `cd backend/functions && npx firebase login && npm run deploy:dev`.
+3. Deploy manually: `cd backend/functions && pnpm exec firebase login && pnpm run deploy:dev`.
 
 ### Push notifications
 

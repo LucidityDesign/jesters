@@ -26,20 +26,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/functions/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: backend/functions/package-lock.json
+          cache: pnpm
+          cache-dependency-path: backend/functions/pnpm-lock.yaml
       - uses: actions/setup-java@v6 # required by the Firestore emulator
         with:
           distribution: temurin
           java-version: 21
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:coverage
-      - run: npm run test:emulator
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:coverage
+      - run: pnpm test:emulator
 
   # Deploys need a Firebase project and Workload Identity Federation (see README).
   # They stay off until the repository variable DEPLOY_ENABLED is set to "true".
@@ -53,17 +56,20 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/functions/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: backend/functions/package-lock.json
-      - run: npm ci
+          cache: pnpm
+          cache-dependency-path: backend/functions/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-      - run: npx firebase deploy --project dev --non-interactive
+      - run: pnpm exec firebase deploy --project dev --non-interactive
 
   deploy-prod:
     needs: check
@@ -75,14 +81,17 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/functions/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: backend/functions/package-lock.json
-      - run: npm ci
+          cache: pnpm
+          cache-dependency-path: backend/functions/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-      - run: npx firebase deploy --project prod --non-interactive
+      - run: pnpm exec firebase deploy --project prod --non-interactive
