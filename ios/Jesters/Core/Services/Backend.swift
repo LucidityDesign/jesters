@@ -35,7 +35,9 @@ enum Backend {
             gcmSenderID: "000000000000"
         )
         options.projectID = "demo-jesters"
-        options.apiKey = "demo-api-key"
+        // Firebase Installations (used by Messaging) rejects keys that don't look like real ones:
+        // 39 characters starting with "A". The emulators accept any key.
+        options.apiKey = "AIzaSyDemoKeyForLocalEmulatorsOnly00000"
         return options
     }
 
