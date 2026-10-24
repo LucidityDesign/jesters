@@ -4,6 +4,7 @@ import { createGame, MAX_PLAYERS, MIN_PLAYERS } from "../engine/index.js";
 import { type GameDoc, lobbyPlay } from "../game/model.js";
 import { generateRoomKey, normalizeRoomKey } from "../game/roomKey.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
+import { CALLABLE } from "../setup.js";
 import { fail, parse, requireAuth } from "./errors.js";
 import {
   CreateRoomInput,
@@ -29,7 +30,7 @@ async function checkActiveGameLimit(uid: string): Promise<void> {
 }
 
 /** Creates a room in the lobby with the caller as host. Returns its id and room key. */
-export const createRoom = onCall(async (request) => {
+export const createRoom = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(CreateRoomInput, request.data);
   await checkActiveGameLimit(uid);
@@ -63,7 +64,7 @@ export const createRoom = onCall(async (request) => {
 });
 
 /** Joins a room in the lobby by its key. Joining a room one is already in just returns it. */
-export const joinRoom = onCall(async (request) => {
+export const joinRoom = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(JoinRoomInput, request.data);
   const key = normalizeRoomKey(input.roomKey) ?? fail("ROOM_NOT_FOUND", "No room with this key.");
@@ -91,7 +92,7 @@ export const joinRoom = onCall(async (request) => {
 });
 
 /** The host starts the game: seats follow the join order, the first dealer is random. */
-export const startGame = onCall(async (request) => {
+export const startGame = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const { gameId } = parse(GameInput, request.data);
 
@@ -113,7 +114,7 @@ export const startGame = onCall(async (request) => {
 });
 
 /** The host changes the rules while in the lobby. */
-export const updateSettings = onCall(async (request) => {
+export const updateSettings = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(UpdateSettingsInput, request.data);
 
@@ -131,7 +132,7 @@ export const updateSettings = onCall(async (request) => {
 });
 
 /** The host removes another player from the lobby. */
-export const removePlayer = onCall(async (request) => {
+export const removePlayer = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(RemovePlayerInput, request.data);
 
@@ -156,44 +157,13 @@ export const removePlayer = onCall(async (request) => {
  * Leaves a game. In the lobby the player is removed (the next player becomes host; an empty room
  * is deleted). Leaving a running game ends it for everyone as "abandoned".
  */
-export const leaveGame = onCall(async (request) => {
+export const leaveGame = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const { gameId } = parse(GameInput, request.data);
 
   await getFirestore().runTransaction(async (tx) => {
     const game = await getMemberGame(tx, gameId, uid);
-    const gameRef = refs.game(gameId);
-
-    if (game.status === "finished" || game.status === "abandoned") return;
-
-    if (game.status !== "lobby") {
-      tx.update(gameRef, {
-        status: "abandoned",
-        active: false,
-        abandonedBy: uid,
-        turnSeat: null,
-        turnUid: null,
-        version: game.version + 1,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      tx.delete(refs.roomKey(game.roomKey));
-      return;
-    }
-
-    const players = game.players.filter((player) => player.uid !== uid);
-    const [nextHost] = players;
-    if (nextHost === undefined) {
-      tx.delete(gameRef);
-      tx.delete(refs.roomKey(game.roomKey));
-      return;
-    }
-    tx.update(gameRef, {
-      players,
-      playerUids: players.map((player) => player.uid),
-      hostUid: game.hostUid === uid ? nextHost.uid : game.hostUid,
-      version: game.version + 1,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    leave(tx, gameId, game, uid);
   });
   return { ok: true };
 });
@@ -207,4 +177,40 @@ export async function getMemberGame(
   if (!game) fail("GAME_NOT_FOUND", "This game does not exist.");
   if (!game.playerUids.includes(uid)) fail("NOT_IN_GAME", "You are not in this game.");
   return game;
+}
+
+/** Writes the effect of `uid` leaving `game` (see `leaveGame`). */
+export function leave(tx: Transaction, gameId: string, game: GameDoc, uid: string): void {
+  const gameRef = refs.game(gameId);
+
+  if (game.status === "finished" || game.status === "abandoned") return;
+
+  if (game.status !== "lobby") {
+    tx.update(gameRef, {
+      status: "abandoned",
+      active: false,
+      abandonedBy: uid,
+      turnSeat: null,
+      turnUid: null,
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.delete(refs.roomKey(game.roomKey));
+    return;
+  }
+
+  const players = game.players.filter((player) => player.uid !== uid);
+  const [nextHost] = players;
+  if (nextHost === undefined) {
+    tx.delete(gameRef);
+    tx.delete(refs.roomKey(game.roomKey));
+    return;
+  }
+  tx.update(gameRef, {
+    players,
+    playerUids: players.map((player) => player.uid),
+    hostUid: game.hostUid === uid ? nextHost.uid : game.hostUid,
+    version: game.version + 1,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 }

@@ -62,3 +62,24 @@ export const expireStaleGames = onSchedule(
     logger.info(`Expired ${stale.size} stale games`);
   },
 );
+
+/** How long finished and ended games are kept (see the privacy policy). */
+export const DELETE_ENDED_AFTER_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Daily: deletes games that ended 90 days ago, with their hands and state. */
+export const deleteEndedGames = onSchedule(
+  { schedule: "27 4 * * *", timeZone: SCHEDULE_TIME_ZONE },
+  async () => {
+    const cutoff = Timestamp.fromMillis(Date.now() - DELETE_ENDED_AFTER_MS);
+    const ended = await refs
+      .games()
+      .where("active", "==", false)
+      .where("updatedAt", "<=", cutoff)
+      .get();
+
+    for (const snapshot of ended.docs) {
+      await getFirestore().recursiveDelete(snapshot.ref);
+    }
+    logger.info(`Deleted ${ended.size} ended games`);
+  },
+);

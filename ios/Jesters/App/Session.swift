@@ -37,6 +37,15 @@ final class Session {
         await saveProfile()
     }
 
+    /// Deletes everything stored about this guest, then starts over as a new guest.
+    func deleteMyData() async throws {
+        try await API.deleteMyData()
+        uid = nil
+        displayName = ""
+        UserDefaults.standard.removeObject(forKey: Self.nameKey)
+        await signIn()
+    }
+
     private func saveProfile() async {
         guard let uid, hasName else { return }
         // Best effort: the profile only feeds reminders, so a failure must not block playing.

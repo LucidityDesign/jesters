@@ -16,6 +16,7 @@ export type GameStatus = "lobby" | GameState["phase"] | "abandoned";
 
 export interface Player {
   uid: string;
+  /** Empty once the player has deleted their data. */
   name: string;
 }
 

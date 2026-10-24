@@ -17,7 +17,7 @@ export default defineConfig({
         },
       },
       {
-        // Runs inside `firebase emulators:exec` (see `npm run test:emulator`).
+        // Runs inside `firebase emulators:exec` (see `pnpm test:emulator`).
         test: {
           name: "emulator",
           include: ["test/emulator/**/*.test.ts"],

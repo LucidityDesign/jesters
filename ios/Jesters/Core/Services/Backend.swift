@@ -1,3 +1,4 @@
+import FirebaseAppCheck
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
@@ -15,12 +16,17 @@ enum Backend {
     /// The launch argument `-useFirebaseEmulator YES` (set in the Debug scheme) forces the emulators.
     static func configure() {
         let hasConfigFile = Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil
+        let useEmulators = !hasConfigFile || UserDefaults.standard.bool(forKey: "useFirebaseEmulator")
+        if !useEmulators {
+            // Must be set before FirebaseApp.configure().
+            AppCheck.setAppCheckProviderFactory(AppCheckFactory())
+        }
         if hasConfigFile {
             FirebaseApp.configure()
         } else {
             FirebaseApp.configure(options: demoOptions())
         }
-        if !hasConfigFile || UserDefaults.standard.bool(forKey: "useFirebaseEmulator") {
+        if useEmulators {
             connectToEmulators()
         }
     }
@@ -51,5 +57,18 @@ enum Backend {
         Firestore.firestore().settings = settings
 
         functions().useEmulator(withHost: emulatorHost, port: 5001)
+    }
+}
+
+/// App Check proves to the backend that requests come from this app on a real device (App Attest).
+/// Debug builds and the simulator use the debug provider: it logs a token at launch, which must be
+/// added in the Firebase console under App Check → Apps → Manage debug tokens.
+final class AppCheckFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> (any AppCheckProvider)? {
+        #if DEBUG || targetEnvironment(simulator)
+        return AppCheckDebugProvider(app: app)
+        #else
+        return AppAttestProvider(app: app)
+        #endif
     }
 }

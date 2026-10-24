@@ -71,12 +71,32 @@
         }
       }
     },
+    "Bid %lld, won %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld angesagt, %2$lld gemacht"
+          }
+        }
+      }
+    },
     "Bids: %lld of %lld": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ansagen: %lld von %lld"
+          }
+        }
+      }
+    },
+    "Can't be played now": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kann jetzt nicht gespielt werden"
           }
         }
       }
@@ -131,12 +151,52 @@
         }
       }
     },
+    "Current turn": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ist am Zug"
+          }
+        }
+      }
+    },
     "Dealer": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Geber"
+          }
+        }
+      }
+    },
+    "Delete all your data?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle deine Daten löschen?"
+          }
+        }
+      }
+    },
+    "Delete my data": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine Daten löschen"
+          }
+        }
+      }
+    },
+    "Deleting your data ends your running games, removes your name from finished games and deletes your guest account. You then start over as a new guest.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du deine Daten löschst, enden deine laufenden Spiele, dein Name wird aus beendeten Spielen entfernt und dein Gastkonto gelöscht. Danach startest du als neuer Gast."
           }
         }
       }
@@ -157,6 +217,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fertig"
+          }
+        }
+      }
+    },
+    "Double-tap to play": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Spielen doppeltippen"
           }
         }
       }
@@ -187,6 +257,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beendet · Gewonnen: %@"
+          }
+        }
+      }
+    },
+    "Former player": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ehemaliger Spieler"
           }
         }
       }
@@ -741,6 +821,36 @@
         }
       }
     },
+    "Privacy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutz"
+          }
+        }
+      }
+    },
+    "Privacy policy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutzerklärung"
+          }
+        }
+      }
+    },
+    "Profile": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil"
+          }
+        }
+      }
+    },
     "Queen": {
       "localizations": {
         "de": {
@@ -807,6 +917,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Punkteliste"
+          }
+        }
+      }
+    },
+    "Score: %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punkte: %lld"
           }
         }
       }
@@ -1157,6 +1277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dein Name"
+          }
+        }
+      }
+    },
+    "Your running games end for everyone. This can't be undone.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine laufenden Spiele enden für alle. Das kann nicht rückgängig gemacht werden."
           }
         }
       }

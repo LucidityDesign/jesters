@@ -1,0 +1,96 @@
+name: TestFlight
+
+# Builds the app against the prod Firebase project and uploads it to TestFlight.
+# Runs for `v*` tags (together with the prod backend deploy) or by hand. Off until the
+# repository variable TESTFLIGHT_ENABLED is "true"; see README for the secrets it needs.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ios
+
+jobs:
+  upload:
+    if: vars.TESTFLIGHT_ENABLED == 'true'
+    runs-on: macos-latest
+    environment: prod
+    timeout-minutes: 60
+    env:
+      TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
+      ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Add the prod Firebase config
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > Jesters/Resources/GoogleService-Info.plist
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Set the privacy policy URL
+        env:
+          PRIVACY_POLICY_URL: ${{ vars.PRIVACY_POLICY_URL }}
+        run: /usr/libexec/PlistBuddy -c "Set :PrivacyPolicyURL $PRIVACY_POLICY_URL" Config/Info.plist
+      - name: Archive and upload
+        env:
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+        run: |
+          key="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$ASC_KEY" > "$key"
+          auth=(-allowProvisioningUpdates
+                -authenticationKeyPath "$key"
+                -authenticationKeyID "$ASC_KEY_ID"
+                -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+
+          # Tags name the version (v1.2.3 → 1.2.3); every run gets a new build number.
+          version=()
+          if [ "$GITHUB_REF_TYPE" = tag ]; then version=(MARKETING_VERSION="${GITHUB_REF_NAME#v}"); fi
+
+          xcodebuild archive \
+            -project Jesters.xcodeproj \
+            -scheme Jesters \
+            -configuration Release \
+            -destination generic/platform=iOS \
+            -archivePath "$RUNNER_TEMP/Jesters.xcarchive" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            "${auth[@]}" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            "${version[@]}"
+
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Jesters.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            "${auth[@]}"
+      - name: Remove the API key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"

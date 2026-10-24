@@ -13,6 +13,8 @@ private struct GameIdResponse: Decodable, Sendable {
 
 private struct OKResponse: Decodable, Sendable {}
 
+private struct EmptyRequest: Encodable, Sendable {}
+
 private struct VersionResponse: Decodable, Sendable {
     let version: Int
 }
@@ -81,6 +83,12 @@ enum API {
     /// One device per guest, so the list holds just this device's token.
     static func saveFCMToken(uid: String, token: String) async throws {
         try await Firestore.firestore().collection("users").document(uid).setData(["fcmTokens": [token]], merge: true)
+    }
+
+    /// Deletes the guest's data and account on the server (see `deleteMyData` in the backend), then signs out.
+    static func deleteMyData() async throws {
+        let _: OKResponse = try await call("deleteMyData", EmptyRequest())
+        try Auth.auth().signOut()
     }
 
     static func createRoom(name: String) async throws -> RoomResponse {

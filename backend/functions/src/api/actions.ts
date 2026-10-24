@@ -3,6 +3,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { type Action, reduce } from "../engine/index.js";
 import { stateFromSecret } from "../game/model.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
+import { CALLABLE } from "../setup.js";
 import { fail, parse, requireAuth } from "./errors.js";
 import { getMemberGame } from "./rooms.js";
 import { ChooseTrumpInput, PlaceBidInput, PlayCardInput } from "./schemas.js";
@@ -35,19 +36,19 @@ async function perform(
   });
 }
 
-export const chooseTrump = onCall(async (request) => {
+export const chooseTrump = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(ChooseTrumpInput, request.data);
   return perform(uid, input, (seat) => ({ type: "chooseTrump", seat, suit: input.suit }));
 });
 
-export const placeBid = onCall(async (request) => {
+export const placeBid = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(PlaceBidInput, request.data);
   return perform(uid, input, (seat) => ({ type: "bid", seat, bid: input.bid }));
 });
 
-export const playCard = onCall(async (request) => {
+export const playCard = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(PlayCardInput, request.data);
   return perform(uid, input, (seat) => ({ type: "play", seat, card: input.card }));

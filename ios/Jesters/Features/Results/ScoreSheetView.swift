@@ -28,7 +28,9 @@ struct ScoreSheetView: View {
                                     Text(verbatim: "\(result.bids[safe: seat] ?? 0)/\(result.won[safe: seat] ?? 0)")
                                         .font(.caption)
                                         .foregroundStyle((result.deltas[safe: seat] ?? 0) > 0 ? Color.green : Color.red)
+                                        .accessibilityLabel(Text("Bid \(result.bids[safe: seat] ?? 0), won \(result.won[safe: seat] ?? 0)"))
                                 }
+                                .accessibilityElement(children: .combine)
                             }
                         }
                     }

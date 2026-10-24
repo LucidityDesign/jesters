@@ -16,6 +16,18 @@ struct Player: Codable, Sendable, Hashable {
     let name: String
 }
 
+extension Player {
+    /// The backend stores an empty name once a player has deleted their data.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let name = try container.decode(String.self, forKey: .name)
+        self.init(
+            uid: try container.decode(String.self, forKey: .uid),
+            name: name.isEmpty ? String(localized: "Former player") : name
+        )
+    }
+}
+
 struct GameSettings: Codable, Sendable, Hashable {
     var noEvenBids: Bool
 }

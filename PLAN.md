@@ -105,7 +105,7 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 |---|---|---|
 | Cloud Firestore | `europe-west3` | Rooms/games, private hands, device push tokens |
 | Cloud Functions (2nd gen, Node 22, TypeScript) | `europe-west3` | Room and game actions, push triggers, scheduled jobs |
-| Cloud Scheduler (`onSchedule`) | `europe-west3`, time zone `Europe/Berlin` | Hourly reminder run (see §3); expire abandoned rooms |
+| Cloud Scheduler (`onSchedule`) | `europe-west3`, time zone `Europe/Berlin` | Hourly reminder run (see §3); expire games after 14 days without a move; delete ended games after 90 days |
 | Authentication | global (Google) | Anonymous auth only (guest identity per device) |
 | Cloud Messaging (FCM → APNs) | global (Google, Apple) | "Your turn", "Game started", "Game finished" notifications |
 | App Check (App Attest) | global (Google, Apple) | Only allow calls from the genuine app (important with anonymous auth) |
@@ -352,7 +352,10 @@ chat and emotes.
 - **Abuse with anonymous auth:** App Check, per-user rate limits on `createRoom`,
   and a maximum of 20 active games per guest.
 - **GDPR:** data is minimal (random ID, display name, push token, time zone) and stored in the EU.
-  Still needed: a privacy policy, an in-app way to delete one's data (`deleteMyData`
-  callable), and a data processing agreement with Google (accepted in the Firebase console).
+  Players delete their data in the app (`deleteMyData`); ended games are deleted after 90 days.
+  The privacy policy draft (`docs/privacy-policy.md`) needs the controller's details and a legal
+  review; the data processing terms are accepted in the Firebase console.
+- **Abandoned guest profiles:** a guest who deletes the app without deleting their data leaves a
+  profile behind (name, push token). A cleanup of profiles without games is a possible follow-up.
 - **Push reliability:** if notifications are disabled, the home screen still sorts
   "your turn" games to the top and shows a badge.

@@ -58,6 +58,12 @@ struct TableView: View {
             }
         }
         .sensoryFeedback(.impact, trigger: isMyTurn) { wasMyTurn, isMyTurn in !wasMyTurn && isMyTurn }
+        .onChange(of: isMyTurn) { _, isMyTurn in
+            // VoiceOver users don't see the banner change.
+            if isMyTurn {
+                AccessibilityNotification.Announcement(bannerText).post()
+            }
+        }
         .onChange(of: game.version) { selectedCard = nil }
     }
 
@@ -152,8 +158,10 @@ struct PlayersView: View {
                         .font(.subheadline.bold())
                         .monospacedDigit()
                         .frame(minWidth: 44, alignment: .trailing)
+                        .accessibilityLabel(Text("Score: \(game.totals[safe: seat] ?? 0)"))
                 }
                 .accessibilityElement(children: .combine)
+                .accessibilityValue(game.turnSeat == seat ? Text("Current turn") : Text(verbatim: ""))
             }
         }
         .padding(.horizontal)
@@ -251,6 +259,8 @@ struct HandView: View {
                     CardView(card: card, isDimmed: canPlay && !isPlayable, isSelected: selected == card)
                         .onTapGesture { tap(card, isPlayable: isPlayable) }
                         .accessibilityAddTraits(isPlayable ? .isButton : [])
+                        .accessibilityValue(canPlay && !isPlayable ? Text("Can't be played now") : Text(verbatim: ""))
+                        .accessibilityHint(isPlayable ? Text("Double-tap to play") : Text(verbatim: ""))
                         .accessibilityAction {
                             if isPlayable { onPlay(card) }
                         }

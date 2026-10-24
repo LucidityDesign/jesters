@@ -63,6 +63,19 @@ All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 f
      and put it in `ios/Jesters/Resources/` (it is git-ignored).
 3. Deploy manually: `cd backend/functions && pnpm exec firebase login && pnpm run deploy:dev`.
 
+### App Check
+
+The callables only accept requests from the genuine app (`ENFORCE_APP_CHECK` in
+`backend/functions/.env`; the emulators run without it). In each Firebase project:
+
+1. **App Check → Apps:** register the iOS app with **App Attest**.
+2. Debug builds and the simulator use the debug provider: on launch the app logs
+   `Firebase App Check debug token: …`. Add it under **App Check → Apps → Manage debug tokens**.
+3. After a test round, also turn on enforcement for **Firestore** and **Authentication** in the
+   App Check console (the callables already enforce it).
+
+The app uses no App Check while it talks to the emulators.
+
 ### Push notifications
 
 1. In the Apple Developer account, create an **APNs authentication key** (.p8) and upload it in
@@ -81,6 +94,18 @@ translated on the device (`PUSH_*` keys in `Localizable.xcstrings`).
 The app opens `jesters://join/<room key>` and pre-fills the join screen. It also understands
 `https://<domain>/join/<room key>`, which will work as soon as a domain with Universal Links is set up.
 
+### Privacy
+
+- `docs/privacy-policy.md` is a draft in German and English. Fill in the controller's details,
+  have it reviewed and publish it on a website. Set its address as `PrivacyPolicyURL` in
+  `ios/project.yml` (and as the `PRIVACY_POLICY_URL` variable for TestFlight builds); the profile
+  screen shows the link once it is set.
+- Players delete their data in the app under **Profile → Delete my data** (`deleteMyData`).
+- `ios/Jesters/Resources/PrivacyInfo.xcprivacy` declares the collected data for the App Store.
+  Answer App Store Connect's privacy questions the same way: user ID, name, device ID (push token),
+  gameplay content and other data (time zone, language), all linked to the user, for app
+  functionality, no tracking.
+
 ### Deploying from CI
 
 The `Backend` workflow deploys `main` to the dev project and `v*` tags to the prod project.
@@ -91,3 +116,19 @@ Deploying is off until it is configured:
 2. Create the GitHub environments `dev` and `prod`. In each, set the variables
    `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_SERVICE_ACCOUNT`.
 3. Set the repository variable `DEPLOY_ENABLED` to `true`.
+
+### TestFlight
+
+The `TestFlight` workflow archives the app against the prod Firebase project and uploads it to
+App Store Connect, for every `v*` tag (`v1.2.0` → version 1.2.0) or by hand. It is off until it is
+configured:
+
+1. Create the app in App Store Connect with bundle ID `design.lucidity.jesters`.
+2. Create an **App Store Connect API key** with the *Admin* role (needed for cloud signing).
+3. In the GitHub environment `prod`, set
+   - the variables `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`
+     and `PRIVACY_POLICY_URL`,
+   - the secrets `APP_STORE_CONNECT_KEY` (the contents of the `.p8` file) and
+     `GOOGLE_SERVICE_INFO_PLIST` (the prod `GoogleService-Info.plist`, base64-encoded:
+     `base64 -i GoogleService-Info.plist | pbcopy`).
+4. Set the repository variable `TESTFLIGHT_ENABLED` to `true`.
