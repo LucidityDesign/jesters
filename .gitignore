@@ -24,6 +24,6 @@ firebase-export-*/
 ios/Config/
 
 # Web
-web/dist/
+backend/hosting/
 web/test-results/
 web/playwright-report/

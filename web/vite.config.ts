@@ -56,7 +56,12 @@ export default defineConfig({
   define: { __FIREBASE_CONFIG__: JSON.stringify(firebaseConfig()) },
   // The privacy policy is rendered from ../docs/privacy-policy.md.
   server: { fs: { allow: [".."] } },
-  // Most of the bundle is the Firebase SDK (Firestore with live listeners).
-  build: { chunkSizeWarningLimit: 1200 },
+  build: {
+    // Firebase Hosting only serves folders inside its project directory (backend/).
+    outDir: "../backend/hosting",
+    emptyOutDir: true,
+    // Most of the bundle is the Firebase SDK (Firestore with live listeners).
+    chunkSizeWarningLimit: 1200,
+  },
   test: { include: ["src/**/*.test.ts"] },
 });

@@ -19,7 +19,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "../web/dist",
+    "public": "hosting",
     "predeploy": ["pnpm --dir \"$PROJECT_DIR/../web\" build"],
     "rewrites": [
       {
