@@ -160,7 +160,7 @@ Deploying is off until it is configured:
 
 1. Give the workflow a way to sign in to Google Cloud, either
    - **a service account key** (simplest): in Google Cloud → IAM → Service accounts, create an
-     account with the roles *Firebase Admin* and *Service Account User*, create a JSON key and
+     account with the roles listed below, create a JSON key and
      store its full contents as the repository secret `FIREBASE_SERVICE_ACCOUNT`. The key is a
      long-lived password: keep it only in that secret and delete it when you no longer need it; or
    - **[Workload Identity Federation](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account)**
@@ -168,7 +168,22 @@ Deploying is off until it is configured:
      `GCP_SERVICE_ACCOUNT`.
 2. Set the repository variable `DEPLOY_ENABLED` to `true`.
 
-If the first deploy reports a missing permission, add that role to the service account.
+Roles for the deploy account (Google Cloud → IAM → pencil next to the account):
+
+| Role | Needed for |
+| --- | --- |
+| Firebase Admin | Functions, Hosting, Firestore rules and indexes, Authentication settings |
+| Service Account User | Running the functions as the default compute account |
+| Service Usage Admin | Turning on the Google Cloud APIs the deploy needs |
+| Cloud Scheduler Admin | The scheduled jobs (reminders, closing and deleting old games) |
+| Artifact Registry Administrator | Optional: the clean-up policy for old function images (otherwise a few cents per month) |
+
+On the first functions deploy, Firebase also asks for three one-time bindings for Google's own
+service agents (Pub/Sub token creator, Cloud Run invoker, Eventarc event receiver). Only a project
+owner can add them; the deploy log prints the exact `gcloud` commands. A first-time "Eventarc
+Service Agent" permission error goes away when the deploy runs again a few minutes later.
+
+If a deploy reports another missing permission, add that role to the service account.
 
 ### TestFlight
 
