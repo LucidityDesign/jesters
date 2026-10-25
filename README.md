@@ -86,8 +86,9 @@ All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 f
 
 ### App Check
 
-The callables only accept requests from the genuine app (`ENFORCE_APP_CHECK` in
-`backend/functions/.env`; the emulators run without it). In the Firebase project:
+The callables can be set to accept only requests from the genuine apps. CI deploys keep this off
+until the repository variable `ENFORCE_APP_CHECK` is `true`; set it once both apps are registered
+(the emulators always run without App Check). In the Firebase project:
 
 1. **App Check → Apps:** register the iOS app with **App Attest**.
 2. Debug builds and the simulator use the debug provider: on launch the app logs
@@ -118,8 +119,9 @@ The app opens `jesters://join/<room key>` and pre-fills the join screen. It also
 ### Web app and domain
 
 Firebase Hosting serves the web app at `https://<project-id>.web.app` (add your own domain under
-**Hosting → Add custom domain**). The app reads its Firebase config from Hosting
-(`/__/firebase/init.json`), so the build needs no project settings.
+**Hosting → Add custom domain**, and add it under **Authentication → Settings → Authorized
+domains**). The web app config from the secret `FIREBASE_CONFIG_JSON` (JSON or the console's
+`firebaseConfig` snippet) is built in; without it, the app reads the config from Hosting.
 
 1. **App Check:** in **App Check → Apps**, register the web app with **reCAPTCHA Enterprise** and
    create a site key for the hosting domain(s). Set it as the repository variable
@@ -147,8 +149,14 @@ Firebase Hosting serves the web app at `https://<project-id>.web.app` (add your 
 ### Deploying from CI
 
 The `Firebase` workflow checks the backend and the web app, then deploys both (functions,
-Firestore rules and indexes, hosting) to the project in the `PROJECT_ID` secret on every push to
-`main`. Deploying is off until it is configured:
+Firestore rules and indexes, hosting) to the project `PROJECT_ID` (a repository variable or
+secret; as a variable, the log shows the web app's address) on every push to `main`, or by hand
+under **Actions → Firebase → Run workflow**. Before deploying, it prepares the project where its
+account is allowed to: it enables the APIs, creates Firestore in `europe-west3` and turns on
+anonymous sign-in, and otherwise names the console step to do by hand
+(`backend/scripts/prepare-project.sh`). Afterwards it checks that the web app answers.
+
+Deploying is off until it is configured:
 
 1. Give the workflow a way to sign in to Google Cloud, either
    - **a service account key** (simplest): in Google Cloud → IAM → Service accounts, create an

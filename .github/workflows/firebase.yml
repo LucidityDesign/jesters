@@ -96,13 +96,16 @@ jobs:
           path: web/test-results/
           retention-days: 7
 
-  # Deploys `main` to the Firebase project in the PROJECT_ID secret (see README). Off until the
-  # repository variable DEPLOY_ENABLED is "true".
+  # Deploys to the Firebase project in the PROJECT_ID secret: every push to `main`, or by hand
+  # (Actions → Firebase → Run workflow). Off until the repository variable DEPLOY_ENABLED is "true".
   deploy:
     needs: [backend, web]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     concurrency:
       group: firebase-deploy
       cancel-in-progress: false
@@ -110,12 +113,12 @@ jobs:
       contents: read
       id-token: write
     env:
-      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      PROJECT_ID: ${{ vars.PROJECT_ID || secrets.PROJECT_ID }}
       HAS_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
     steps:
       - name: Check the configuration
         run: |
-          if [ -z "$PROJECT_ID" ]; then echo "::error::Set the PROJECT_ID secret."; exit 1; fi
+          if [ -z "$PROJECT_ID" ]; then echo "::error::Set PROJECT_ID (a repository variable or secret)."; exit 1; fi
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
@@ -142,9 +145,27 @@ jobs:
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - name: Prepare the project (APIs, Firestore, anonymous sign-in)
+        run: backend/scripts/prepare-project.sh
+      - name: Configure the functions
+        # App Check stays off until the apps are registered for it (README → App Check).
+        run: echo "ENFORCE_APP_CHECK=${{ vars.ENFORCE_APP_CHECK || 'false' }}" > "backend/functions/.env.$PROJECT_ID"
       # The hosting predeploy hook builds the web app with these settings.
-      - run: pnpm exec firebase deploy --project "$PROJECT_ID" --non-interactive --force
+      - name: Deploy functions, Firestore rules and indexes, and the web app
+        run: pnpm exec firebase deploy --project "$PROJECT_ID" --non-interactive --force
         working-directory: backend/functions
         env:
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+          FIREBASE_PROJECT_ID: ${{ vars.PROJECT_ID || secrets.PROJECT_ID }}
           VITE_RECAPTCHA_SITE_KEY: ${{ vars.RECAPTCHA_SITE_KEY }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      - name: Check the web app
+        run: |
+          url="https://$PROJECT_ID.web.app"
+          for path in / /join/ABCDEF /privacy; do
+            status=$(curl -sS -o /tmp/page.html -w "%{http_code}" "$url$path")
+            if [ "$status" != 200 ] || ! grep -q 'id="root"' /tmp/page.html; then
+              echo "::error::$url$path answered $status"; exit 1
+            fi
+          done
+          echo "Web app: $url" >> "$GITHUB_STEP_SUMMARY"

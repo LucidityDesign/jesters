@@ -10,8 +10,8 @@ const EMULATOR_HOST = "127.0.0.1";
 
 /**
  * The dev server (`pnpm dev`) talks to the local emulators with the `demo-jesters` project.
- * Built apps read their config from Firebase Hosting (`/__/firebase/init.json`), so the same
- * build works for the dev and the prod project.
+ * Built apps use the config built in from FIREBASE_CONFIG_JSON, or else read it from Firebase
+ * Hosting (`/__/firebase/init.json`).
  */
 export const usesEmulators = import.meta.env.DEV;
 
@@ -33,7 +33,8 @@ let services: Services | undefined;
 export async function initFirebase(): Promise<Services> {
   const options = usesEmulators
     ? demoOptions
-    : ((await (await fetch("/__/firebase/init.json")).json()) as FirebaseOptions);
+    : (__FIREBASE_CONFIG__ ??
+      ((await (await fetch("/__/firebase/init.json")).json()) as FirebaseOptions));
   const app = initializeApp(options);
 
   // App Check proves to the backend that requests come from this site (reCAPTCHA Enterprise).
