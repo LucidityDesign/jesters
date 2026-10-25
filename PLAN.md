@@ -314,14 +314,16 @@ The random-move test clients exist only in the test suite; they are not a produc
 
 ## 8. Tooling, CI/CD and environments
 
-- **Monorepo:** `backend/`, `ios/`, `.github/workflows/`.
-- **Firebase projects:** `jesters-dev` and `jesters-prod` (aliases in `.firebaserc`).
+- **Monorepo:** `backend/`, `web/`, `ios/`, `docs/`, `.github/workflows/`.
+- **Firebase project:** one project for now (ID in the GitHub secret `PROJECT_ID`); the emulators
+  use `demo-jesters`. A separate test project can be added later.
 - **GitHub Actions:**
-  - `backend.yml`: lint (ESLint, Prettier), typecheck and tests on the emulator →
-    deploy functions, rules and indexes to dev on `main` → deploy to prod on tags.
-  - `ios.yml` (macOS runner): build and run tests; Xcode Cloud or Fastlane for TestFlight.
-- **Secrets:** a Firebase service account via GitHub OIDC (Workload Identity Federation);
-  `GoogleService-Info.plist` per environment; an APNs auth key uploaded to Firebase.
+  - `firebase.yml`: backend and web checks (lint, typecheck, unit tests, emulator and browser
+    tests) → deploy functions, rules, indexes and hosting on `main`.
+  - `ios.yml` (macOS runner): build and run tests.
+  - `testflight.yml`: archive and upload to TestFlight on `v*` tags.
+- **Secrets:** a service account key or Workload Identity Federation for deploys;
+  `GoogleService-Info.plist` for TestFlight builds; an APNs auth key uploaded to Firebase.
 
 ---
 
@@ -334,7 +336,7 @@ The random-move test clients exist only in the test suite; they are not a produc
 | **M2** | Backend API (≈2 wk) | Room keys, room and game callables, transactions, security rules, rules tests, end-to-end test |
 | **M3** | iOS MVP (≈2–3 wk) | Guest name, home, lobby, join by key, game screen, score sheet — a full game between 3 devices |
 | **M4** | Async and push (≈1 wk) | Turn pushes, deep link from push and share links, reminders, leave/abandon, stale-game cleanup |
-| **M5** | Beta and launch (≈2 wk) | Localization pass, accessibility, App Check, privacy manifest and privacy policy (GDPR), TestFlight beta, App Store listing in the EU storefronts first, prod deploy |
+| **M5** | Beta and launch (≈2 wk) | Localization pass, accessibility, App Check, privacy manifest and privacy policy (GDPR), TestFlight beta, App Store listing in the EU storefronts first |
 | **M6** | Web app | React web app with the full game (guest, lobby, table, scores), English and German, served by Firebase Hosting; invite links and the privacy policy on the web domain; no web notifications |
 
 **After v1 (maybe):** an optional account upgrade (Sign in with Apple) to keep games

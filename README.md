@@ -69,22 +69,25 @@ Untick that argument in the scheme to use the real project.
 
 All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 for the data location.
 
-1. Create two Firebase projects (e.g. `jesters-dev` and `jesters-prod`) and put their IDs into
-   `backend/.firebaserc`. **Turn off Google Analytics** when creating them.
-2. In each project:
+1. Create one Firebase project. **Turn off Google Analytics** when creating it. Its ID goes into the
+   GitHub secret `PROJECT_ID`. (A separate test project can be added later.)
+2. In the project:
    - upgrade to the **Blaze** plan (required for Cloud Functions),
    - whenever the console asks for a location (default resource location, Firestore, Cloud Scheduler), choose `europe-west3`,
    - accept Google's data processing terms (GDPR) in the project's privacy settings,
    - enable **Authentication → Anonymous**,
    - create **Firestore** in `europe-west3` (Frankfurt), the same region as the functions,
    - add an **iOS app** with bundle ID `design.lucidity.jesters`, download `GoogleService-Info.plist`
-     and put it in `ios/Jesters/Resources/` (it is git-ignored).
-3. Deploy manually: `cd backend/functions && pnpm exec firebase login && pnpm run deploy:dev`.
+     and put it in `ios/Jesters/Resources/` (it is git-ignored),
+   - add a **web app** and link it to the default Hosting site. The web app reads this config from
+     Hosting at runtime, so it is not needed anywhere else (not as a secret either).
+3. Deploy manually: `cd backend/functions && pnpm exec firebase login && pnpm run deploy --project <project-id>`.
+   This deploys the functions, Firestore rules and indexes, and the web app.
 
 ### App Check
 
 The callables only accept requests from the genuine app (`ENFORCE_APP_CHECK` in
-`backend/functions/.env`; the emulators run without it). In each Firebase project:
+`backend/functions/.env`; the emulators run without it). In the Firebase project:
 
 1. **App Check → Apps:** register the iOS app with **App Attest**.
 2. Debug builds and the simulator use the debug provider: on launch the app logs
@@ -98,7 +101,7 @@ The app uses no App Check while it talks to the emulators.
 
 1. In the Apple Developer account, create an **APNs authentication key** (.p8) and upload it in
    the Firebase console under **Project settings → Cloud Messaging → Apple app configuration**
-   (for each Firebase project).
+   (only the key ID and your team ID are needed besides the file).
 2. In Xcode, select your development team for the `Jesters` target. The push entitlement is
    already set in `project.yml`.
 3. Notifications need the real Firebase project (not the emulators) and a device, or a simulator
@@ -115,14 +118,14 @@ The app opens `jesters://join/<room key>` and pre-fills the join screen. It also
 ### Web app and domain
 
 Firebase Hosting serves the web app at `https://<project-id>.web.app` (add your own domain under
-**Hosting → Add custom domain**). The app reads its Firebase config from Hosting, so one build works
-for every project.
+**Hosting → Add custom domain**). The app reads its Firebase config from Hosting
+(`/__/firebase/init.json`), so the build needs no project settings.
 
 1. **App Check:** in **App Check → Apps**, register the web app with **reCAPTCHA Enterprise** and
-   create a site key for the hosting domain(s). Set it as the `RECAPTCHA_SITE_KEY` variable in the
-   GitHub environments `dev` and `prod` (the deploy builds it in as `VITE_RECAPTCHA_SITE_KEY`).
+   create a site key for the hosting domain(s). Set it as the repository variable
+   `RECAPTCHA_SITE_KEY` (the deploy builds it in as `VITE_RECAPTCHA_SITE_KEY`).
    Without it, the web app's requests are rejected once App Check is enforced.
-2. **Invite links / Universal Links:** set the `APPLE_TEAM_ID` variable as well; the build then
+2. **Invite links / Universal Links:** set the repository variable `APPLE_TEAM_ID` as well; the build then
    serves `/.well-known/apple-app-site-association`, so `https://<domain>/join/<key>` opens the iOS
    app when it is installed and the web app otherwise. In the iOS app, add the capability
    *Associated Domains* with `applinks:<domain>` (in `ios/project.yml` under `entitlements`).
@@ -144,27 +147,33 @@ for every project.
 ### Deploying from CI
 
 The `Firebase` workflow checks the backend and the web app, then deploys both (functions,
-Firestore rules and indexes, hosting): `main` to the dev project and `v*` tags to the prod project.
-Deploying is off until it is configured:
+Firestore rules and indexes, hosting) to the project in the `PROJECT_ID` secret on every push to
+`main`. Deploying is off until it is configured:
 
-1. Set up [Workload Identity Federation](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account)
-   for this repository, with a service account that can deploy to Firebase.
-2. Create the GitHub environments `dev` and `prod`. In each, set the variables
-   `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_SERVICE_ACCOUNT`.
-3. Set the repository variable `DEPLOY_ENABLED` to `true`.
+1. Give the workflow a way to sign in to Google Cloud, either
+   - **a service account key** (simplest): in Google Cloud → IAM → Service accounts, create an
+     account with the roles *Firebase Admin* and *Service Account User*, create a JSON key and
+     store its full contents as the repository secret `FIREBASE_SERVICE_ACCOUNT`. The key is a
+     long-lived password: keep it only in that secret and delete it when you no longer need it; or
+   - **[Workload Identity Federation](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account)**
+     (no stored key): set the repository variables `GCP_WORKLOAD_IDENTITY_PROVIDER` and
+     `GCP_SERVICE_ACCOUNT`.
+2. Set the repository variable `DEPLOY_ENABLED` to `true`.
+
+If the first deploy reports a missing permission, add that role to the service account.
 
 ### TestFlight
 
-The `TestFlight` workflow archives the app against the prod Firebase project and uploads it to
+The `TestFlight` workflow archives the app against the Firebase project and uploads it to
 App Store Connect, for every `v*` tag (`v1.2.0` → version 1.2.0) or by hand. It is off until it is
 configured:
 
 1. Create the app in App Store Connect with bundle ID `design.lucidity.jesters`.
 2. Create an **App Store Connect API key** with the *Admin* role (needed for cloud signing).
-3. In the GitHub environment `prod`, set
+3. In the repository settings (**Secrets and variables → Actions**), set
    - the variables `APPLE_TEAM_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`
      and `PRIVACY_POLICY_URL`,
    - the secrets `APP_STORE_CONNECT_KEY` (the contents of the `.p8` file) and
-     `GOOGLE_SERVICE_INFO_PLIST` (the prod `GoogleService-Info.plist`, base64-encoded:
+     `GOOGLE_SERVICE_INFO_PLIST` (the project's `GoogleService-Info.plist`, base64-encoded:
      `base64 -i GoogleService-Info.plist | pbcopy`).
 4. Set the repository variable `TESTFLIGHT_ENABLED` to `true`.

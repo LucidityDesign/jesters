@@ -1,8 +1,8 @@
 name: TestFlight
 
-# Builds the app against the prod Firebase project and uploads it to TestFlight.
-# Runs for `v*` tags (together with the prod backend deploy) or by hand. Off until the
-# repository variable TESTFLIGHT_ENABLED is "true"; see README for the secrets it needs.
+# Builds the app against the Firebase project and uploads it to TestFlight.
+# Runs for `v*` tags or by hand. Off until the repository variable TESTFLIGHT_ENABLED is "true";
+# see README for the secrets it needs.
 
 on:
   push:
@@ -24,7 +24,6 @@ jobs:
   upload:
     if: vars.TESTFLIGHT_ENABLED == 'true'
     runs-on: macos-latest
-    environment: prod
     timeout-minutes: 60
     env:
       TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
@@ -32,7 +31,7 @@ jobs:
       ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
     steps:
       - uses: actions/checkout@v7
-      - name: Add the prod Firebase config
+      - name: Add the Firebase config
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
         run: printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > Jesters/Resources/GoogleService-Info.plist

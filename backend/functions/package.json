@@ -16,8 +16,7 @@
     "test:coverage": "vitest run --project unit --coverage",
     "test:emulator": "pnpm build && firebase emulators:exec --project demo-jesters --only auth,firestore,functions \"vitest run --project emulator\"",
     "emulators": "pnpm build && firebase emulators:start --project demo-jesters",
-    "deploy:dev": "firebase deploy --project dev",
-    "deploy:prod": "firebase deploy --project prod"
+    "deploy": "firebase deploy"
   },
   "dependencies": {
     "firebase-admin": "^14.5.0",
