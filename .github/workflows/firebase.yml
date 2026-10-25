@@ -150,9 +150,11 @@ jobs:
       - name: Configure the functions
         # App Check stays off until the apps are registered for it (README → App Check).
         run: echo "ENFORCE_APP_CHECK=${{ vars.ENFORCE_APP_CHECK || 'false' }}" > "backend/functions/.env.$PROJECT_ID"
+      # Two deploys, so a problem with the functions (often a missing role for the scheduled
+      # jobs) doesn't keep the web app from being published, and the other way round.
       # The hosting predeploy hook builds the web app with these settings.
-      - name: Deploy functions, Firestore rules and indexes, and the web app
-        run: pnpm exec firebase deploy --project "$PROJECT_ID" --non-interactive --force
+      - name: Deploy Firestore rules and indexes, and the web app
+        run: pnpm exec firebase deploy --only firestore,hosting --project "$PROJECT_ID" --non-interactive --force
         working-directory: backend/functions
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
@@ -169,3 +171,7 @@ jobs:
             fi
           done
           echo "Web app: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy the functions
+        if: ${{ !cancelled() }}
+        run: pnpm exec firebase deploy --only functions --project "$PROJECT_ID" --non-interactive --force
+        working-directory: backend/functions
