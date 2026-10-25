@@ -175,6 +175,22 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm exec firebase deploy --only functions --project "$PROJECT_ID" --non-interactive --force
         working-directory: backend/functions
+      # The apps call the game functions directly, so everyone must be allowed to invoke them.
+      # Firebase grants this only when it creates a function; if that first deploy failed
+      # half-way, the functions stay private and every call fails. Grant it on every deploy.
+      - name: Allow the apps to call the game functions
+        working-directory: backend/functions
+        run: |
+          callables=$(node -e 'import("./lib/index.js").then((m) => console.log(Object.entries(m)
+            .filter(([, f]) => f?.__endpoint?.callableTrigger).map(([name]) => name).join(" ")))')
+          for fn in $callables; do
+            gcloud functions add-invoker-policy-binding "$fn" --region europe-west3 \
+              --project "$PROJECT_ID" --member allUsers --quiet >/dev/null || {
+              echo "::error::Can't make $fn public: give the deploy account the role Cloud Run Admin."
+              exit 1
+            }
+          done
+          echo "Public: $callables"
       # Firebase skips unchanged functions, even when their Cloud Scheduler job failed to be created
       # in an earlier deploy (e.g. before the deploy account had the role). Redeploy those.
       - name: Check the scheduled jobs
