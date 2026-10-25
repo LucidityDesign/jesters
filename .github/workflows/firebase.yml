@@ -175,3 +175,24 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm exec firebase deploy --only functions --project "$PROJECT_ID" --non-interactive --force
         working-directory: backend/functions
+      # Firebase skips unchanged functions, even when their Cloud Scheduler job failed to be created
+      # in an earlier deploy (e.g. before the deploy account had the role). Redeploy those.
+      - name: Check the scheduled jobs
+        working-directory: backend/functions
+        run: |
+          jobs=$(gcloud scheduler jobs list --location europe-west3 --project "$PROJECT_ID" \
+            --format="value(name)") || {
+            echo "::error::Can't read the Cloud Scheduler jobs: give the deploy account the role Cloud Scheduler Admin."
+            exit 1
+          }
+          missing=""
+          for fn in sendTurnReminders expireStaleGames deleteEndedGames; do
+            grep -q "firebase-schedule-$fn-europe-west3" <<<"$jobs" || missing="$missing,functions:$fn"
+          done
+          if [ -n "$missing" ]; then
+            echo "Redeploying functions without a schedule: ${missing#,}"
+            FUNCTIONS_DEPLOY_UNCHANGED=true pnpm exec firebase deploy --only "${missing#,}" \
+              --project "$PROJECT_ID" --non-interactive --force
+          else
+            echo "All scheduled jobs exist."
+          fi
