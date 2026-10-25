@@ -1,0 +1,4 @@
+# Install scripts these packages don't need here (an env hint and a version notice).
+ignoredBuiltDependencies:
+  - "@firebase/util"
+  - protobufjs

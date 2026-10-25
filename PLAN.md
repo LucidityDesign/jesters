@@ -335,6 +335,7 @@ The random-move test clients exist only in the test suite; they are not a produc
 | **M3** | iOS MVP (≈2–3 wk) | Guest name, home, lobby, join by key, game screen, score sheet — a full game between 3 devices |
 | **M4** | Async and push (≈1 wk) | Turn pushes, deep link from push and share links, reminders, leave/abandon, stale-game cleanup |
 | **M5** | Beta and launch (≈2 wk) | Localization pass, accessibility, App Check, privacy manifest and privacy policy (GDPR), TestFlight beta, App Store listing in the EU storefronts first, prod deploy |
+| **M6** | Web app | React web app with the full game (guest, lobby, table, scores), English and German, served by Firebase Hosting; invite links and the privacy policy on the web domain; no web notifications |
 
 **After v1 (maybe):** an optional account upgrade (Sign in with Apple) to keep games
 across devices, bots to fill empty seats, rule variants (blind bidding), an iPad layout,

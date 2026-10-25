@@ -1,0 +1,121 @@
+name: Firebase
+
+# Checks the backend and the web app; deploys both (functions, Firestore rules, hosting).
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths:
+      - "backend/**"
+      - "web/**"
+      - "docs/privacy-policy.md"
+      - ".github/workflows/firebase.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "web/**"
+      - "docs/privacy-policy.md"
+      - ".github/workflows/firebase.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend/functions
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/functions/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: backend/functions/pnpm-lock.yaml
+      - uses: actions/setup-java@v6 # required by the Firestore emulator
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:coverage
+      - run: pnpm test:emulator
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            web/pnpm-lock.yaml
+            backend/functions/pnpm-lock.yaml
+      - uses: actions/setup-java@v6 # required by the Firestore emulator
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Install the backend for the emulators
+        working-directory: backend/functions
+        run: pnpm install --frozen-lockfile && pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Browser tests against the emulators
+        working-directory: backend/functions
+        run: >
+          pnpm exec firebase emulators:exec --project demo-jesters --only auth,firestore,functions
+          "pnpm --dir ../../web test:e2e"
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: playwright-traces
+          path: web/test-results/
+          retention-days: 7
+
+  # Deploys need a Firebase project and Workload Identity Federation (see README).
+  # They stay off until the repository variable DEPLOY_ENABLED is set to "true".
+  deploy-dev:
+    needs: [backend, web]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/firebase-deploy.yml
+    with:
+      environment: dev
+      project: dev
+
+  deploy-prod:
+    needs: [backend, web]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && vars.DEPLOY_ENABLED == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/firebase-deploy.yml
+    with:
+      environment: prod
+      project: prod

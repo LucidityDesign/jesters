@@ -30,9 +30,13 @@ Jesters funktioniert ohne Registrierung. Wir verarbeiten nur, was für das Spiel
 | Spieldaten (Raumcodes, Karten, Ansagen, Stiche, Punkte) | Das Spiel durchführen |
 | Push-Token des Geräts | Benachrichtigen, wenn du dran bist (nur wenn du Mitteilungen erlaubst) |
 | Zeitzone und Sprache des Geräts | Erinnerungen nur tagsüber (9–21 Uhr) und in deiner Sprache senden |
-| App-Check-Nachweis (Apple App Attest) | Prüfen, dass Anfragen von der echten App kommen (Missbrauchsschutz) |
+| App-Check-Nachweis (Apple App Attest bzw. im Browser Google reCAPTCHA Enterprise) | Prüfen, dass Anfragen von der echten App kommen (Missbrauchsschutz) |
 
 Wir verwenden keine Werbung, kein Tracking und keine Analysewerkzeuge.
+
+Im Browser speichert die Web-App deine Anmeldung als Gast und deinen Anzeigenamen im lokalen Speicher
+des Browsers (technisch notwendig, keine Cookies für Tracking). reCAPTCHA Enterprise wertet dabei
+technische Merkmale deines Browsers aus, um Missbrauch zu erkennen.
 
 ### 3. Rechtsgrundlage
 
@@ -92,9 +96,13 @@ Jesters works without registration. We only process what the game needs:
 | Game data (room keys, cards, bids, tricks, scores) | Run the game |
 | The device's push token | Notify you when it's your turn (only if you allow notifications) |
 | The device's time zone and language | Send reminders only during the day (9:00–21:00) and in your language |
-| App Check attestation (Apple App Attest) | Check that requests come from the genuine app (abuse prevention) |
+| App Check attestation (Apple App Attest, or Google reCAPTCHA Enterprise in the browser) | Check that requests come from the genuine app (abuse prevention) |
 
 We use no advertising, tracking or analytics.
+
+In the browser, the web app keeps your guest sign-in and your display name in the browser's local
+storage (technically necessary, no tracking cookies). reCAPTCHA Enterprise evaluates technical
+characteristics of your browser to detect abuse.
 
 ### 3. Legal basis
 
