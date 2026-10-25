@@ -18,7 +18,10 @@ async function moveIfMyTurn(page: Page): Promise<boolean> {
   const before = await state();
   const text = before.split("|")[0] as string;
   if (text.includes("Choose trump")) {
-    await page.getByRole("button", { name: "Hearts" }).click();
+    await page
+      .locator(".trump-picker")
+      .getByRole("button", { name: "Hearts", exact: true })
+      .click();
   } else if (text.includes("How many tricks")) {
     await page.locator(".bids button:enabled").first().click();
   } else if (text.startsWith("Your turn")) {
