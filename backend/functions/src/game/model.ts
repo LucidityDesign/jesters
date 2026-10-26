@@ -23,9 +23,10 @@ export interface Player {
   bot?: BotLevel;
 }
 
-/** The bot level of every seat, `null` for people. */
-export function botLevels(players: readonly Player[]): (BotLevel | null)[] {
-  return players.map((player) => player.bot ?? null);
+/** The level of the bot whose turn it is in a running game, or `null` when a person is to move. */
+export function botToMove(game: Pick<GameDoc, "active" | "players" | "turnSeat">): BotLevel | null {
+  if (!game.active || game.turnSeat === null) return null;
+  return game.players[game.turnSeat]?.bot ?? null;
 }
 
 export interface PublicRound {
