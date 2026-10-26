@@ -108,6 +108,13 @@ struct GameDoc: Codable, Sendable, Hashable {
         active && turnUid == uid
     }
 
+    /// The last completed trick, while it belongs to the current round. A new round starts with an
+    /// empty table: the server keeps the previous round's last trick, but it is not shown.
+    var lastTrickOfRound: LastTrick? {
+        let tricksPlayed = round?.tricksWon.reduce(0, +) ?? 0
+        return tricksPlayed > 0 ? lastTrick : nil
+    }
+
     /// Current total score by seat.
     var totals: [Int] {
         results.last?.totals ?? Array(repeating: 0, count: players.count)

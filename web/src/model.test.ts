@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardKind, type GameDoc, leaders, sortHand, totals } from "./model";
+import { cardKind, type GameDoc, lastTrickOfRound, leaders, sortHand, totals } from "./model";
 
 describe("cards", () => {
   it("reads the compact encoding", () => {
@@ -38,5 +38,20 @@ describe("scores", () => {
     expect(totals(game)).toEqual([20, 30, 30]);
     expect(leaders(game)).toEqual([1, 2]);
     expect(totals({ ...game, results: [] })).toEqual([0, 0, 0]);
+  });
+});
+
+describe("lastTrickOfRound", () => {
+  const lastTrick = { leaderSeat: 0, cards: ["H2", "H3", "H4"], winnerSeat: 2 };
+  const withTricks = (tricksWon: number[]) =>
+    ({ lastTrick, round: { tricksWon } }) as unknown as GameDoc;
+
+  it("shows the last trick during its round", () => {
+    expect(lastTrickOfRound(withTricks([0, 0, 1]))).toBe(lastTrick);
+  });
+
+  it("clears the table when a new round starts", () => {
+    expect(lastTrickOfRound(withTricks([0, 0, 0]))).toBeNull();
+    expect(lastTrickOfRound({ lastTrick: null, round: null } as unknown as GameDoc)).toBeNull();
   });
 });

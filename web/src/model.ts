@@ -86,6 +86,15 @@ export function isMyTurn(game: GameDoc, uid: string): boolean {
   return game.active && game.turnUid === uid;
 }
 
+/**
+ * The last completed trick, while it belongs to the current round. A new round starts with an
+ * empty table: the server keeps the previous round's last trick, but it is not shown.
+ */
+export function lastTrickOfRound(game: GameDoc): LastTrick | null {
+  const tricksPlayed = game.round?.tricksWon.reduce((sum, won) => sum + won, 0) ?? 0;
+  return tricksPlayed > 0 ? game.lastTrick : null;
+}
+
 /** Current total score by seat. */
 export function totals(game: GameDoc): number[] {
   return game.results.at(-1)?.totals ?? game.players.map(() => 0);
