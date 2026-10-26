@@ -3,7 +3,16 @@ import { api } from "../api";
 import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
 import { ErrorText, Page } from "../components/Layout";
 import { t } from "../i18n";
-import { type Card, type GameDoc, type HandDoc, isMyTurn, SUITS, sortHand, totals } from "../model";
+import {
+  type Card,
+  type GameDoc,
+  type HandDoc,
+  isMyTurn,
+  lastTrickOfRound,
+  SUITS,
+  sortHand,
+  totals,
+} from "../model";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
 import { ScoreSheet } from "./ScoreSheet";
@@ -170,8 +179,9 @@ function RoundInfo({ game }: { game: GameDoc }) {
   );
 }
 
-/** The cards of the current trick, or the last trick while the next one has not started. */
+/** The cards of the current trick, or the round's last trick while the next one has not started. */
 function Trick({ game }: { game: GameDoc }) {
+  const lastTrick = lastTrickOfRound(game);
   const count = Math.max(game.players.length, 1);
   const cards = (trick: { leaderSeat: number; cards: Card[] }) => (
     <div className="trick-cards">
@@ -191,11 +201,11 @@ function Trick({ game }: { game: GameDoc }) {
           {cards(game.trick)}
           <p className="hint">{t("Current trick")}</p>
         </>
-      ) : game.lastTrick ? (
+      ) : lastTrick ? (
         <>
-          <div className="faded">{cards(game.lastTrick)}</div>
+          <div className="faded">{cards(lastTrick)}</div>
           <p className="hint">
-            {t("{name} won the last trick", { name: nameAt(game, game.lastTrick.winnerSeat) })}
+            {t("{name} won the last trick", { name: nameAt(game, lastTrick.winnerSeat) })}
           </p>
         </>
       ) : (

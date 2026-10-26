@@ -210,7 +210,7 @@ struct RoundInfoView: View {
     }
 }
 
-/// The cards of the current trick, or the last trick while the next one has not started.
+/// The cards of the current trick, or the round's last trick while the next one has not started.
 struct TrickView: View {
     let game: GameDoc
 
@@ -219,7 +219,7 @@ struct TrickView: View {
             if let trick = game.trick, !trick.cards.isEmpty {
                 cards(trick.cards, leaderSeat: trick.leaderSeat)
                 Text("Current trick").font(.caption).foregroundStyle(.secondary)
-            } else if let last = game.lastTrick {
+            } else if let last = game.lastTrickOfRound {
                 cards(last.cards, leaderSeat: last.leaderSeat)
                     .opacity(0.6)
                 Text("\(game.name(atSeat: last.winnerSeat)) won the last trick")

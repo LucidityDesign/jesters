@@ -50,6 +50,14 @@ struct GameDocTests {
         #expect(game.status.isRunning)
     }
 
+    @Test func showsTheLastTrickOnlyDuringItsRound() throws {
+        #expect(game.lastTrickOfRound?.winnerSeat == 0)
+        let newRound = Self.json.replacingOccurrences(of: #""tricksWon": [1, 0, 0]"#, with: #""tricksWon": [0, 0, 0]"#)
+        let next = try JSONDecoder().decode(GameDoc.self, from: Data(newRound.utf8))
+        #expect(next.lastTrick != nil)
+        #expect(next.lastTrickOfRound == nil)
+    }
+
     @Test func computesTotalsAndLeaders() {
         #expect(game.totals == [20, 30, 20])
         #expect(game.leaders == [1])
