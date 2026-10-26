@@ -21,6 +21,16 @@
         }
       }
     },
+    "%@ points": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Punkte"
+          }
+        }
+      }
+    },
     "%@ won the last trick": {
       "localizations": {
         "de": {
@@ -147,6 +157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abbrechen"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließen"
           }
         }
       }
@@ -941,6 +961,16 @@
         }
       }
     },
+    "Round %lld · Bid %lld, won %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runde %1$lld · %2$lld angesagt, %3$lld gemacht"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "de": {
@@ -1287,6 +1317,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Du kannst nicht %lld ansagen: Die Summe aller Ansagen darf nicht der Kartenzahl entsprechen."
+          }
+        }
+      }
+    },
+    "You made your bid!": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansage erfüllt!"
+          }
+        }
+      }
+    },
+    "You missed your bid": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansage verfehlt"
           }
         }
       }

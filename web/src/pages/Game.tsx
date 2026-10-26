@@ -1,5 +1,6 @@
 import { api } from "../api";
 import { ErrorText, Page } from "../components/Layout";
+import { RoundToast } from "../components/RoundToast";
 import { useDocument } from "../hooks";
 import { t } from "../i18n";
 import type { GameDoc, HandDoc } from "../model";
@@ -43,28 +44,37 @@ export function Game({ gameId, uid }: { gameId: string; uid: string }) {
     </button>
   );
 
-  switch (game.status) {
-    case "lobby":
-      return (
-        <Lobby gameId={gameId} game={game} uid={uid} action={action}>
-          {leaveButton}
-        </Lobby>
-      );
-    case "choosingTrump":
-    case "bidding":
-    case "playing":
-      return (
-        <Table gameId={gameId} game={game} hand={hand ?? null} uid={uid} action={action}>
-          {leaveButton}
-        </Table>
-      );
-    case "finished":
-    case "abandoned":
-      return (
-        <>
-          <GameOver game={game} uid={uid} />
-          <ErrorText message={action.error} />
-        </>
-      );
+  return (
+    <>
+      {page(game)}
+      <RoundToast key={gameId} game={game} uid={uid} />
+    </>
+  );
+
+  function page(game: GameDoc) {
+    switch (game.status) {
+      case "lobby":
+        return (
+          <Lobby gameId={gameId} game={game} uid={uid} action={action}>
+            {leaveButton}
+          </Lobby>
+        );
+      case "choosingTrump":
+      case "bidding":
+      case "playing":
+        return (
+          <Table gameId={gameId} game={game} hand={hand ?? null} uid={uid} action={action}>
+            {leaveButton}
+          </Table>
+        );
+      case "finished":
+      case "abandoned":
+        return (
+          <>
+            <GameOver game={game} uid={uid} />
+            <ErrorText message={action.error} />
+          </>
+        );
+    }
   }
 }

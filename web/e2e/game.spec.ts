@@ -97,6 +97,9 @@ test("a guest plays against two bots", async ({ browser }) => {
     await expect.poll(() => moveIfMyTurn(erik), { timeout: 15_000 }).toBe(true);
   }
   await expect(erik.getByRole("heading", { name: "Round 3 of 20" })).toBeVisible();
+  // A toast tells Erik how round 2 went.
+  await expect(erik.locator(".toast")).toContainText(/Round 2 · Bid \d, won \d/);
+  await expect(erik.locator(".toast")).toContainText(/[+-]?\d+ points/);
 });
 
 test("a guest deletes their data and starts over", async ({ browser }) => {

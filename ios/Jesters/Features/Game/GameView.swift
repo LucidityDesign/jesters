@@ -29,8 +29,69 @@ struct GameView: View {
                 ProgressView()
             }
         }
+        .overlay(alignment: .top) {
+            if let summary = model.roundSummary {
+                RoundToast(summary: summary) { model.roundSummary = nil }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.default, value: model.roundSummary)
+        .task(id: model.roundSummary) {
+            guard model.roundSummary != nil else { return }
+            try? await Task.sleep(for: .seconds(6))
+            model.roundSummary = nil
+        }
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.observe() }
+    }
+}
+
+/// After each round: whether the player made their bid and the points they got.
+struct RoundToast: View {
+    let summary: RoundSummary
+    let close: () -> Void
+
+    private var points: String {
+        summary.points > 0 ? "+\(summary.points)" : "\(summary.points)"
+    }
+
+    private var title: LocalizedStringKey {
+        summary.madeBid ? "You made your bid!" : "You missed your bid"
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: summary.madeBid ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.title2)
+                .foregroundStyle(summary.madeBid ? Color.green : Color.red)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline)
+                Text("Round \(summary.round) · Bid \(summary.bid), won \(summary.won)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text("\(points) points")
+                .font(.title3.bold())
+                .monospacedDigit()
+                .foregroundStyle(summary.points >= 0 ? Color.green : Color.red)
+            Button("Close", systemImage: "xmark", action: close)
+                .labelStyle(.iconOnly)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .shadow(radius: 8, y: 4)
+        .padding(.horizontal)
+        .accessibilityElement(children: .combine)
+        .onAppear {
+            let result = summary.madeBid
+                ? String(localized: "You made your bid!")
+                : String(localized: "You missed your bid")
+            AccessibilityNotification.Announcement("\(result), \(String(localized: "\(points) points"))").post()
+        }
     }
 }
 

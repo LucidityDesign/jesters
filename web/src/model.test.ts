@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { cardKind, type GameDoc, lastTrickOfRound, leaders, sortHand, totals } from "./model";
+import {
+  cardKind,
+  type GameDoc,
+  lastRoundSummary,
+  lastTrickOfRound,
+  leaders,
+  sortHand,
+  totals,
+} from "./model";
 
 describe("cards", () => {
   it("reads the compact encoding", () => {
@@ -53,5 +61,24 @@ describe("lastTrickOfRound", () => {
   it("clears the table when a new round starts", () => {
     expect(lastTrickOfRound(withTricks([0, 0, 0]))).toBeNull();
     expect(lastTrickOfRound({ lastTrick: null, round: null } as unknown as GameDoc)).toBeNull();
+  });
+});
+
+describe("lastRoundSummary", () => {
+  const game = {
+    playerUids: ["a", "b"],
+    results: [
+      { round: 1, bids: [0, 1], won: [0, 1], deltas: [20, 30], totals: [20, 30] },
+      { round: 2, bids: [1, 0], won: [0, 2], deltas: [-10, -20], totals: [10, 10] },
+    ],
+  } as unknown as GameDoc;
+
+  it("tells a player their bid, tricks and points in the last round", () => {
+    expect(lastRoundSummary(game, "b")).toEqual({ round: 2, bid: 0, won: 2, points: -20 });
+  });
+
+  it("is null before the first round and for outsiders", () => {
+    expect(lastRoundSummary({ ...game, results: [] }, "a")).toBeNull();
+    expect(lastRoundSummary(game, "x")).toBeNull();
   });
 });
