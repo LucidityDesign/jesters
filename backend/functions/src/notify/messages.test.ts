@@ -74,6 +74,8 @@ describe("notificationsFor", () => {
       "a",
       "b",
     ]);
+    const botsTurn = { ...started, turnSeat: 2, turnUid: "bot-x" } as GameDoc;
+    expect(notificationsFor("g1", started, botsTurn)).toEqual([]);
   });
 
   it("tells everyone but the host and the first player that the game started", () => {

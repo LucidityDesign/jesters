@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gameWith, seededRandom } from "../../test/helpers.js";
 import { reduce } from "../engine/index.js";
-import { handDoc, lobbyPlay, publicPlay, secretDoc, stateFromSecret } from "./model.js";
+import { botToMove, handDoc, lobbyPlay, publicPlay, secretDoc, stateFromSecret } from "./model.js";
 
 const uids = ["alice", "bob", "carol"];
 const game = gameWith({
@@ -105,5 +105,22 @@ describe("secret state", () => {
 describe("lobbyPlay", () => {
   it("starts without a round", () => {
     expect(lobbyPlay()).toMatchObject({ status: "lobby", round: null, turnUid: null });
+  });
+});
+
+describe("botToMove", () => {
+  const players = [
+    { uid: "a", name: "Anna" },
+    { uid: "bot-1", name: "Merlin", bot: "beginner" as const },
+  ];
+
+  it("names the level of the bot whose turn it is", () => {
+    expect(botToMove({ active: true, players, turnSeat: 1 })).toBe("beginner");
+  });
+
+  it("is null for people, in the lobby and once the game is over", () => {
+    expect(botToMove({ active: true, players, turnSeat: 0 })).toBeNull();
+    expect(botToMove({ active: true, players, turnSeat: null })).toBeNull();
+    expect(botToMove({ active: false, players, turnSeat: 1 })).toBeNull();
   });
 });

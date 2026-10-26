@@ -1,8 +1,7 @@
 import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
-import { playBots } from "../bots/index.js";
 import { createGame, MAX_PLAYERS, MIN_PLAYERS } from "../engine/index.js";
-import { botLevels, type GameDoc, lobbyPlay } from "../game/model.js";
+import { type GameDoc, lobbyPlay } from "../game/model.js";
 import { generateRoomKey, normalizeRoomKey } from "../game/roomKey.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
@@ -113,7 +112,7 @@ export const startGame = onCall(CALLABLE, async (request) => {
       settings: game.settings,
       randomInt: secureRandomInt,
     });
-    writeState(tx, gameId, game, null, playBots(state, botLevels(game.players), secureRandomInt));
+    writeState(tx, gameId, game, null, state);
   });
   return { ok: true };
 });

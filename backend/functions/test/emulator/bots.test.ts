@@ -53,21 +53,27 @@ describe("bots", () => {
     expect(await rejection(ben.call("leaveGame", { gameId }))).toBe("GAME_NOT_FOUND");
   });
 
-  it("plays a whole game against two bots", { timeout: 300_000 }, async () => {
+  it("plays against two bots, which move one after another", { timeout: 120_000 }, async () => {
     const [anna] = await newPlayers("Anna");
     const { gameId } = await setUpRoom([anna]);
     await anna.call("addBot", { gameId });
     await anna.call("addBot", { gameId });
     await anna.call("startGame", { gameId });
 
-    for (;;) {
-      const game = (await anna.read<Game>(`games/${gameId}`)) as Game;
-      if (game.status === "finished") {
-        expect(game.results).toHaveLength(20);
-        break;
+    /** Waits until it is Anna's turn: the bots move by themselves, about 0.5 s apart. */
+    async function annasTurn(): Promise<Game> {
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+        if (game.turnUid === anna.uid) return game;
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
-      // The bots have moved by the time the game reaches Anna.
-      expect(game.turnUid).toBe(anna.uid);
+      throw new Error("The bots did not move");
+    }
+
+    // The first three rounds: every round is dealt, bid, played and scored with the bots.
+    for (;;) {
+      const game = await annasTurn();
+      if (game.results.length === 3) break;
       const hand = (await anna.read<Hand>(`games/${gameId}/hands/${anna.uid}`)) as Hand;
       const version = game.version;
       if (game.status === "choosingTrump") {

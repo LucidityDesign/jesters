@@ -91,10 +91,10 @@ test("a guest plays against two bots", async ({ browser }) => {
 
   await expect(erik.getByRole("heading", { name: "Round 1 of 20" })).toBeVisible();
   await expect(erik.locator(".players .badge", { hasText: "Bot" })).toHaveCount(2);
-  // Only Erik ever has to move: the bots answer at once.
+  // Only Erik ever has to move: the bots answer one after another.
   for (let moves = 0; moves < 20; moves++) {
     if (await erik.getByRole("heading", { name: "Round 3 of 20" }).isVisible()) break;
-    await expect.poll(() => moveIfMyTurn(erik)).toBe(true);
+    await expect.poll(() => moveIfMyTurn(erik), { timeout: 15_000 }).toBe(true);
   }
   await expect(erik.getByRole("heading", { name: "Round 3 of 20" })).toBeVisible();
 });

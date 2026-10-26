@@ -39,7 +39,8 @@ export function botAction(state: GameState, level: BotLevel): Action {
 }
 
 /**
- * Lets the bots move until it is a person's turn or the game is over. `levels` is indexed by seat,
+ * Lets the bots move until it is a person's turn or the game is over, all at once (for tests and
+ * simulations; the server makes one move at a time, see `moveBot`). `levels` is indexed by seat,
  * `null` for people.
  */
 export function playBots(

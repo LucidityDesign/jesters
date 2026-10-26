@@ -1,4 +1,4 @@
-import type { GameDoc } from "../game/model.js";
+import { botToMove, type GameDoc } from "../game/model.js";
 
 /**
  * A push notification for one player. Texts are localized on the device: `titleKey` and `bodyKey`
@@ -85,6 +85,7 @@ export function notificationsFor(gameId: string, before: GameDoc, after: GameDoc
     after.active &&
     after.turnUid !== null &&
     after.turnUid !== before.turnUid &&
+    botToMove(after) === null &&
     (status === "choosingTrump" || status === "bidding" || status === "playing")
   ) {
     messages.push({
