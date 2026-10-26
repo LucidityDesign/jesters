@@ -28,6 +28,7 @@ export const api = {
   updateSettings: (gameId: string, noEvenBids: boolean) =>
     call("updateSettings", { gameId, noEvenBids }),
   startGame: (gameId: string) => call("startGame", { gameId }),
+  addBot: (gameId: string) => call("addBot", { gameId, level: "beginner" }),
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),
   leaveGame: (gameId: string) => call("leaveGame", { gameId }),
   chooseTrump: (gameId: string, version: number, suit: Suit) =>

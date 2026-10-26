@@ -144,6 +144,12 @@ struct PlayersView: View {
                     Text(player.name)
                         .fontWeight(player.uid == uid ? .bold : .regular)
                         .lineLimit(1)
+                    if player.isBot {
+                        Text("Bot")
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .background(.quaternary, in: Capsule())
+                    }
                     if game.round?.dealerSeat == seat {
                         Text("Dealer")
                             .font(.caption)

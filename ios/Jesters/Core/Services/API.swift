@@ -37,6 +37,11 @@ private struct SettingsRequest: Encodable, Sendable {
     let noEvenBids: Bool
 }
 
+private struct AddBotRequest: Encodable, Sendable {
+    let gameId: String
+    let level: String
+}
+
 private struct RemovePlayerRequest: Encodable, Sendable {
     let gameId: String
     let uid: String
@@ -107,6 +112,10 @@ enum API {
 
     static func startGame(gameId: String) async throws {
         let _: OKResponse = try await call("startGame", GameRequest(gameId: gameId))
+    }
+
+    static func addBot(gameId: String) async throws {
+        let _: OKResponse = try await call("addBot", AddBotRequest(gameId: gameId, level: "beginner"))
     }
 
     static func removePlayer(gameId: String, uid: String) async throws {

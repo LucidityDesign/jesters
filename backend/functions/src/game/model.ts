@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase-admin/firestore";
+import type { BotLevel } from "../bots/index.js";
 import {
   type Card,
   type CompletedTrick,
@@ -18,6 +19,13 @@ export interface Player {
   uid: string;
   /** Empty once the player has deleted their data. */
   name: string;
+  /** Set for computer players, which the server moves for. */
+  bot?: BotLevel;
+}
+
+/** The bot level of every seat, `null` for people. */
+export function botLevels(players: readonly Player[]): (BotLevel | null)[] {
+  return players.map((player) => player.bot ?? null);
 }
 
 export interface PublicRound {

@@ -42,6 +42,9 @@ struct LobbyView: View {
                         if player.uid == model.uid {
                             Text("You").foregroundStyle(.secondary)
                         }
+                        if player.isBot {
+                            Text("Bot").foregroundStyle(.secondary)
+                        }
                     }
                     .swipeActions {
                         if isHost && player.uid != model.uid {
@@ -51,13 +54,23 @@ struct LobbyView: View {
                         }
                     }
                 }
+                if isHost && game.players.count < 6 {
+                    Button {
+                        Task { await model.addBot() }
+                    } label: {
+                        Label("Add bot", systemImage: "cpu")
+                    }
+                    .disabled(model.isSending)
+                }
             } header: {
                 Text("Players (\(game.players.count) of 6)")
             } footer: {
                 if !isHost {
                     Text("Waiting for the host to start the game.")
                 } else if game.players.count < 3 {
-                    Text("At least 3 players are needed.")
+                    Text("At least 3 players are needed. Invite friends or add bots.")
+                } else if game.players.contains(where: \.isBot) {
+                    Text("Bots play at beginner level and make their moves right away.")
                 }
             }
 

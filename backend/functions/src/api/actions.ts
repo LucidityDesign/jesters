@@ -1,14 +1,18 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
 import { type Action, reduce } from "../engine/index.js";
-import { stateFromSecret } from "../game/model.js";
+import { playBots } from "../bots/index.js";
+import { botLevels, stateFromSecret } from "../game/model.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
 import { fail, parse, requireAuth } from "./errors.js";
 import { getMemberGame } from "./rooms.js";
 import { ChooseTrumpInput, PlaceBidInput, PlayCardInput } from "./schemas.js";
 
-/** Applies a player's action to a running game in one transaction. Returns the new version. */
+/**
+ * Applies a player's action to a running game in one transaction, followed by the moves of any
+ * bots whose turn comes next. Returns the new version.
+ */
 async function perform(
   uid: string,
   input: { gameId: string; version?: number | undefined },
@@ -31,7 +35,8 @@ async function perform(
     const result = reduce(state, action(game.playerUids.indexOf(uid)), secureRandomInt);
     if (!result.ok) fail(result.error);
 
-    writeState(tx, input.gameId, game, state, result.state);
+    const next = playBots(result.state, botLevels(game.players), secureRandomInt);
+    writeState(tx, input.gameId, game, state, next);
     return { version: game.version + 1 };
   });
 }

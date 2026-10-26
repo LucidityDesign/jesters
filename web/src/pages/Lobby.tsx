@@ -49,7 +49,11 @@ export function Lobby({
             <li key={player.uid} className="row row-inline">
               <span>{nameAt(game, seat)}</span>
               <span className="hint">
-                {[player.uid === game.hostUid && t("Host"), player.uid === uid && t("You")]
+                {[
+                  player.uid === game.hostUid && t("Host"),
+                  player.uid === uid && t("You"),
+                  player.bot && t("Bot"),
+                ]
                   .filter(Boolean)
                   .join(" · ")}
               </span>
@@ -66,12 +70,24 @@ export function Lobby({
             </li>
           ))}
         </ul>
+        {isHost && game.players.length < MAX_PLAYERS && (
+          <div className="actions">
+            <button
+              onClick={() => action.run(() => api.addBot(gameId))}
+              disabled={action.isSending}
+            >
+              {t("Add bot")}
+            </button>
+          </div>
+        )}
         <p className="hint">
           {!isHost
             ? t("Waiting for the host to start the game.")
             : game.players.length < MIN_PLAYERS
-              ? t("At least 3 players are needed.")
-              : null}
+              ? t("At least 3 players are needed. Invite friends or add bots.")
+              : game.players.some((player) => player.bot)
+                ? t("Bots play at beginner level and make their moves right away.")
+                : null}
         </p>
       </section>
 

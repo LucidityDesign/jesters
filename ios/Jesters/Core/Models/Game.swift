@@ -14,6 +14,12 @@ enum GameStatus: String, Codable, Sendable {
 struct Player: Codable, Sendable, Hashable {
     let uid: String
     let name: String
+    /// The bot level for computer players (the server makes their moves), `nil` for people.
+    var bot: String? = nil
+
+    var isBot: Bool {
+        bot != nil
+    }
 }
 
 extension Player {
@@ -23,7 +29,8 @@ extension Player {
         let name = try container.decode(String.self, forKey: .name)
         self.init(
             uid: try container.decode(String.self, forKey: .uid),
-            name: name.isEmpty ? String(localized: "Former player") : name
+            name: name.isEmpty ? String(localized: "Former player") : name,
+            bot: try container.decodeIfPresent(String.self, forKey: .bot)
         )
     }
 }

@@ -3,6 +3,7 @@ import "./setup.js";
 export { deleteMyData } from "./api/account.js";
 export { chooseTrump, placeBid, playCard } from "./api/actions.js";
 export {
+  addBot,
   createRoom,
   joinRoom,
   leaveGame,

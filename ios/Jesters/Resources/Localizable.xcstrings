@@ -51,6 +51,16 @@
         }
       }
     },
+    "Add bot": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bot hinzufügen"
+          }
+        }
+      }
+    },
     "Ask the host for the 6-character room key.": {
       "localizations": {
         "de": {
@@ -71,6 +81,16 @@
         }
       }
     },
+    "At least 3 players are needed. Invite friends or add bots.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es werden mindestens 3 Spieler benötigt. Lade Freunde ein oder füge Bots hinzu."
+          }
+        }
+      }
+    },
     "Bid %lld, won %lld": {
       "localizations": {
         "de": {
@@ -87,6 +107,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ansagen: %lld von %lld"
+          }
+        }
+      }
+    },
+    "Bot": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bot"
+          }
+        }
+      }
+    },
+    "Bots play at beginner level and make their moves right away.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bots spielen auf Anfängerniveau und ziehen sofort."
           }
         }
       }
