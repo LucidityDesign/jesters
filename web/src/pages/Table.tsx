@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import { api } from "../api";
 import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
 import { ErrorText, Page } from "../components/Layout";
@@ -35,6 +35,7 @@ export function Table({
   children: ReactNode;
 }) {
   const myTurn = isMyTurn(game, uid);
+  const mySeat = Math.max(game.playerUids.indexOf(uid), 0);
   const round = game.round;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
@@ -49,9 +50,14 @@ export function Table({
 
   return (
     <Page title={title}>
-      <Players game={game} uid={uid} />
       <RoundInfo game={game} />
-      <Trick game={game} />
+      <div className="table-area">
+        <div className="felt">
+          <Trick game={game} mySeat={mySeat} />
+          <Players game={game} uid={uid} mySeat={mySeat} />
+        </div>
+      </div>
+      <p className="hint trick-hint">{trickHint(game)}</p>
 
       <p className={`banner${myTurn ? " banner-active" : ""}`} role="status">
         {bannerText(game, myTurn)}
@@ -119,34 +125,64 @@ function bannerText(game: GameDoc, myTurn: boolean): string {
   }
 }
 
-/** One row per player: turn marker, name, dealer badge, bid, tricks won and total score. */
-function Players({ game, uid }: { game: GameDoc; uid: string }) {
+/**
+ * Where a seat sits at the table, in percent of the felt: the player at the bottom, the others
+ * clockwise in playing order (the next player on their left). `reach` 1 is the rim, 0 the middle.
+ */
+function seatPosition(seat: number, mySeat: number, count: number, reach: number) {
+  const angle = (270 - (360 * ((seat - mySeat + count) % count)) / count) * (Math.PI / 180);
+  return {
+    x: 50 + 50 * reach * Math.cos(angle),
+    y: 50 - 50 * reach * Math.sin(angle),
+  };
+}
+
+/** The seats around the table: name, bot and dealer badges, tricks won of the bid, and score. */
+function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: number }) {
   const scores = totals(game);
+  const count = Math.max(game.players.length, 1);
+  const dealer = t("Dealer");
   return (
     <ul className="players">
       {game.players.map((player, seat) => {
         const won = game.round?.tricksWon[seat] ?? 0;
         const bid = game.round?.bids[seat] ?? null;
         const isTurn = game.turnSeat === seat;
+        const { x, y } = seatPosition(seat, mySeat, count, 1);
+        const made = bid !== null && won === bid;
         return (
-          <li key={player.uid} className={isTurn ? "turn" : undefined}>
-            <span className="marker" aria-hidden="true">
-              {isTurn ? "●" : "○"}
+          <li
+            key={player.uid}
+            className={`seat${isTurn ? " turn" : ""}`}
+            style={{ left: `${x}%`, top: `${y}%` }}
+          >
+            <span className="seat-name">
+              {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
+              <span className={player.uid === uid ? "me" : undefined}>{nameAt(game, seat)}</span>
+              {player.bot && (
+                <span className="badge" title={t("Bot")}>
+                  <span aria-hidden="true">🤖</span>
+                  <span className="visually-hidden">{t("Bot")}</span>
+                </span>
+              )}
+              {game.round?.dealerSeat === seat && (
+                <span className="badge badge-dealer" title={dealer}>
+                  <span aria-hidden="true">{dealer.charAt(0)}</span>
+                  <span className="visually-hidden">{dealer}</span>
+                </span>
+              )}
             </span>
-            <span className={player.uid === uid ? "me" : undefined}>{nameAt(game, seat)}</span>
-            {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
-            {player.bot && <span className="badge">{t("Bot")}</span>}
-            {game.round?.dealerSeat === seat && <span className="badge">{t("Dealer")}</span>}
-            <span className="spacer" />
-            <span className="hint">
-              {bid === null ? t("won {won}", { won }) : t("won {won} of {bid}", { won, bid })}
+            <span className="seat-stats">
+              <span className={made ? "made" : "hint"}>
+                {bid === null ? t("won {won}", { won }) : t("won {won} of {bid}", { won, bid })}
+              </span>
+              <strong
+                className="score"
+                aria-label={t("Score: {score}", { score: scores[seat] ?? 0 })}
+              >
+                {scores[seat] ?? 0}
+              </strong>
             </span>
-            <strong
-              className="score"
-              aria-label={t("Score: {score}", { score: scores[seat] ?? 0 })}
-            >
-              {scores[seat] ?? 0}
-            </strong>
           </li>
         );
       })}
@@ -192,38 +228,50 @@ function RoundInfo({ game }: { game: GameDoc }) {
   );
 }
 
-/** The cards of the current trick, or the round's last trick while the next one has not started. */
-function Trick({ game }: { game: GameDoc }) {
+/** What the middle of the table shows: the current trick, the last one, or nothing yet. */
+function trickHint(game: GameDoc): string {
+  if (game.trick && game.trick.cards.length > 0) return t("Current trick");
   const lastTrick = lastTrickOfRound(game);
-  const count = Math.max(game.players.length, 1);
-  const cards = (trick: { leaderSeat: number; cards: Card[] }) => (
-    <div className="trick-cards">
-      {trick.cards.map((card, index) => (
-        <figure key={card}>
-          <CardView card={card} />
-          <figcaption>{nameAt(game, (trick.leaderSeat + index) % count)}</figcaption>
-        </figure>
-      ))}
-    </div>
-  );
+  if (lastTrick) {
+    return t("{name} won the last trick", { name: nameAt(game, lastTrick.winnerSeat) });
+  }
+  return t("No cards played yet");
+}
 
+/**
+ * The cards of the current trick, or the round's last trick while the next one has not started,
+ * each in front of the player who played it. New cards slide in from their player's seat; the
+ * winner of the last trick stands out.
+ */
+function Trick({ game, mySeat }: { game: GameDoc; mySeat: number }) {
+  const lastTrick = lastTrickOfRound(game);
+  const current = game.trick && game.trick.cards.length > 0 ? game.trick : null;
+  const trick = current ?? lastTrick;
+  const count = Math.max(game.players.length, 1);
   return (
     <section className="trick" aria-label={t("Current trick")}>
-      {game.trick && game.trick.cards.length > 0 ? (
-        <>
-          {cards(game.trick)}
-          <p className="hint">{t("Current trick")}</p>
-        </>
-      ) : lastTrick ? (
-        <>
-          <div className="faded">{cards(lastTrick)}</div>
-          <p className="hint">
-            {t("{name} won the last trick", { name: nameAt(game, lastTrick.winnerSeat) })}
-          </p>
-        </>
-      ) : (
-        <p className="hint">{t("No cards played yet")}</p>
-      )}
+      {trick?.cards.map((card, index) => {
+        const seat = (trick.leaderSeat + index) % count;
+        const at = seatPosition(seat, mySeat, count, 0.42);
+        const from = seatPosition(seat, mySeat, count, 1);
+        const winner = !current && lastTrick?.winnerSeat === seat;
+        const style = {
+          left: `${at.x}%`,
+          top: `${at.y}%`,
+          "--from-x": `${from.x}%`,
+          "--from-y": `${from.y}%`,
+        } as CSSProperties;
+        return (
+          <figure
+            key={card}
+            className={`trick-card${current ? "" : winner ? " trick-winner" : " faded"}`}
+            style={style}
+          >
+            <CardView card={card} />
+            <figcaption className="visually-hidden">{nameAt(game, seat)}</figcaption>
+          </figure>
+        );
+      })}
     </section>
   );
 }
@@ -243,9 +291,20 @@ function Hand({
   // Reset by the parent (`key`) whenever the game changes.
   const [selected, setSelected] = useState<Card | null>(null);
   return (
-    <div className="hand" aria-label={t("Your cards")} role="group">
-      {cards.map((card) => {
+    <div
+      className="hand"
+      aria-label={t("Your cards")}
+      role="group"
+      style={{ "--count": cards.length } as CSSProperties}
+    >
+      {cards.map((card, index) => {
         const playable = canPlay && legalCards.has(card);
+        // Fanned out: turned and lowered a little more towards the ends.
+        const turn = (index - (cards.length - 1) / 2) * Math.min(2.5, 24 / cards.length);
+        const style = {
+          "--angle": `${turn}deg`,
+          "--lower": `${turn * turn * 0.06}px`,
+        } as CSSProperties;
         return (
           <button
             key={card}
@@ -253,6 +312,7 @@ function Hand({
             disabled={!playable}
             aria-pressed={selected === card}
             aria-label={cardName(card)}
+            style={style}
             onClick={() => {
               if (selected === card) onPlay(card);
               else setSelected(card);
