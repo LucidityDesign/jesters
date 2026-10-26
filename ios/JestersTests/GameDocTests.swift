@@ -58,6 +58,12 @@ struct GameDocTests {
         #expect(next.lastTrickOfRound == nil)
     }
 
+    @Test func summarizesThePlayersLastRound() {
+        #expect(game.lastRoundSummary(for: "b") == RoundSummary(round: 1, bid: 1, won: 1, points: 30))
+        #expect(game.lastRoundSummary(for: "b")?.madeBid == true)
+        #expect(game.lastRoundSummary(for: "x") == nil)
+    }
+
     @Test func computesTotalsAndLeaders() {
         #expect(game.totals == [20, 30, 20])
         #expect(game.leaders == [1])

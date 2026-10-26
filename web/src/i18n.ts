@@ -128,6 +128,11 @@ export const DE: Record<string, string> = {
   "Scores appear after the first round.": "Punkte erscheinen nach der ersten Runde.",
   Round: "Runde",
   "Bid {bid}, won {won}": "{bid} angesagt, {won} gemacht",
+  "You made your bid!": "Ansage erfüllt!",
+  "You missed your bid": "Ansage verfehlt",
+  "Round {round}": "Runde {round}",
+  "{points} points": "{points} Punkte",
+  Close: "Schließen",
   "Small numbers: bid / tricks won": "Kleine Zahlen: Ansage / gemachte Stiche",
   "{name} left, so the game ended early.":
     "{name} hat das Spiel verlassen, daher wurde es vorzeitig beendet.",

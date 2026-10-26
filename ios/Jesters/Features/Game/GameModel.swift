@@ -14,6 +14,8 @@ final class GameModel {
     private(set) var isGone = false
     private(set) var isSending = false
     var errorMessage: String?
+    /// The round just scored while the game was open, shown briefly as a toast.
+    var roundSummary: RoundSummary?
 
     init(gameId: String, uid: String) {
         self.gameId = gameId
@@ -31,6 +33,10 @@ final class GameModel {
         let reference = Firestore.firestore().collection("games").document(gameId)
         do {
             for try await game in reference.values(GameDoc.self) {
+                // Rounds scored before the game was opened are not announced.
+                if let game, let previous = self.game, game.results.count > previous.results.count {
+                    roundSummary = game.lastRoundSummary(for: uid)
+                }
                 self.game = game
                 isGone = game == nil
             }

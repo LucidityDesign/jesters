@@ -115,6 +115,14 @@ struct GameDoc: Codable, Sendable, Hashable {
         return tricksPlayed > 0 ? lastTrick : nil
     }
 
+    /// How `uid` did in the most recently scored round, or `nil` before the first one.
+    func lastRoundSummary(for uid: String) -> RoundSummary? {
+        guard let seat = seat(of: uid), let result = results.last,
+              let bid = result.bids[safe: seat], let won = result.won[safe: seat],
+              let points = result.deltas[safe: seat] else { return nil }
+        return RoundSummary(round: result.round, bid: bid, won: won, points: points)
+    }
+
     /// Current total score by seat.
     var totals: [Int] {
         results.last?.totals ?? Array(repeating: 0, count: players.count)
@@ -124,6 +132,18 @@ struct GameDoc: Codable, Sendable, Hashable {
     var leaders: [Int] {
         guard let best = totals.max() else { return [] }
         return totals.indices.filter { totals[$0] == best }
+    }
+}
+
+/// How a player did in one round.
+struct RoundSummary: Sendable, Hashable {
+    let round: Int
+    let bid: Int
+    let won: Int
+    let points: Int
+
+    var madeBid: Bool {
+        bid == won
     }
 }
 

@@ -95,6 +95,27 @@ export function lastTrickOfRound(game: GameDoc): LastTrick | null {
   return tricksPlayed > 0 ? game.lastTrick : null;
 }
 
+/** How the player did in a round. */
+export interface RoundSummary {
+  round: number;
+  bid: number;
+  won: number;
+  points: number;
+}
+
+/** How `uid` did in the most recently scored round, or null before the first one. */
+export function lastRoundSummary(game: GameDoc, uid: string): RoundSummary | null {
+  const seat = game.playerUids.indexOf(uid);
+  const result = game.results.at(-1);
+  if (seat === -1 || !result) return null;
+  return {
+    round: result.round,
+    bid: result.bids[seat] ?? 0,
+    won: result.won[seat] ?? 0,
+    points: result.deltas[seat] ?? 0,
+  };
+}
+
 /** Current total score by seat. */
 export function totals(game: GameDoc): number[] {
   return game.results.at(-1)?.totals ?? game.players.map(() => 0);
