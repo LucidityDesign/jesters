@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A simple card face: rank and suit symbol in the suit's color on a white card.
+/// A simple card face: rank and suit symbol in the suit's color on a white card. Wizards and Jesters
+/// have a tinted face and, unless small, their name, so a Jester never looks like a Jack.
 struct CardView: View {
     let card: Card
     var isDimmed = false
@@ -14,20 +15,37 @@ struct CardView: View {
             if let suit = card.suit {
                 Text(suit.symbol)
                     .font(.system(size: 20 * size))
+            } else if size >= 1 {
+                Text(card.accessibilityName.uppercased())
+                    .font(.system(size: 8, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.top, 4)
+                    .padding(.horizontal, 2)
             }
         }
         .foregroundStyle(card.color)
         .frame(width: 50 * size, height: 72 * size)
+        .background(tint, in: RoundedRectangle(cornerRadius: 8 * size))
         .background(.white, in: RoundedRectangle(cornerRadius: 8 * size))
         .overlay {
             RoundedRectangle(cornerRadius: 8 * size)
-                .strokeBorder(isSelected ? Color.accentColor : Color.gray.opacity(0.5), lineWidth: isSelected ? 3 : 1)
+                .strokeBorder(border, lineWidth: isSelected ? 3 : 1)
         }
         .opacity(isDimmed ? 0.35 : 1)
         .offset(y: isSelected ? -14 : 0)
         .animation(.default, value: isSelected)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(card.accessibilityName)
+    }
+
+    private var tint: Color {
+        card.isSpecial ? card.color.opacity(0.12) : .clear
+    }
+
+    private var border: Color {
+        if isSelected { return .accentColor }
+        return card.isSpecial ? card.color : Color.gray.opacity(0.5)
     }
 }
 

@@ -624,12 +624,22 @@
         }
       }
     },
-    "No trump": {
+    "No trump (Jester)": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kein Trumpf"
+            "value": "Kein Trumpf (Narr)"
+          }
+        }
+      }
+    },
+    "No trump (last round)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Trumpf (letzte Runde)"
           }
         }
       }
@@ -1167,6 +1177,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Trumpf: %@ %@"
+          }
+        }
+      }
+    },
+    "Trump: %@ %@ (chosen by %@)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trumpf: %1$@ %2$@ (gewählt von %3$@)"
           }
         }
       }

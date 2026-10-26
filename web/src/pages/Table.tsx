@@ -5,6 +5,7 @@ import { ErrorText, Page } from "../components/Layout";
 import { t } from "../i18n";
 import {
   type Card,
+  cardKind,
   type GameDoc,
   type HandDoc,
   isMyTurn,
@@ -153,6 +154,13 @@ function Players({ game, uid }: { game: GameDoc; uid: string }) {
   );
 }
 
+/** Why there is no trump (yet). */
+function noTrumpText(game: GameDoc): string {
+  if (game.status === "choosingTrump") return t("Trump: to be chosen");
+  const card = game.round?.trumpCard;
+  return card ? t("No trump (Jester)") : t("No trump (last round)");
+}
+
 /** Trump and the total of the bids so far. */
 function RoundInfo({ game }: { game: GameDoc }) {
   const round = game.round;
@@ -166,10 +174,15 @@ function RoundInfo({ game }: { game: GameDoc }) {
           <span className={`suit-${round.trumpSuit}`} aria-hidden="true">
             {SUIT_SYMBOL[round.trumpSuit]}{" "}
           </span>
-          {t("Trump: {suit}", { suit: suitName(round.trumpSuit) })}
+          {round.trumpCard && cardKind(round.trumpCard).type === "wizard"
+            ? t("Trump: {suit} (chosen by {name})", {
+                suit: suitName(round.trumpSuit),
+                name: nameAt(game, round.dealerSeat),
+              })
+            : t("Trump: {suit}", { suit: suitName(round.trumpSuit) })}
         </span>
       ) : (
-        <span>{game.status === "choosingTrump" ? t("Trump: to be chosen") : t("No trump")}</span>
+        <span>{noTrumpText(game)}</span>
       )}
       <span className="spacer" />
       <span className="hint">

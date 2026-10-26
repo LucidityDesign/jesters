@@ -30,7 +30,10 @@ export function cardName(card: Card): string {
   return t("{rank} of {suit}", { rank, suit: suitName(kind.suit) });
 }
 
-/** A simple card face: rank and suit symbol in the suit's color (four-color deck). */
+/**
+ * A simple card face: rank and suit symbol in the suit's color (four-color deck). Wizards and
+ * Jesters have a tinted face and, unless small, their name, so a Jester never looks like a Jack.
+ */
 export function CardView({ card, small = false }: { card: Card; small?: boolean }) {
   const kind = cardKind(card);
   const color = kind.type === "regular" ? kind.suit : kind.type;
@@ -41,7 +44,15 @@ export function CardView({ card, small = false }: { card: Card; small?: boolean 
       aria-label={cardName(card)}
     >
       <span aria-hidden="true">{rankText(card)}</span>
-      {kind.type === "regular" && <span aria-hidden="true">{SUIT_SYMBOL[kind.suit]}</span>}
+      {kind.type === "regular" ? (
+        <span aria-hidden="true">{SUIT_SYMBOL[kind.suit]}</span>
+      ) : (
+        !small && (
+          <span className="card-caption" aria-hidden="true">
+            {cardName(card)}
+          </span>
+        )
+      )}
     </span>
   );
 }

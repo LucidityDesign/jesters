@@ -16,6 +16,8 @@
   --clubs: #1f7a3a;
   --wizard: #7b3fb4;
   --jester: #6b6f72;
+  --wizard-face: #f1e8fb;
+  --jester-face: #e9ebec;
   --plus: #1f7a3a;
   --minus: #b3261e;
   font-family:
@@ -350,9 +352,21 @@ ol.list {
 }
 .card-wizard {
   color: var(--wizard);
+  background: var(--wizard-face);
+  border-color: var(--wizard);
 }
 .card-jester {
   color: var(--jester);
+  background: var(--jester-face);
+  border-color: var(--jester);
+}
+
+.card-caption {
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-top: 4px;
 }
 
 /* Table */
