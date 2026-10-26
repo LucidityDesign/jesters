@@ -13,7 +13,7 @@ import type { BotView } from "./view.js";
 // The beginner bot: simple rules of thumb, no card counting. It bids what its strong cards
 // should win, given what the others have bid, then tries to take tricks while it needs them and
 // to lose them otherwise. Its aggression (-0.1 to 0.1) makes it bid higher or lower and take
-// tricks with stronger or cheaper cards.
+// tricks with stronger or cheaper cards; while playing, the total of the bids shifts it.
 
 /** Picks the suit it holds the most of (ties: the higher ranks). */
 export function chooseTrump(view: BotView): Suit {
@@ -88,6 +88,16 @@ function wouldWinNow(card: Card, view: BotView): boolean {
   return trickWinner(cards, view.trumpSuit) === cards.length - 1;
 }
 
+/**
+ * The bot's aggression while playing, shifted by the table: more bids than cards means tricks
+ * are fought over (more aggressive), fewer means spare tricks to go round (more cautious). A
+ * round bid a third over or under its cards shifts it by 0.1.
+ */
+export function playingAggression(view: BotView): number {
+  const totalBids = view.bids.reduce<number>((sum, bid) => sum + (bid ?? 0), 0);
+  return view.aggression + (0.3 * (totalBids - view.round)) / view.round;
+}
+
 export function play(view: BotView): Card {
   const byStrength = [...view.legalCards].sort((a, b) => strength(a, view) - strength(b, view));
   const weakest = byStrength[0] as Card;
@@ -106,7 +116,7 @@ export function play(view: BotView): Card {
     // Last to play: the cheapest winner is enough. Otherwise a later player may still beat it:
     // aggressive bots play a stronger card to be sure, cautious ones keep their strong cards.
     if (playingLast) return winners[0] as Card;
-    const pick = Math.min(1, Math.max(0, 0.5 + 5 * view.aggression));
+    const pick = Math.min(1, Math.max(0, 0.5 + 5 * playingAggression(view)));
     return winners[Math.round(pick * (winners.length - 1))] as Card;
   }
   if (leading) {

@@ -145,7 +145,8 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
   (their own hand plus the table), so they can't cheat. The beginner bot follows simple rules of
   thumb: it bids what its cards should win given the bids so far, keeps its Jesters for tricks it
   must lose, and has a random aggression (-0.1 to 0.1, `aggression` on the player) that makes it
-  bid higher or lower and take tricks with stronger or cheaper cards. Stronger, AI-based levels
+  bid higher or lower and take tricks with stronger or cheaper cards; while playing, more bids
+  than cards make it more aggressive, fewer more cautious. Stronger, AI-based levels
   can be added later as further strategies.
 - **Abandoned games:** without turn timers, a game can stall. Mitigations in v1:
   - a reminder push to the player whose turn it is, once their turn has been pending for 24 h

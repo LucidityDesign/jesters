@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { gameWith, playRandomly, seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
-import { bid, bidPressure, chooseTrump, play } from "./beginner.js";
+import { bid, bidPressure, chooseTrump, play, playingAggression } from "./beginner.js";
 import { botAction, type BotLevel, playBots } from "./index.js";
 import { type BotView, viewFor } from "./view.js";
 
@@ -135,12 +135,33 @@ describe("the beginner bot", () => {
   });
 
   it("takes tricks with stronger cards the more aggressive it is, unless playing last", () => {
-    const view = (aggression: number, trick: Card[] = ["H10"]) =>
-      playingView({ hand: ["H11", "H12", "H14"], trick, bid: 1, playerCount: 4, aggression });
+    // The bids add up to the cards, so the table doesn't shift the aggression.
+    const view = (aggression: number, trick: Card[] = ["H10"]): BotView => ({
+      ...playingView({ hand: ["H11", "H12", "H14"], trick, bid: 1, playerCount: 4, aggression }),
+      bids: [1, 1, 1, 0],
+    });
     expect(play(view(-0.1))).toBe("H11");
     expect(play(view(0))).toBe("H12");
     expect(play(view(0.1))).toBe("H14");
     expect(play(view(0.1, ["H10", "C2", "C3"]))).toBe("H11");
+  });
+
+  it("plays more aggressively when the bids exceed the cards, more cautiously when they don't", () => {
+    const view = (others: number[]): BotView => {
+      const base = playingView({
+        hand: ["H11", "H12", "H14"],
+        trick: ["H10"],
+        bid: 1,
+        playerCount: 4,
+      });
+      return { ...base, round: 3, bids: [1, ...others] };
+    };
+    expect(playingAggression(view([1, 0, 1]))).toBe(0);
+    expect(play(view([1, 0, 1]))).toBe("H12");
+    expect(playingAggression(view([2, 1, 1]))).toBeCloseTo(0.2);
+    expect(play(view([2, 1, 1]))).toBe("H14");
+    expect(playingAggression(view([0, 0, 0]))).toBeCloseTo(-0.2);
+    expect(play(view([0, 0, 0]))).toBe("H11");
   });
 
   it("keeps its Jester for later when another card can lose the trick", () => {
