@@ -14,6 +14,8 @@ export interface Player {
   uid: string;
   /** Empty once the player has deleted their data. */
   name: string;
+  /** Set for computer players; the server makes their moves. */
+  bot?: "beginner";
 }
 
 export interface PublicRound {

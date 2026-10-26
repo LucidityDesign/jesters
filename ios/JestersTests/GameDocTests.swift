@@ -61,6 +61,12 @@ struct GameDocTests {
         #expect(!players[0].name.isEmpty)
     }
 
+    @Test func marksBots() throws {
+        let players = try JSONDecoder().decode([Player].self, from: Data(#"[{"uid":"a","name":"Anna"},{"uid":"bot-1","name":"Merlin","bot":"beginner"}]"#.utf8))
+        #expect(players.map(\.isBot) == [false, true])
+        #expect(players[1].bot == "beginner")
+    }
+
     @Test func omitsAMissingVersionWhenEncodingRequests() throws {
         let data = try JSONEncoder().encode(PlaceBidRequest(gameId: "g", version: nil, bid: 2))
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])

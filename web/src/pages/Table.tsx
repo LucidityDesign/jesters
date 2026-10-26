@@ -125,6 +125,7 @@ function Players({ game, uid }: { game: GameDoc; uid: string }) {
             </span>
             <span className={player.uid === uid ? "me" : undefined}>{nameAt(game, seat)}</span>
             {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
+            {player.bot && <span className="badge">{t("Bot")}</span>}
             {game.round?.dealerSeat === seat && <span className="badge">{t("Dealer")}</span>}
             <span className="spacer" />
             <span className="hint">

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BOT_LEVELS } from "../bots/index.js";
 import { type Card, isCard, SUITS } from "../engine/index.js";
 
 export const PlayerName = z
@@ -30,6 +31,11 @@ export const JoinRoomInput = z.object({
 export const GameInput = z.object({ gameId: GameId });
 
 export const UpdateSettingsInput = z.object({ gameId: GameId, noEvenBids: z.boolean() });
+
+export const AddBotInput = z.object({
+  gameId: GameId,
+  level: z.enum(BOT_LEVELS).default("beginner"),
+});
 
 export const RemovePlayerInput = z.object({ gameId: GameId, uid: z.string().min(1).max(128) });
 

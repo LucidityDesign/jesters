@@ -40,6 +40,42 @@ const round = (number: number) =>
   }) as GameDoc["round"];
 
 describe("notificationsFor", () => {
+  it("never notifies bots", () => {
+    const withBot = game({
+      players: [
+        { uid: "a", name: "Anna" },
+        { uid: "b", name: "Ben" },
+        { uid: "bot-x", name: "Merlin", bot: "beginner" },
+      ],
+      playerUids: ["a", "b", "bot-x"],
+    });
+    const started = {
+      ...withBot,
+      status: "bidding",
+      round: round(1),
+      turnSeat: 0,
+      turnUid: "a",
+    } as GameDoc;
+    expect(notificationsFor("g1", withBot, started).map((message) => message.uid)).toEqual([
+      "b",
+      "a",
+    ]);
+    const finished = {
+      ...started,
+      status: "finished",
+      active: false,
+      turnSeat: null,
+      turnUid: null,
+      results: [
+        { round: 1, bids: [0, 0, 0], won: [0, 0, 1], deltas: [20, 20, -10], totals: [20, 20, -10] },
+      ],
+    } as GameDoc;
+    expect(notificationsFor("g1", started, finished).map((message) => message.uid)).toEqual([
+      "a",
+      "b",
+    ]);
+  });
+
   it("tells everyone but the host and the first player that the game started", () => {
     const after = game({ status: "bidding", round: round(1), turnSeat: 1, turnUid: "b" });
     expect(notificationsFor("g1", base, after)).toEqual([

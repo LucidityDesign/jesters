@@ -1,12 +1,14 @@
 import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
+import { playBots } from "../bots/index.js";
 import { createGame, MAX_PLAYERS, MIN_PLAYERS } from "../engine/index.js";
-import { type GameDoc, lobbyPlay } from "../game/model.js";
+import { botLevels, type GameDoc, lobbyPlay } from "../game/model.js";
 import { generateRoomKey, normalizeRoomKey } from "../game/roomKey.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
 import { fail, parse, requireAuth } from "./errors.js";
 import {
+  AddBotInput,
   CreateRoomInput,
   GameInput,
   JoinRoomInput,
@@ -16,6 +18,9 @@ import {
 
 export const MAX_ACTIVE_GAMES = 20;
 const ROOM_KEY_ATTEMPTS = 5;
+
+/** Names for bots, in the order they join a room. */
+export const BOT_NAMES = ["Merlin", "Morgana", "Prospero", "Circe", "Faust"] as const;
 
 async function checkActiveGameLimit(uid: string): Promise<void> {
   const active = await refs
@@ -108,7 +113,32 @@ export const startGame = onCall(CALLABLE, async (request) => {
       settings: game.settings,
       randomInt: secureRandomInt,
     });
-    writeState(tx, gameId, game, null, state);
+    writeState(tx, gameId, game, null, playBots(state, botLevels(game.players), secureRandomInt));
+  });
+  return { ok: true };
+});
+
+/** The host adds a computer player to the lobby. */
+export const addBot = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const input = parse(AddBotInput, request.data);
+
+  await getFirestore().runTransaction(async (tx) => {
+    const game = await getMemberGame(tx, input.gameId, uid);
+    if (game.hostUid !== uid) fail("NOT_HOST", "Only the host can add bots.");
+    if (game.status !== "lobby") fail("ALREADY_STARTED", "This game has already started.");
+    if (game.players.length >= MAX_PLAYERS) fail("ROOM_FULL", "This room is full.");
+
+    const taken = new Set(game.players.map((player) => player.name));
+    const name = BOT_NAMES.find((candidate) => !taken.has(candidate)) ?? "Bot";
+    // Bots have no sign-in account; the prefix keeps their ids apart from real user ids.
+    const botUid = `bot-${refs.games().doc().id}`;
+    tx.update(refs.game(input.gameId), {
+      players: [...game.players, { uid: botUid, name, bot: input.level }],
+      playerUids: [...game.playerUids, botUid],
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
   });
   return { ok: true };
 });
@@ -131,7 +161,7 @@ export const updateSettings = onCall(CALLABLE, async (request) => {
   return { ok: true };
 });
 
-/** The host removes another player from the lobby. */
+/** The host removes another player or a bot from the lobby. */
 export const removePlayer = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(RemovePlayerInput, request.data);
@@ -154,8 +184,8 @@ export const removePlayer = onCall(CALLABLE, async (request) => {
 });
 
 /**
- * Leaves a game. In the lobby the player is removed (the next player becomes host; an empty room
- * is deleted). Leaving a running game ends it for everyone as "abandoned".
+ * Leaves a game. In the lobby the player is removed (the next person becomes host; a room with no
+ * people left is deleted). Leaving a running game ends it for everyone as "abandoned".
  */
 export const leaveGame = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
@@ -200,7 +230,7 @@ export function leave(tx: Transaction, gameId: string, game: GameDoc, uid: strin
   }
 
   const players = game.players.filter((player) => player.uid !== uid);
-  const [nextHost] = players;
+  const nextHost = players.find((player) => !player.bot);
   if (nextHost === undefined) {
     tx.delete(gameRef);
     tx.delete(refs.roomKey(game.roomKey));

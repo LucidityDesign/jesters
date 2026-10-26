@@ -36,9 +36,9 @@ function toEveryone(
   except: (string | null | undefined)[],
   message: Omit<PushMessage, "uid" | "gameId">,
 ): PushMessage[] {
-  return game.playerUids
-    .filter((uid) => !except.includes(uid))
-    .map((uid) => ({ uid, gameId, ...message }));
+  return game.players
+    .filter((player) => !player.bot && !except.includes(player.uid))
+    .map((player) => ({ uid: player.uid, gameId, ...message }));
 }
 
 /** Notifications caused by a change of `games/{gameId}` from `before` to `after`. */

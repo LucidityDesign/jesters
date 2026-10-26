@@ -79,6 +79,26 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await expect(anna.getByText("Cleo left, so the game ended early.")).toBeVisible();
 });
 
+test("a guest plays against two bots", async ({ browser }) => {
+  const erik = await guest(browser, "Erik");
+  await erik.getByRole("button", { name: "New game" }).click();
+  await expect(erik.getByText("Invite friends or add bots.", { exact: false })).toBeVisible();
+  await erik.getByRole("button", { name: "Add bot" }).click();
+  await erik.getByRole("button", { name: "Add bot" }).click();
+  await expect(erik.getByRole("heading", { name: "Players (3 of 6)" })).toBeVisible();
+  await expect(erik.getByText("Merlin")).toBeVisible();
+  await erik.getByRole("button", { name: "Start game" }).click();
+
+  await expect(erik.getByRole("heading", { name: "Round 1 of 20" })).toBeVisible();
+  await expect(erik.locator(".players .badge", { hasText: "Bot" })).toHaveCount(2);
+  // Only Erik ever has to move: the bots answer at once.
+  for (let moves = 0; moves < 20; moves++) {
+    if (await erik.getByRole("heading", { name: "Round 3 of 20" }).isVisible()) break;
+    await expect.poll(() => moveIfMyTurn(erik)).toBe(true);
+  }
+  await expect(erik.getByRole("heading", { name: "Round 3 of 20" })).toBeVisible();
+});
+
 test("a guest deletes their data and starts over", async ({ browser }) => {
   const dora = await guest(browser, "Dora");
   await dora.getByRole("button", { name: "New game" }).click();

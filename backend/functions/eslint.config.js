@@ -6,9 +6,9 @@ export default tseslint.config(
   js.configs.recommended,
   tseslint.configs.strict,
   {
-    // The rules engine stays pure: no Firebase, no Node APIs, no I/O.
-    files: ["src/engine/**/*.ts"],
-    ignores: ["src/engine/**/*.test.ts"],
+    // The rules engine and the bots stay pure: no Firebase, no Node APIs, no I/O.
+    files: ["src/engine/**/*.ts", "src/bots/**/*.ts"],
+    ignores: ["src/engine/**/*.test.ts", "src/bots/**/*.test.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
