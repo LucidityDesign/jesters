@@ -3,3 +3,8 @@ ignoredBuiltDependencies:
   - "@firebase/util"
   - protobufjs
   - re2
+
+# Only install versions published at least 3 days ago: guards against freshly hijacked releases and
+# matches the 3-day window Dependabot uses for pnpm, so the lockfile never holds a version that
+# blocks Dependabot's updates.
+minimumReleaseAge: 4320

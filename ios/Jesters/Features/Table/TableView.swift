@@ -192,11 +192,17 @@ struct RoundInfoView: View {
                 CardView(card: trumpCard, size: 0.6)
             }
             if let suit = game.round?.trumpSuit {
-                Text("Trump: \(Text(suit.symbol).foregroundStyle(suit.color)) \(suit.name)")
+                if game.round?.trumpCard?.kind == .wizard, let dealer = game.round?.dealerSeat {
+                    Text("Trump: \(Text(suit.symbol).foregroundStyle(suit.color)) \(suit.name) (chosen by \(game.name(atSeat: dealer)))")
+                } else {
+                    Text("Trump: \(Text(suit.symbol).foregroundStyle(suit.color)) \(suit.name)")
+                }
             } else if game.status == .choosingTrump {
                 Text("Trump: to be chosen")
+            } else if game.round?.trumpCard != nil {
+                Text("No trump (Jester)")
             } else {
-                Text("No trump")
+                Text("No trump (last round)")
             }
             Spacer()
             if let round = game.round {

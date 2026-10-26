@@ -63,6 +63,11 @@ struct Card: Hashable, Sendable, Identifiable {
         self.code = code
     }
 
+    /// Wizards and Jesters.
+    var isSpecial: Bool {
+        suit == nil
+    }
+
     var suit: Suit? {
         if case .regular(let suit, _) = kind { suit } else { nil }
     }
