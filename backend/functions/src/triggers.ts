@@ -16,8 +16,11 @@ export const onGameUpdated = onDocumentUpdated("games/{gameId}", async (event) =
   await sendPush(notificationsFor(event.params.gameId, before, after));
 });
 
-/** The pause between a move and a bot's answer, so people can follow the bots' cards. */
-export const BOT_MOVE_DELAY_MS = 500;
+/**
+ * The pause between a move and a bot's answer, chosen at random for each move so the bots seem to
+ * think and people can follow their cards.
+ */
+export const BOT_MOVE_DELAY_MS = { min: 500, max: 2000 };
 
 /**
  * Makes one move for the bot whose turn it is. Each move changes the game again, so a row of bots
@@ -30,8 +33,10 @@ export const moveBot = onDocumentUpdated(
     const after = event.data?.after.data() as GameDoc | undefined;
     if (!after || botToMove(after) === null) return;
 
+    const { min, max } = BOT_MOVE_DELAY_MS;
+    const delay = min + Math.random() * (max - min);
     const sinceLastMove = Date.now() - after.updatedAt.toMillis();
-    const wait = Math.min(BOT_MOVE_DELAY_MS, Math.max(0, BOT_MOVE_DELAY_MS - sinceLastMove));
+    const wait = Math.min(delay, Math.max(0, delay - sinceLastMove));
     await new Promise((resolve) => setTimeout(resolve, wait));
 
     const gameId = event.params.gameId;

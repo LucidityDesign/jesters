@@ -139,7 +139,7 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
   players while in the lobby.
 - **Bots:** in the lobby the host can fill seats with computer players (`addBot`), so a game can
   start with a single person. Bots have no account (`uid` `bot-…`, `bot: "beginner"` on the
-  player). A Firestore trigger (`moveBot`) makes each bot move about 0.5 s after the move
+  player). A Firestore trigger (`moveBot`) makes each bot move 0.5 to 2 s (at random) after the move
   before, one card at a time, so people can follow along. A bot never becomes host; a lobby with
   only bots left is deleted. Bots get no notifications. Strategies live in `functions/src/bots/` and see only a `BotView`
   (their own hand plus the table), so they can't cheat. The beginner bot follows simple rules of

@@ -60,7 +60,7 @@ describe("bots", () => {
     await anna.call("addBot", { gameId });
     await anna.call("startGame", { gameId });
 
-    /** Waits until it is Anna's turn: the bots move by themselves, about 0.5 s apart. */
+    /** Waits until it is Anna's turn: the bots move by themselves, 0.5 to 2 s apart. */
     async function annasTurn(): Promise<Game> {
       for (let attempt = 0; attempt < 100; attempt++) {
         const game = (await anna.read<Game>(`games/${gameId}`)) as Game;
