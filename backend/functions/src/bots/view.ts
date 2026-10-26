@@ -30,10 +30,12 @@ export interface BotView {
   /** The bid this bot may not make now ("no even bids"), or `null`. */
   forbiddenBid: number | null;
   results: RoundResult[];
+  /** This bot's temperament, -0.1 (cautious) to 0.1 (aggressive); see `Player.aggression`. */
+  aggression: number;
 }
 
 /** The view of the bot whose turn it is. Throws if the game is finished. */
-export function viewFor(state: GameState): BotView {
+export function viewFor(state: GameState, aggression = 0): BotView {
   const seat = state.turn;
   if (seat === null || state.phase === "finished") throw new Error("viewFor: game is finished");
   return {
@@ -51,5 +53,6 @@ export function viewFor(state: GameState): BotView {
     legalCards: legalCardsFor(state, seat),
     forbiddenBid: forbiddenBid(state, seat),
     results: state.results,
+    aggression,
   };
 }

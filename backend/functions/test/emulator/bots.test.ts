@@ -6,7 +6,7 @@ interface Game {
   hostUid: string;
   version: number;
   turnUid: string | null;
-  players: { uid: string; name: string; bot?: string }[];
+  players: { uid: string; name: string; bot?: string; aggression?: number }[];
   playerUids: string[];
   results: { totals: number[] }[];
 }
@@ -29,12 +29,16 @@ describe("bots", () => {
     expect(await rejection(anna.call("addBot", { gameId }))).toBe("ROOM_FULL");
 
     let game = (await anna.read<Game>(`games/${gameId}`)) as Game;
-    expect(game.players.slice(2)).toEqual([
-      { uid: expect.stringMatching(/^bot-/), name: "Merlin", bot: "beginner" },
-      { uid: expect.stringMatching(/^bot-/), name: "Morgana", bot: "beginner" },
-      { uid: expect.stringMatching(/^bot-/), name: "Prospero", bot: "beginner" },
-      { uid: expect.stringMatching(/^bot-/), name: "Circe", bot: "beginner" },
-    ]);
+    const bot = (name: string) => ({
+      uid: expect.stringMatching(/^bot-/),
+      name,
+      bot: "beginner",
+      aggression: expect.any(Number),
+    });
+    expect(game.players.slice(2)).toEqual(["Merlin", "Morgana", "Prospero", "Circe"].map(bot));
+    for (const player of game.players.slice(2)) {
+      expect(Math.abs(player.aggression as number)).toBeLessThanOrEqual(0.1);
+    }
 
     await anna.call("removePlayer", { gameId, uid: game.playerUids[2] });
     game = (await anna.read<Game>(`games/${gameId}`)) as Game;

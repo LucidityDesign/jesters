@@ -49,7 +49,8 @@ export const moveBot = onDocumentUpdated(
       if (!game || !secret || !level || game.version !== after.version) return;
 
       const state = stateFromSecret(secret);
-      const result = reduce(state, botAction(state, level), secureRandomInt);
+      const aggression = game.players[game.turnSeat as number]?.aggression ?? 0;
+      const result = reduce(state, botAction(state, level, aggression), secureRandomInt);
       if (!result.ok) {
         // A bug in the strategy; retrying would not help.
         logger.error(`The ${level} bot made a move the rules reject: ${result.error}`, { gameId });

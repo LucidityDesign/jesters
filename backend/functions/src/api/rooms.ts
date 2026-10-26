@@ -1,5 +1,6 @@
 import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
+import { AGGRESSION_RANGE } from "../bots/index.js";
 import { createGame, MAX_PLAYERS, MIN_PLAYERS } from "../engine/index.js";
 import { type GameDoc, lobbyPlay } from "../game/model.js";
 import { generateRoomKey, normalizeRoomKey } from "../game/roomKey.js";
@@ -20,6 +21,13 @@ const ROOM_KEY_ATTEMPTS = 5;
 
 /** Names for bots, in the order they join a room. */
 export const BOT_NAMES = ["Merlin", "Morgana", "Prospero", "Circe", "Faust"] as const;
+
+/** A random temperament for a new bot, in steps of 0.01. */
+export function randomAggression(randomInt = secureRandomInt): number {
+  const { min, max } = AGGRESSION_RANGE;
+  const steps = Math.round((max - min) * 100);
+  return Math.round(min * 100 + randomInt(steps + 1)) / 100;
+}
 
 async function checkActiveGameLimit(uid: string): Promise<void> {
   const active = await refs
@@ -133,7 +141,10 @@ export const addBot = onCall(CALLABLE, async (request) => {
     // Bots have no sign-in account; the prefix keeps their ids apart from real user ids.
     const botUid = `bot-${refs.games().doc().id}`;
     tx.update(refs.game(input.gameId), {
-      players: [...game.players, { uid: botUid, name, bot: input.level }],
+      players: [
+        ...game.players,
+        { uid: botUid, name, bot: input.level, aggression: randomAggression() },
+      ],
       playerUids: [...game.playerUids, botUid],
       version: game.version + 1,
       updatedAt: FieldValue.serverTimestamp(),

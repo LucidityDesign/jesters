@@ -21,6 +21,8 @@ export interface Player {
   name: string;
   /** Set for computer players, which the server moves for. */
   bot?: BotLevel;
+  /** A bot's temperament, -0.1 (cautious) to 0.1 (aggressive): how high it bids and how it plays. */
+  aggression?: number;
 }
 
 /** The level of the bot whose turn it is in a running game, or `null` when a person is to move. */

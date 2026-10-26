@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { gameWith, playRandomly, seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
-import { bid, chooseTrump, play } from "./beginner.js";
+import { bid, bidPressure, chooseTrump, play, playingAggression } from "./beginner.js";
 import { botAction, type BotLevel, playBots } from "./index.js";
 import { type BotView, viewFor } from "./view.js";
 
@@ -13,22 +13,26 @@ function playingView(options: {
   trump?: BotView["trumpSuit"];
   bid: number;
   won?: number;
+  playerCount?: number;
+  aggression?: number;
 }): BotView {
+  const playerCount = options.playerCount ?? 3;
   return {
     seat: 0,
-    playerCount: 3,
+    playerCount,
     phase: "playing",
     round: options.hand.length,
     dealer: 2,
     hand: options.hand,
     trumpCard: null,
     trumpSuit: options.trump ?? null,
-    bids: [options.bid, 0, 0],
-    tricksWon: [options.won ?? 0, 0, 0],
+    bids: [options.bid, ...Array<number>(playerCount - 1).fill(0)],
+    tricksWon: [options.won ?? 0, ...Array<number>(playerCount - 1).fill(0)],
     trick: { leader: 1, cards: options.trick ?? [] },
     legalCards: options.hand,
     forbiddenBid: null,
     results: [],
+    aggression: options.aggression ?? 0,
   };
 }
 
@@ -88,6 +92,30 @@ describe("the beginner bot", () => {
     expect(bid(viewFor(weak))).toBe(0);
   });
 
+  it("bids lower when the others have claimed many tricks, higher when few", () => {
+    const view = (bids: (number | null)[]): BotView => ({
+      ...playingView({ hand: ["H14", "H13", "D14", "C13", "D2"], bid: 0 }),
+      phase: "bidding",
+      bids,
+    });
+    const neutral = bidPressure(view([null, null, null]));
+    expect(neutral).toBe(1);
+    expect(bidPressure(view([null, 4, 4]))).toBeLessThan(neutral);
+    expect(bidPressure(view([null, 0, 0]))).toBeGreaterThan(neutral);
+    expect(bid(view([null, 4, 4]))).toBeLessThan(bid(view([null, 0, 0])));
+  });
+
+  it("bids higher the more aggressive it is", () => {
+    const view = (aggression: number): BotView => ({
+      ...playingView({ hand: ["H14", "D14", "C13", "S9", "H2"], bid: 0, aggression }),
+      phase: "bidding",
+      bids: [null, null, null],
+    });
+    expect(bid(view(-0.1))).toBeLessThan(bid(view(0.1)));
+    expect(bid(view(0))).toBeGreaterThanOrEqual(bid(view(-0.1)));
+    expect(bid(view(0))).toBeLessThanOrEqual(bid(view(0.1)));
+  });
+
   it("avoids the forbidden bid", () => {
     const view: BotView = {
       ...playingView({ hand: ["W1"], bid: 0 }),
@@ -98,11 +126,54 @@ describe("the beginner bot", () => {
     expect(bid({ ...view, hand: ["J1"], forbiddenBid: 0 })).toBe(1);
   });
 
-  it("takes tricks it needs with the cheapest winning card", () => {
-    expect(play(playingView({ hand: ["H9", "H14", "W1"], trick: ["H10"], bid: 1 }))).toBe("H14");
+  it("takes tricks it needs, with the cheapest winning card when playing last", () => {
+    const last = { trick: ["H10", "C2"] as Card[], bid: 1 };
+    expect(play(playingView({ hand: ["H9", "H14", "W1"], ...last }))).toBe("H14");
     expect(play(playingView({ hand: ["H9", "H14", "W1"], bid: 1 }))).toBe("W1");
     // Nothing wins: throw away the weakest card.
     expect(play(playingView({ hand: ["H2", "C9"], trick: ["W2"], bid: 1 }))).toBe("H2");
+  });
+
+  it("takes tricks with stronger cards the more aggressive it is, unless playing last", () => {
+    // The bids add up to the cards, so the table doesn't shift the aggression.
+    const view = (aggression: number, trick: Card[] = ["H10"]): BotView => ({
+      ...playingView({ hand: ["H11", "H12", "H14"], trick, bid: 1, playerCount: 4, aggression }),
+      bids: [1, 1, 1, 0],
+    });
+    expect(play(view(-0.1))).toBe("H11");
+    expect(play(view(0))).toBe("H12");
+    expect(play(view(0.1))).toBe("H14");
+    expect(play(view(0.1, ["H10", "C2", "C3"]))).toBe("H11");
+  });
+
+  it("plays more aggressively when the bids exceed the cards, more cautiously when they don't", () => {
+    const view = (others: number[]): BotView => {
+      const base = playingView({
+        hand: ["H11", "H12", "H14"],
+        trick: ["H10"],
+        bid: 1,
+        playerCount: 4,
+      });
+      return { ...base, round: 3, bids: [1, ...others] };
+    };
+    expect(playingAggression(view([1, 0, 1]))).toBe(0);
+    expect(play(view([1, 0, 1]))).toBe("H12");
+    expect(playingAggression(view([2, 1, 1]))).toBeCloseTo(0.2);
+    expect(play(view([2, 1, 1]))).toBe("H14");
+    expect(playingAggression(view([0, 0, 0]))).toBeCloseTo(-0.2);
+    expect(play(view([0, 0, 0]))).toBe("H11");
+  });
+
+  it("keeps its Jester for later when another card can lose the trick", () => {
+    // Can't win and still needs tricks: drop the weakest card but a Jester or Wizard.
+    expect(play(playingView({ hand: ["J1", "H3", "S14"], trick: ["W1"], bid: 1 }))).toBe("H3");
+    expect(play(playingView({ hand: ["J1", "S14"], trick: ["W1"], trump: "S", bid: 1 }))).toBe(
+      "S14",
+    );
+    expect(play(playingView({ hand: ["J1", "W2"], trick: ["W1"], bid: 1 }))).toBe("J1");
+    // Leading without needing tricks: a low side-suit card, else the Jester.
+    expect(play(playingView({ hand: ["J1", "C12", "H3"], bid: 0 }))).toBe("H3");
+    expect(play(playingView({ hand: ["J1", "S3", "C12"], trump: "S", bid: 0 }))).toBe("J1");
   });
 
   it("loses tricks it doesn't need, dropping its strongest losing card", () => {
@@ -115,9 +186,10 @@ describe("the beginner bot", () => {
 
 function playWholeGame(levels: (BotLevel | null)[], seed: number, noEvenBids: boolean): GameState {
   const randomInt = seededRandom(seed);
+  const aggression = levels.map(() => (randomInt(21) - 10) / 100);
   let state = createGame({ playerCount: levels.length, settings: { noEvenBids }, randomInt });
   for (;;) {
-    state = playBots(state, levels, randomInt);
+    state = playBots(state, levels, randomInt, aggression);
     if (state.phase === "finished") return state;
     expect(levels[state.turn as number]).toBeNull();
     // People play randomly.

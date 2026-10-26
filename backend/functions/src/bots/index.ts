@@ -15,6 +15,9 @@ export type { BotView } from "./view.js";
 export const BOT_LEVELS = ["beginner"] as const;
 export type BotLevel = (typeof BOT_LEVELS)[number];
 
+/** How cautious (negative) or aggressive (positive) a bot can be; each bot gets its own. */
+export const AGGRESSION_RANGE = { min: -0.1, max: 0.1 };
+
 /** How a bot decides. Each level is one strategy; it only sees its own `BotView`. */
 export interface Strategy {
   chooseTrump(view: BotView): Suit;
@@ -25,8 +28,8 @@ export interface Strategy {
 const STRATEGIES: Record<BotLevel, Strategy> = { beginner };
 
 /** The move of the bot whose turn it is. */
-export function botAction(state: GameState, level: BotLevel): Action {
-  const view = viewFor(state);
+export function botAction(state: GameState, level: BotLevel, aggression = 0): Action {
+  const view = viewFor(state, aggression);
   const strategy = STRATEGIES[level];
   switch (view.phase) {
     case "choosingTrump":
@@ -41,18 +44,23 @@ export function botAction(state: GameState, level: BotLevel): Action {
 /**
  * Lets the bots move until it is a person's turn or the game is over, all at once (for tests and
  * simulations; the server makes one move at a time, see `moveBot`). `levels` is indexed by seat,
- * `null` for people.
+ * `null` for people; so is `aggression` (0 where missing).
  */
 export function playBots(
   state: GameState,
   levels: readonly (BotLevel | null)[],
   randomInt: RandomInt,
+  aggression: readonly number[] = [],
 ): GameState {
   let current = state;
   for (;;) {
     const level = current.turn === null ? null : (levels[current.turn] ?? null);
     if (level === null) return current;
-    const result = reduce(current, botAction(current, level), randomInt);
+    const result = reduce(
+      current,
+      botAction(current, level, aggression[current.turn as number] ?? 0),
+      randomInt,
+    );
     if (!result.ok)
       throw new Error(`The ${level} bot made a move the rules reject: ${result.error}`);
     current = result.state;
