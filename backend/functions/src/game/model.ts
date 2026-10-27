@@ -82,6 +82,8 @@ export interface GameDoc extends PublicPlay {
   turnSince: Timestamp | null;
   /** When the last turn reminder was sent (see notify/reminders.ts). */
   lastReminderAt?: Timestamp;
+  /** When each person last made a move here, by uid (see notify/messages.ts). */
+  lastMoveAt?: Record<string, Timestamp>;
 }
 
 /** `games/{gameId}/hands/{uid}`: readable only by that player. */
