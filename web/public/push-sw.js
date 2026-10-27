@@ -16,16 +16,24 @@ self.addEventListener("push", (event) => {
   const gameId = payload.data?.gameId;
   event.waitUntil(
     (async () => {
-      // A player looking at the app sees the change there already.
+      // A player looking at the app sees the change there already. Every push must still show a
+      // notification (Safari revokes the subscription otherwise), so it is closed right away.
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      if (windows.some((client) => client.focused && client.visibilityState === "visible")) return;
+      const looking = windows.some(
+        (client) => client.focused && client.visibilityState === "visible",
+      );
       await self.registration.showNotification(title ?? "Jesters", {
         body,
         icon: icon ?? "/icon-192.png",
         tag,
         renotify: Boolean(tag),
         data: { path: gameId ? `/game/${gameId}` : "/" },
+        silent: looking,
       });
+      if (looking) {
+        const shown = await self.registration.getNotifications({ tag });
+        shown.forEach((notification) => notification.close());
+      }
     })(),
   );
 });

@@ -35,11 +35,14 @@ export const DE: Record<string, string> = {
   "Turn on": "Einschalten",
   "Turn off": "Ausschalten",
   "Not now": "Nicht jetzt",
+  OK: "OK",
   "Notifications are on.": "Mitteilungen sind eingeschaltet.",
   "Notifications are blocked. Allow them for this site in your browser's settings.":
     "Mitteilungen sind blockiert. Erlaube sie für diese Seite in den Einstellungen deines Browsers.",
   "This browser can't show notifications.": "Dieser Browser kann keine Mitteilungen anzeigen.",
   "Could not turn on notifications.": "Mitteilungen konnten nicht eingeschaltet werden.",
+  "To get notifications on iPhone or iPad, add Jesters to your Home Screen (Share → Add to Home Screen) and open it from there. You start there as a new guest.":
+    "Für Mitteilungen auf iPhone oder iPad füge Jesters zum Home-Bildschirm hinzu (Teilen → Zum Home-Bildschirm) und öffne es von dort. Dort startest du als neuer Gast.",
   "Connection lost. Reconnecting…": "Verbindung unterbrochen. Verbinde neu …",
   "Connected again": "Wieder verbunden",
   "Could not connect to the server. Check your internet connection.":

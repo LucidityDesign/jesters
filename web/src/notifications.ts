@@ -9,7 +9,8 @@ import { load, save } from "./storage";
 // backend sends them to the tokens in users/{uid}.fcmTokens, as for the iOS app; the service
 // worker public/push-sw.js shows them.
 
-export type NotificationState = "unsupported" | "off" | "on" | "blocked";
+/** `homeScreen`: Safari on iPhone and iPad, which only allows them once added to the Home Screen. */
+export type NotificationState = "unsupported" | "homeScreen" | "off" | "on" | "blocked";
 
 const SERVICE_WORKER = "/push-sw.js";
 /** Set when the player turned notifications off here although the browser allows them. */
@@ -23,8 +24,19 @@ async function supported(): Promise<boolean> {
   return isSupported().catch(() => false);
 }
 
+/** iOS or iPadOS (which says it is a Mac, but has touch), in Safari rather than from the Home Screen. */
+function needsHomeScreen(): boolean {
+  const ios =
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (navigator as { standalone?: boolean }).standalone === true;
+  return ios && !standalone;
+}
+
 function stateNow(isSupported: boolean): NotificationState {
-  if (!isSupported) return "unsupported";
+  if (!isSupported) return !usesEmulators && needsHomeScreen() ? "homeScreen" : "unsupported";
   if (Notification.permission === "denied") return "blocked";
   return Notification.permission === "granted" && !load(OFF_KEY) ? "on" : "off";
 }
@@ -113,6 +125,8 @@ export function useNotifications(uid: string) {
   }
 
   /** Offer them on the home screen: possible, not yet decided, not dismissed. */
-  const offer = state === "off" && Notification.permission === "default" && !dismissed;
+  const offer =
+    !dismissed &&
+    ((state === "off" && Notification.permission === "default") || state === "homeScreen");
   return { state, isBusy, failed, offer, turnOn, turnOff, dismiss };
 }
