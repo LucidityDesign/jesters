@@ -20,6 +20,8 @@
   --jester-face: #e9ebec;
   --plus: #1f7a3a;
   --minus: #b3261e;
+  --warning: #c77700;
+  --warning-soft: #fdecc8;
   --felt: #2e8152;
   --felt-edge: #1b5534;
   --rim: #6b4a2b;
@@ -48,6 +50,8 @@
     --card-face: #efebe2;
     --wizard-face: #e4d8f2;
     --jester-face: #dcdfe0;
+    --warning: #f0a830;
+    --warning-soft: #4a3612;
     --felt: #1c4f33;
     --felt-edge: #0f3020;
     --rim: #3b2716;
@@ -702,6 +706,60 @@ ol.list {
   min-height: 44px;
   display: flex;
   align-items: center;
+}
+
+/* Connection */
+
+.connection-region {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: calc(6px + env(safe-area-inset-top)) 16px 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: var(--warning-soft);
+  color: var(--text);
+  animation: toast-in 0.2s ease-out;
+}
+
+.connection-back {
+  background: var(--accent-soft);
+}
+
+.connection-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+.connection-lost .connection-dot {
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+.connection-back .connection-dot {
+  background: var(--plus);
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection,
+  .connection-lost .connection-dot {
+    animation: none;
+  }
 }
 
 /* Round toast */
