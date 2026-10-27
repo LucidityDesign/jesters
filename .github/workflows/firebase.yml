@@ -1,17 +1,13 @@
 name: Firebase
 
 # Checks the backend and the web app; deploys both (functions, Firestore rules, hosting).
+# Runs only for main (and v* tags, or by hand), not for feature branches or pull requests, to save
+# Actions minutes: check a branch locally before merging. Only main is deployed.
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     tags: ["v*"]
-    paths:
-      - "backend/**"
-      - "web/**"
-      - "docs/privacy-policy.md"
-      - ".github/workflows/firebase.yml"
-  pull_request:
     paths:
       - "backend/**"
       - "web/**"
@@ -19,8 +15,8 @@ on:
       - ".github/workflows/firebase.yml"
   workflow_dispatch:
 
-# A newer push to a PR branch replaces the run before it. Runs on main are never cancelled: one may
-# be in the middle of deploying; the next one waits for it instead.
+# Runs on main are never cancelled: one may be in the middle of deploying; the next one waits for
+# it instead. A manual run on another branch is replaced by a newer one.
 concurrency:
   group: firebase-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
@@ -103,9 +99,8 @@ jobs:
   deploy:
     needs: [backend, web]
     if: >-
-      vars.DEPLOY_ENABLED == 'true' &&
-      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch')
+      vars.DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
