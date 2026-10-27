@@ -55,6 +55,7 @@ export function Table({
   const mySeat = Math.max(game.playerUids.indexOf(uid), 0);
   const feltRef = useRef<HTMLDivElement>(null);
   const trickLayout = useTrickLayout(feltRef, mySeat, game.players.length);
+  const plusOne = useTrickTaken(game);
   const round = game.round;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
@@ -73,7 +74,7 @@ export function Table({
       <div className="table-area">
         <div className={`felt${game.players.length >= 5 ? " felt-crowded" : ""}`} ref={feltRef}>
           <Trick game={game} mySeat={mySeat} layout={trickLayout} />
-          <Players game={game} uid={uid} mySeat={mySeat} />
+          <Players game={game} uid={uid} mySeat={mySeat} plusOne={plusOne} />
         </div>
       </div>
       <p
@@ -211,7 +212,42 @@ function useTrickLayout(
 }
 
 /** The seats around the table: name, bot and dealer badges, tricks won of the bid, and score. */
-function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: number }) {
+/** How long the "+1" stays at the seat of a trick's winner. */
+const PLUS_ONE_MS = 3000;
+
+/**
+ * The seat that just took a trick, for `PLUS_ONE_MS`, also when it already leads the next one.
+ * Tricks taken before the page was opened don't count.
+ */
+function useTrickTaken(game: GameDoc): { seat: number; key: string | null } | null {
+  const last = game.lastTrick;
+  // The last trick stays in the game when the next round starts; its cards and leader identify it.
+  const key = last ? `${last.leaderSeat}:${last.cards.join()}` : null;
+  const [seenKey, setSeenKey] = useState(key);
+  const [taker, setTaker] = useState<number | null>(null);
+  if (key !== seenKey) {
+    setSeenKey(key);
+    setTaker(last ? last.winnerSeat : null);
+  }
+  useEffect(() => {
+    if (taker === null) return;
+    const timer = setTimeout(() => setTaker(null), PLUS_ONE_MS);
+    return () => clearTimeout(timer);
+  }, [taker, seenKey]);
+  return taker === null ? null : { seat: taker, key: seenKey };
+}
+
+function Players({
+  game,
+  uid,
+  mySeat,
+  plusOne,
+}: {
+  game: GameDoc;
+  uid: string;
+  mySeat: number;
+  plusOne: { seat: number; key: string | null } | null;
+}) {
   const scores = totals(game);
   const count = Math.max(game.players.length, 1);
   const dealer = t("Dealer");
@@ -235,8 +271,9 @@ function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: nu
             className={`seat${isTurn ? " turn" : ""}${seat === trickTaker ? " took-trick" : ""}`}
             style={{ left: `${x}%`, top: `${y}%` }}
           >
-            {seat === trickTaker && (
-              <span className="trick-taken" aria-hidden="true">
+            {seat === plusOne?.seat && (
+              // Keyed by the trick, so it pops again when the same player takes the next one.
+              <span key={plusOne.key} className="trick-taken" aria-hidden="true">
                 +1
               </span>
             )}
