@@ -31,7 +31,8 @@ async function moveIfMyTurn(page: Page): Promise<boolean> {
   } else {
     return false;
   }
-  await expect.poll(state).not.toBe(before);
+  // The emulated functions can take a few seconds to answer, above all the first call of a kind.
+  await expect.poll(state, { timeout: 15_000 }).not.toBe(before);
   return true;
 }
 

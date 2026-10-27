@@ -7,6 +7,7 @@ import {
   leaders,
   sortHand,
   totals,
+  trickLeader,
 } from "./model";
 
 describe("cards", () => {
@@ -80,5 +81,18 @@ describe("lastRoundSummary", () => {
   it("is null before the first round and for outsiders", () => {
     expect(lastRoundSummary({ ...game, results: [] }, "a")).toBeNull();
     expect(lastRoundSummary(game, "x")).toBeNull();
+  });
+});
+
+describe("trickLeader", () => {
+  it("finds the card taking the trick so far", () => {
+    expect(trickLeader([], "H")).toBeNull();
+    // The led suit, unless a trump is played.
+    expect(trickLeader(["C9", "C12", "H14"], "S")).toBe(1);
+    expect(trickLeader(["C9", "C12", "S2"], "S")).toBe(2);
+    // Jesters don't lead; the first Wizard always takes it.
+    expect(trickLeader(["J1", "D3", "D7"], null)).toBe(2);
+    expect(trickLeader(["J1", "J2"], "H")).toBe(0);
+    expect(trickLeader(["H14", "W2", "W1"], "H")).toBe(1);
   });
 });

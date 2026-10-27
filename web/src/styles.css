@@ -443,6 +443,11 @@ ol.list {
     0 6px 18px rgb(0 0 0 / 0.2);
 }
 
+/* Five or six seats need more room on narrow screens. */
+.felt-crowded {
+  height: clamp(300px, 80vw, 320px);
+}
+
 .players {
   list-style: none;
   margin: 0;
@@ -474,9 +479,15 @@ ol.list {
   max-width: 100%;
 }
 
-.seat-name > span:not(.badge):not(.visually-hidden) {
+.seat-name > span:not(.badge):not(.crown):not(.visually-hidden) {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.crown {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .seat-stats {
@@ -540,17 +551,18 @@ ol.list {
 .trick-card {
   position: absolute;
   margin: 0;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--scale, 1));
   animation: card-in 0.3s ease-out;
+}
+
+.trick-card.trick-leading .card {
+  outline: 2px solid rgb(242 201 76 / 0.75);
+  box-shadow: 0 0 10px rgb(242 201 76 / 0.45);
 }
 
 .trick-card.trick-winner .card {
   outline: 3px solid #f2c94c;
   box-shadow: 0 0 14px rgb(242 201 76 / 0.8);
-}
-
-.trick-card.trick-winner {
-  z-index: 1;
 }
 
 @keyframes card-in {

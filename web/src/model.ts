@@ -131,11 +131,39 @@ export function leaders(game: GameDoc): number[] {
 export type CardKind =
   { type: "regular"; suit: Suit; rank: number } | { type: "wizard" } | { type: "jester" };
 
+type RegularKind = Extract<CardKind, { type: "regular" }>;
+
 export function cardKind(card: Card): CardKind {
   const letter = card[0];
   if (letter === "W") return { type: "wizard" };
   if (letter === "J") return { type: "jester" };
   return { type: "regular", suit: letter as Suit, rank: Number(card.slice(1)) };
+}
+
+/**
+ * Index (in play order) of the card taking the trick so far: the first Wizard, else the highest
+ * trump, else the highest card of the led suit; with only Jesters, the first one. As in the
+ * backend's `trickWinner`. `null` for an empty trick.
+ */
+export function trickLeader(cards: readonly Card[], trump: Suit | null): number | null {
+  if (cards.length === 0) return null;
+  const kinds = cards.map(cardKind);
+  const firstWizard = kinds.findIndex((kind) => kind.type === "wizard");
+  if (firstWizard !== -1) return firstWizard;
+  const led = kinds.find((kind): kind is RegularKind => kind.type === "regular")?.suit;
+  if (led === undefined) return 0;
+  const highestOf = (suit: Suit): number =>
+    kinds.reduce(
+      (best, kind, index) =>
+        kind.type === "regular" &&
+        kind.suit === suit &&
+        (best === -1 || kind.rank > (kinds[best] as RegularKind).rank)
+          ? index
+          : best,
+      -1,
+    );
+  const bestTrump = trump === null ? -1 : highestOf(trump);
+  return bestTrump !== -1 ? bestTrump : highestOf(led);
 }
 
 /** Wizards first, then the suits by rank (highest first), Jesters last. */
