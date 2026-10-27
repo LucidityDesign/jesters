@@ -549,6 +549,11 @@ ol.list {
   animation: card-in 0.3s ease-out;
 }
 
+.trick-card.trick-leading .card {
+  outline: 2px solid rgb(242 201 76 / 0.75);
+  box-shadow: 0 0 10px rgb(242 201 76 / 0.45);
+}
+
 .trick-card.trick-winner .card {
   outline: 3px solid #f2c94c;
   box-shadow: 0 0 14px rgb(242 201 76 / 0.8);

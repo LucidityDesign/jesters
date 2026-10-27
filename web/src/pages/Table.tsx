@@ -20,6 +20,7 @@ import {
   SUITS,
   sortHand,
   totals,
+  trickLeader,
 } from "../model";
 import {
   type Box,
@@ -314,6 +315,11 @@ function Trick({ game, mySeat, layout }: { game: GameDoc; mySeat: number; layout
   const lastTrick = lastTrickOfRound(game);
   const current = game.trick && game.trick.cards.length > 0 ? game.trick : null;
   const trick = current ?? lastTrick;
+  // While a trick is played, the card taking it so far stands out a little.
+  const leading =
+    current && current.cards.length >= 2
+      ? trickLeader(current.cards, game.round?.trumpSuit ?? null)
+      : null;
   const count = Math.max(game.players.length, 1);
   const layers = trickCardLayers(
     Array.from({ length: count }, (_, seat) => seatDirection(seat, mySeat, count)),
@@ -336,11 +342,15 @@ function Trick({ game, mySeat, layout }: { game: GameDoc; mySeat: number; layout
         return (
           <figure
             key={card}
-            className={`trick-card${current ? "" : winner ? " trick-winner" : " faded"}`}
+            className={`trick-card${current ? (index === leading ? " trick-leading" : "") : winner ? " trick-winner" : " faded"}`}
             style={style}
           >
             <CardView card={card} />
-            <figcaption className="visually-hidden">{nameAt(game, seat)}</figcaption>
+            <figcaption className="visually-hidden">
+              {index === leading
+                ? t("{name}, highest card so far", { name: nameAt(game, seat) })
+                : nameAt(game, seat)}
+            </figcaption>
           </figure>
         );
       })}
