@@ -479,9 +479,15 @@ ol.list {
   max-width: 100%;
 }
 
-.seat-name > span:not(.badge):not(.visually-hidden) {
+.seat-name > span:not(.badge):not(.crown):not(.visually-hidden) {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.crown {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .seat-stats {

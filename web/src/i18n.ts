@@ -123,6 +123,7 @@ export const DE: Record<string, string> = {
   "Trump: {suit} (chosen by {name})": "Trumpf: {suit} (gewählt von {name})",
   "Bids: {total} of {cards}": "Ansagen: {total} von {cards}",
   "Current trick": "Aktueller Stich",
+  "In the lead": "In Führung",
   "{name}, highest card so far": "{name}, bisher höchste Karte",
   "{name} won the last trick": "{name} hat den letzten Stich gemacht",
   "No cards played yet": "Noch keine Karten gespielt",

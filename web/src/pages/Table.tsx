@@ -18,6 +18,7 @@ import {
   isMyTurn,
   lastTrickOfRound,
   SUITS,
+  leaders,
   sortHand,
   totals,
   trickLeader,
@@ -210,6 +211,9 @@ function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: nu
   const scores = totals(game);
   const count = Math.max(game.players.length, 1);
   const dealer = t("Dealer");
+  // A crown for the highest score, once there is one (not while everyone is level).
+  const inTheLead = new Set(leaders(game));
+  if (inTheLead.size === count) inTheLead.clear();
   return (
     <ul className="players">
       {game.players.map((player, seat) => {
@@ -226,6 +230,12 @@ function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: nu
           >
             <span className="seat-name">
               {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
+              {inTheLead.has(seat) && (
+                <span className="crown" title={t("In the lead")}>
+                  <span aria-hidden="true">👑</span>
+                  <span className="visually-hidden">{t("In the lead")}</span>
+                </span>
+              )}
               <span className={player.uid === uid ? "me" : undefined}>{nameAt(game, seat)}</span>
               {player.bot && (
                 <span className="badge" title={t("Bot")}>
