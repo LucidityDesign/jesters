@@ -1,4 +1,11 @@
-import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { api } from "../api";
 import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
 import { ErrorText, Page } from "../components/Layout";
@@ -14,6 +21,14 @@ import {
   sortHand,
   totals,
 } from "../model";
+import {
+  type Box,
+  DEFAULT_TRICK_LAYOUT,
+  fitTrick,
+  trickCardLayers,
+  trickCardPosition,
+  type TrickLayout,
+} from "../tableLayout";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
 import { ScoreSheet } from "./ScoreSheet";
@@ -36,6 +51,8 @@ export function Table({
 }) {
   const myTurn = isMyTurn(game, uid);
   const mySeat = Math.max(game.playerUids.indexOf(uid), 0);
+  const feltRef = useRef<HTMLDivElement>(null);
+  const trickLayout = useTrickLayout(feltRef, mySeat, game.players.length);
   const round = game.round;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
@@ -52,8 +69,8 @@ export function Table({
     <Page title={title}>
       <RoundInfo game={game} />
       <div className="table-area">
-        <div className="felt">
-          <Trick game={game} mySeat={mySeat} />
+        <div className={`felt${game.players.length >= 5 ? " felt-crowded" : ""}`} ref={feltRef}>
+          <Trick game={game} mySeat={mySeat} layout={trickLayout} />
           <Players game={game} uid={uid} mySeat={mySeat} />
         </div>
       </div>
@@ -126,15 +143,65 @@ function bannerText(game: GameDoc, myTurn: boolean): string {
 }
 
 /**
- * Where a seat sits at the table, in percent of the felt: the player at the bottom, the others
- * clockwise in playing order (the next player on their left). `reach` 1 is the rim, 0 the middle.
+ * From the middle of the table towards a seat (y down): the player at the bottom, the others
+ * clockwise in playing order (the next player on their left).
  */
-function seatPosition(seat: number, mySeat: number, count: number, reach: number) {
+function seatDirection(seat: number, mySeat: number, count: number) {
   const angle = (270 - (360 * ((seat - mySeat + count) % count)) / count) * (Math.PI / 180);
-  return {
-    x: 50 + 50 * reach * Math.cos(angle),
-    y: 50 - 50 * reach * Math.sin(angle),
-  };
+  return { x: Math.cos(angle), y: -Math.sin(angle) };
+}
+
+/** Where a seat sits at the table, in percent of the felt. `reach` 1 is the rim, 0 the middle. */
+function seatPosition(seat: number, mySeat: number, count: number, reach: number) {
+  const direction = seatDirection(seat, mySeat, count);
+  return { x: 50 + 50 * reach * direction.x, y: 50 + 50 * reach * direction.y };
+}
+
+/** The size and place of the trick's cards that keeps all their corners in view on this felt. */
+function useTrickLayout(
+  feltRef: RefObject<HTMLDivElement | null>,
+  mySeat: number,
+  count: number,
+): TrickLayout {
+  const [layout, setLayout] = useState(DEFAULT_TRICK_LAYOUT);
+  useEffect(() => {
+    const felt = feltRef.current;
+    if (!felt) return;
+    const seats = [...felt.querySelectorAll(".seat")];
+    const measure = () => {
+      const origin = felt.getBoundingClientRect();
+      const boxes = seats.map((seat): Box => {
+        const box = seat.getBoundingClientRect();
+        return {
+          x: box.left - origin.left - felt.clientLeft,
+          y: box.top - origin.top - felt.clientTop,
+          width: box.width,
+          height: box.height,
+        };
+      });
+      const directions = Array.from({ length: count }, (_, seat) =>
+        seatDirection(seat, mySeat, count),
+      );
+      const next = fitTrick(
+        { width: felt.clientWidth, height: felt.clientHeight },
+        boxes,
+        directions,
+      );
+      setLayout((current) =>
+        current.reachX === next.reachX &&
+        current.reachY === next.reachY &&
+        current.scale === next.scale
+          ? current
+          : next,
+      );
+    };
+    // Seats grow with their texts (bids, scores), the felt with the screen.
+    const observer = new ResizeObserver(measure);
+    observer.observe(felt);
+    for (const seat of seats) observer.observe(seat);
+    return () => observer.disconnect();
+  }, [feltRef, mySeat, count]);
+  return layout;
 }
 
 /** The seats around the table: name, bot and dealer badges, tricks won of the bid, and score. */
@@ -243,16 +310,19 @@ function trickHint(game: GameDoc): string {
  * each in front of the player who played it. New cards slide in from their player's seat; the
  * winner of the last trick stands out.
  */
-function Trick({ game, mySeat }: { game: GameDoc; mySeat: number }) {
+function Trick({ game, mySeat, layout }: { game: GameDoc; mySeat: number; layout: TrickLayout }) {
   const lastTrick = lastTrickOfRound(game);
   const current = game.trick && game.trick.cards.length > 0 ? game.trick : null;
   const trick = current ?? lastTrick;
   const count = Math.max(game.players.length, 1);
+  const layers = trickCardLayers(
+    Array.from({ length: count }, (_, seat) => seatDirection(seat, mySeat, count)),
+  );
   return (
     <section className="trick" aria-label={t("Current trick")}>
       {trick?.cards.map((card, index) => {
         const seat = (trick.leaderSeat + index) % count;
-        const at = seatPosition(seat, mySeat, count, 0.42);
+        const at = trickCardPosition(seatDirection(seat, mySeat, count), layout);
         const from = seatPosition(seat, mySeat, count, 1);
         const winner = !current && lastTrick?.winnerSeat === seat;
         const style = {
@@ -260,6 +330,8 @@ function Trick({ game, mySeat }: { game: GameDoc; mySeat: number }) {
           top: `${at.y}%`,
           "--from-x": `${from.x}%`,
           "--from-y": `${from.y}%`,
+          "--scale": layout.scale,
+          zIndex: layers[seat],
         } as CSSProperties;
         return (
           <figure
