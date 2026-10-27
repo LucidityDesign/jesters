@@ -23,6 +23,24 @@ export const onGameUpdated = onDocumentUpdated("games/{gameId}", async (event) =
 export const BOT_MOVE_DELAY_MS = { min: 500, max: 2000 };
 
 /**
+ * After a round is scored, the bots wait longer before bidding in the next one, so people can see
+ * the last trick and their result first.
+ */
+export const BOT_NEW_ROUND_DELAY_MS = 5000;
+
+/** How long a bot waits after the move from `before` to `after`, before its own move. */
+export function botDelayMs(
+  before: GameDoc | undefined,
+  after: GameDoc,
+  random: () => number = Math.random,
+): number {
+  const { min, max } = BOT_MOVE_DELAY_MS;
+  const delay = min + random() * (max - min);
+  const roundScored = before !== undefined && after.results.length > before.results.length;
+  return roundScored ? Math.max(delay, BOT_NEW_ROUND_DELAY_MS) : delay;
+}
+
+/**
  * Makes one move for the bot whose turn it is. Each move changes the game again, so a row of bots
  * plays one card after another until it is a person's turn. Retried on errors; a delivery for a
  * version that has already moved on does nothing.
@@ -33,8 +51,7 @@ export const moveBot = onDocumentUpdated(
     const after = event.data?.after.data() as GameDoc | undefined;
     if (!after || botToMove(after) === null) return;
 
-    const { min, max } = BOT_MOVE_DELAY_MS;
-    const delay = min + Math.random() * (max - min);
+    const delay = botDelayMs(event.data?.before.data() as GameDoc | undefined, after);
     const sinceLastMove = Date.now() - after.updatedAt.toMillis();
     const wait = Math.min(delay, Math.max(0, delay - sinceLastMove));
     await new Promise((resolve) => setTimeout(resolve, wait));
