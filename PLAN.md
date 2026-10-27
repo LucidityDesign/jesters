@@ -107,7 +107,7 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 | Cloud Functions (2nd gen, Node 22, TypeScript) | `europe-west3` | Room and game actions, push triggers, scheduled jobs |
 | Cloud Scheduler (`onSchedule`) | `europe-west3`, time zone `Europe/Berlin` | Hourly reminder run (see §3); expire games after 14 days without a move; delete ended games after 90 days |
 | Authentication | global (Google) | Anonymous auth only (guest identity per device) |
-| Cloud Messaging (FCM → APNs) | global (Google, Apple) | "Your turn", "Game started", "Game finished" notifications |
+| Cloud Messaging (FCM → APNs, Web Push) | global (Google, Apple, browser push services) | "Your turn", "Game started", "Game finished" notifications |
 | App Check (App Attest) | global (Google, Apple) | Only allow calls from the genuine app (important with anonymous auth) |
 | Emulator Suite | local | Local development and integration tests |
 

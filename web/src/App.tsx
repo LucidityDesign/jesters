@@ -6,12 +6,14 @@ import { Join } from "./pages/Join";
 import { NameScreen } from "./pages/NameScreen";
 import { Privacy } from "./pages/Privacy";
 import { Profile } from "./pages/Profile";
+import { useNotificationSetup } from "./notifications";
 import { Link, useRoute } from "./router";
 import { useSession } from "./session";
 
 export function App() {
   const route = useRoute();
   const session = useSession();
+  useNotificationSetup(session.uid);
 
   if (route.page === "privacy") return <Privacy />;
   if (!session.displayName) return <NameScreen onSubmit={session.setDisplayName} />;

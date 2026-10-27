@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { errorMessage } from "../api";
 import { ErrorText, Page } from "../components/Layout";
+import { NotificationSettings } from "../components/Notifications";
 import { t } from "../i18n";
 import { Link, navigate } from "../router";
 import { useSession } from "../session";
@@ -42,6 +43,8 @@ export function Profile() {
         }}
       />
       {saved && <p role="status">{t("Saved")}</p>}
+
+      {session.uid && <NotificationSettings uid={session.uid} />}
 
       <section>
         <h2>{t("Privacy")}</h2>
