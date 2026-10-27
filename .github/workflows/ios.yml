@@ -1,10 +1,9 @@
 name: iOS
 
+# Only for main (or by hand), not for feature branches or pull requests: macOS minutes are costly.
 on:
   push:
-    branches: ["**"]
-    paths: ["ios/**", ".github/workflows/ios.yml"]
-  pull_request:
+    branches: [main]
     paths: ["ios/**", ".github/workflows/ios.yml"]
   workflow_dispatch:
 

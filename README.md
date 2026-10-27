@@ -156,6 +156,10 @@ account is allowed to: it enables the APIs, creates Firestore in `europe-west3` 
 anonymous sign-in, and otherwise names the console step to do by hand
 (`backend/scripts/prepare-project.sh`). Afterwards it checks that the web app answers.
 
+To save Actions minutes, the `Firebase` and `iOS` workflows don't run for feature branches or
+pull requests: run the checks locally before merging (lint, typecheck, tests, and the emulator and
+browser tests).
+
 Deploying is off until it is configured:
 
 1. Give the workflow a way to sign in to Google Cloud, either

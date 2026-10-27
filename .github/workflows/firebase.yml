@@ -1,7 +1,8 @@
 name: Firebase
 
 # Checks the backend and the web app; deploys both (functions, Firestore rules, hosting).
-# Feature branches are checked through their pull request only, and only main is deployed.
+# Runs only for main (and v* tags, or by hand), not for feature branches or pull requests, to save
+# Actions minutes: check a branch locally before merging. Only main is deployed.
 
 on:
   push:
@@ -12,16 +13,10 @@ on:
       - "web/**"
       - "docs/privacy-policy.md"
       - ".github/workflows/firebase.yml"
-  pull_request:
-    paths:
-      - "backend/**"
-      - "web/**"
-      - "docs/privacy-policy.md"
-      - ".github/workflows/firebase.yml"
   workflow_dispatch:
 
-# A newer push to a pull request replaces the run before it. Runs on main are never cancelled: one
-# may be in the middle of deploying; the next one waits for it instead.
+# Runs on main are never cancelled: one may be in the middle of deploying; the next one waits for
+# it instead. A manual run on another branch is replaced by a newer one.
 concurrency:
   group: firebase-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
