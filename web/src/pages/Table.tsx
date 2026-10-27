@@ -76,7 +76,11 @@ export function Table({
           <Players game={game} uid={uid} mySeat={mySeat} />
         </div>
       </div>
-      <p className="hint trick-hint">{trickHint(game)}</p>
+      <p
+        className={`hint trick-hint${game.trick && game.trick.cards.length > 0 ? "" : lastTrickOfRound(game) ? " trick-hint-won" : ""}`}
+      >
+        {trickHint(game)}
+      </p>
 
       <p className={`banner${myTurn ? " banner-active" : ""}`} role="status">
         {bannerText(game, myTurn)}
@@ -214,6 +218,9 @@ function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: nu
   // A crown for the highest score, once there is one (not while everyone is level).
   const inTheLead = new Set(leaders(game));
   if (inTheLead.size === count) inTheLead.clear();
+  // While the last trick still lies on the table, its winner's seat stands out.
+  const trickTaker =
+    game.trick && game.trick.cards.length > 0 ? null : (lastTrickOfRound(game)?.winnerSeat ?? null);
   return (
     <ul className="players">
       {game.players.map((player, seat) => {
@@ -225,9 +232,14 @@ function Players({ game, uid, mySeat }: { game: GameDoc; uid: string; mySeat: nu
         return (
           <li
             key={player.uid}
-            className={`seat${isTurn ? " turn" : ""}`}
+            className={`seat${isTurn ? " turn" : ""}${seat === trickTaker ? " took-trick" : ""}`}
             style={{ left: `${x}%`, top: `${y}%` }}
           >
+            {seat === trickTaker && (
+              <span className="trick-taken" aria-hidden="true">
+                +1
+              </span>
+            )}
             <span className="seat-name">
               {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
               {inTheLead.has(seat) && (
