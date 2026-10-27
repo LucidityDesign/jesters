@@ -9,6 +9,7 @@ interface Game {
   players: { uid: string; name: string; bot?: string; aggression?: number }[];
   playerUids: string[];
   results: { totals: number[] }[];
+  lastMoveAt?: Record<string, unknown>;
 }
 
 interface Hand {
@@ -77,7 +78,11 @@ describe("bots", () => {
     // The first three rounds: every round is dealt, bid, played and scored with the bots.
     for (;;) {
       const game = await annasTurn();
-      if (game.results.length === 3) break;
+      if (game.results.length === 3) {
+        // Only people's moves are recorded, for skipping "your turn" pushes while they play.
+        expect(Object.keys(game.lastMoveAt ?? {})).toEqual([anna.uid]);
+        break;
+      }
       const hand = (await anna.read<Hand>(`games/${gameId}/hands/${anna.uid}`)) as Hand;
       const version = game.version;
       if (game.status === "choosingTrump") {

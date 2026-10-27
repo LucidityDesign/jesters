@@ -12,6 +12,17 @@ export interface PushMessage {
   args: string[];
 }
 
+/**
+ * No "your turn" push for a player who made a move in the game this recently: they are still
+ * playing (with bots, the turn comes back every trick) and see it in the app.
+ */
+export const PLAYING_RECENTLY_MS = 2 * 60 * 1000;
+
+function playingRecently(game: GameDoc, uid: string): boolean {
+  const last = game.lastMoveAt?.[uid];
+  return last !== undefined && game.updatedAt.toMillis() - last.toMillis() < PLAYING_RECENTLY_MS;
+}
+
 const TURN_KEYS = {
   choosingTrump: "PUSH_TURN_TRUMP",
   bidding: "PUSH_TURN_BID",
@@ -86,6 +97,7 @@ export function notificationsFor(gameId: string, before: GameDoc, after: GameDoc
     after.turnUid !== null &&
     after.turnUid !== before.turnUid &&
     botToMove(after) === null &&
+    !playingRecently(after, after.turnUid) &&
     (status === "choosingTrump" || status === "bidding" || status === "playing")
   ) {
     messages.push({

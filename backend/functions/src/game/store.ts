@@ -56,12 +56,15 @@ export function writeState(
 ): void {
   const play = publicPlay(next, game.playerUids);
   const finished = next.phase === "finished";
+  // Whoever had the turn made this move (unless the game just started).
+  const mover = previous === null ? undefined : game.players.find((p) => p.uid === game.turnUid);
   tx.update(refs.game(gameId), {
     ...play,
     active: !finished,
     version: game.version + 1,
     updatedAt: FieldValue.serverTimestamp(),
     ...(play.turnUid !== game.turnUid ? { turnSince: FieldValue.serverTimestamp() } : {}),
+    ...(mover && !mover.bot ? { [`lastMoveAt.${mover.uid}`]: FieldValue.serverTimestamp() } : {}),
   });
   tx.set(refs.secret(gameId), secretDoc(next));
 

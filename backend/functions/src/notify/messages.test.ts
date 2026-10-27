@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameDoc } from "../game/model.js";
-import { notificationsFor, reminderFor } from "./messages.js";
+import { notificationsFor, PLAYING_RECENTLY_MS, reminderFor } from "./messages.js";
 
 const base = {
   roomKey: "K7Q2XM",
@@ -113,6 +113,23 @@ describe("notificationsFor", () => {
         game({ status: "choosingTrump", round: round(4), turnUid: "a" }),
       ),
     ).toMatchObject([{ uid: "a", bodyKey: "PUSH_TURN_TRUMP" }]);
+  });
+
+  it("doesn't tell players whose turn it is if they moved in the last two minutes", () => {
+    const at = (ms: number) => ({ toMillis: () => ms }) as GameDoc["updatedAt"];
+    const before = game({ status: "playing", round: round(3), turnUid: "b" });
+    const after = (lastMove: number) =>
+      game({
+        status: "playing",
+        round: round(3),
+        turnUid: "a",
+        updatedAt: at(1_000_000),
+        lastMoveAt: { a: at(lastMove), b: at(1_000_000) },
+      });
+    expect(notificationsFor("g1", before, after(1_000_000 - 30_000))).toEqual([]);
+    expect(notificationsFor("g1", before, after(1_000_000 - PLAYING_RECENTLY_MS))).toMatchObject([
+      { uid: "a", bodyKey: "PUSH_TURN_PLAY" },
+    ]);
   });
 
   it("stays quiet while the same player keeps the turn", () => {
