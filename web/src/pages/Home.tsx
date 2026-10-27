@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { ErrorText, Page } from "../components/Layout";
+import { NotificationOffer } from "../components/Notifications";
 import { type GameEntry, useMyGames } from "../hooks";
 import { formatList, t } from "../i18n";
 import { type GameDoc, isMyTurn, leaders } from "../model";
@@ -36,6 +37,7 @@ export function Home({ uid }: { uid: string }) {
         </Link>
       </div>
       <ErrorText message={create.error} />
+      <NotificationOffer uid={uid} />
 
       <GameList title={t("Your turn")} games={myTurn} uid={uid} />
       <GameList title={t("Other games")} games={others} uid={uid} />

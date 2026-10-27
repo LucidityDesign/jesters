@@ -259,6 +259,22 @@ input[type="text"] {
   accent-color: var(--accent);
 }
 
+.notice {
+  margin: 1rem 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.notice p {
+  margin: 0;
+}
+
+.notice .actions {
+  margin: 10px 0 0;
+}
+
 /* Lists */
 
 .list {

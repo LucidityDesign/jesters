@@ -30,6 +30,16 @@ export const DE: Record<string, string> = {
   "{rank} of {suit}": "{suit} {rank}",
   // Session, name and profile
   "No connection": "Keine Verbindung",
+  Notifications: "Mitteilungen",
+  "Get a notification when it's your turn.": "Lass dich benachrichtigen, wenn du dran bist.",
+  "Turn on": "Einschalten",
+  "Turn off": "Ausschalten",
+  "Not now": "Nicht jetzt",
+  "Notifications are on.": "Mitteilungen sind eingeschaltet.",
+  "Notifications are blocked. Allow them for this site in your browser's settings.":
+    "Mitteilungen sind blockiert. Erlaube sie für diese Seite in den Einstellungen deines Browsers.",
+  "This browser can't show notifications.": "Dieser Browser kann keine Mitteilungen anzeigen.",
+  "Could not turn on notifications.": "Mitteilungen konnten nicht eingeschaltet werden.",
   "Connection lost. Reconnecting…": "Verbindung unterbrochen. Verbinde neu …",
   "Connected again": "Wieder verbunden",
   "Could not connect to the server. Check your internet connection.":

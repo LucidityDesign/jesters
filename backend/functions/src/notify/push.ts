@@ -2,6 +2,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions/v2";
 import type { PushMessage } from "./messages.js";
+import { pushText } from "./texts.js";
 
 export interface UserDoc {
   displayName?: string;
@@ -43,6 +44,17 @@ async function sendOne(message: PushMessage): Promise<void> {
             threadId: message.gameId,
           },
         },
+      },
+      // Browsers get the text itself (see web/public/push-sw.js, which shows it).
+      webpush: {
+        notification: {
+          title: pushText(message.titleKey, message.args, user?.locale),
+          body: pushText(message.bodyKey, message.args, user?.locale),
+          icon: "/icon-192.png",
+          tag: message.gameId,
+          renotify: true,
+        },
+        fcmOptions: { link: `/game/${message.gameId}` },
       },
     });
     const invalid = response.responses.flatMap((result, index) =>
