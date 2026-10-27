@@ -102,6 +102,19 @@ test("a guest plays against two bots", async ({ browser }) => {
   await expect(erik.locator(".toast")).toContainText(/[+-]?\d+ points/);
 });
 
+test("shows when the connection is lost and when it is back", async ({ browser }) => {
+  const fay = await guest(browser, "Fay");
+  await fay.getByRole("button", { name: "New game" }).click();
+  await expect(fay.getByRole("heading", { name: "Lobby" })).toBeVisible();
+
+  await fay.context().setOffline(true);
+  await expect(fay.getByText("Connection lost. Reconnecting…")).toBeVisible();
+  await fay.context().setOffline(false);
+  await expect(fay.getByText("Connected again")).toBeVisible({ timeout: 15_000 });
+  await expect(fay.getByText("Connected again")).toBeHidden({ timeout: 10_000 });
+  await expect(fay.getByRole("heading", { name: "Lobby" })).toBeVisible();
+});
+
 test("a guest deletes their data and starts over", async ({ browser }) => {
   const dora = await guest(browser, "Dora");
   await dora.getByRole("button", { name: "New game" }).click();

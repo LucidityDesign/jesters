@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import { t } from "../i18n";
 import { Link } from "../router";
 import { useSession } from "../session";
+import { ConnectionBanner } from "./ConnectionBanner";
 
 export function Page({ title, children }: { title: string; children: ReactNode }) {
   const { displayName } = useSession();
   return (
     <>
+      <ConnectionBanner />
       <header className="topbar">
         <Link to="/" className="brand">
           Jesters

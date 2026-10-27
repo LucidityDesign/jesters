@@ -30,6 +30,8 @@ export const DE: Record<string, string> = {
   "{rank} of {suit}": "{suit} {rank}",
   // Session, name and profile
   "No connection": "Keine Verbindung",
+  "Connection lost. Reconnecting…": "Verbindung unterbrochen. Verbinde neu …",
+  "Connected again": "Wieder verbunden",
   "Could not connect to the server. Check your internet connection.":
     "Keine Verbindung zum Server. Prüfe deine Internetverbindung.",
   "Try again": "Erneut versuchen",

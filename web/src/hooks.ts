@@ -1,5 +1,6 @@
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { reportStale } from "./connection";
 import { firebase } from "./firebase";
 import type { GameDoc } from "./model";
 
@@ -10,16 +11,25 @@ export type Loaded<T> = T | null | undefined;
 export function useDocument<T>(path: string): Loaded<T> {
   // Keyed by path, so a new path starts out as "loading" instead of showing the old document.
   const [state, setState] = useState<{ path: string; data: Loaded<T> }>({ path, data: undefined });
-  useEffect(
-    () =>
-      onSnapshot(
-        doc(firebase().db, path),
-        (snapshot) => setState({ path, data: (snapshot.data() as T | undefined) ?? null }),
-        // Reading fails once the player is no longer part of the game.
-        () => setState({ path, data: null }),
-      ),
-    [path],
-  );
+  useEffect(() => {
+    const listener = Symbol(path);
+    const unsubscribe = onSnapshot(
+      doc(firebase().db, path),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        reportStale(listener, snapshot.metadata.fromCache);
+        // Offline, a missing document may only be missing from the cache: keep loading.
+        if (snapshot.metadata.fromCache && !snapshot.exists()) return;
+        setState({ path, data: (snapshot.data() as T | undefined) ?? null });
+      },
+      // Reading fails once the player is no longer part of the game.
+      () => setState({ path, data: null }),
+    );
+    return () => {
+      unsubscribe();
+      reportStale(listener, false);
+    };
+  }, [path]);
   return state.path === path ? state.data : undefined;
 }
 
@@ -41,15 +51,23 @@ export function useMyGames(uid: string): Loaded<GameEntry[]> {
       orderBy("updatedAt", "desc"),
       limit(50),
     );
-    return onSnapshot(
+    const listener = Symbol("games");
+    const unsubscribe = onSnapshot(
       games,
-      (snapshot) =>
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        reportStale(listener, snapshot.metadata.fromCache);
         setState({
           uid,
           games: snapshot.docs.map((entry) => ({ id: entry.id, game: entry.data() as GameDoc })),
-        }),
+        });
+      },
       () => setState({ uid, games: null }),
     );
+    return () => {
+      unsubscribe();
+      reportStale(listener, false);
+    };
   }, [uid]);
   return state.uid === uid ? state.games : undefined;
 }
