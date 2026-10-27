@@ -594,6 +594,54 @@ ol.list {
   margin: 0 0 8px;
 }
 
+.trick-hint-won {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The seat of the player who took the last trick: a gold ring and a "+1". */
+.seat.took-trick {
+  outline: 3px solid #f2c94c;
+  outline-offset: 1px;
+  box-shadow: 0 0 14px rgb(242 201 76 / 0.7);
+}
+
+.trick-taken {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: #f2c94c;
+  color: #3a2c00;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  animation: pop-in 0.35s ease-out;
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+  }
+}
+
+.trick-card.trick-winner {
+  animation:
+    card-in 0.3s ease-out,
+    winner-pop 0.45s ease-out 0.1s;
+}
+
+@keyframes winner-pop {
+  50% {
+    transform: translate(-50%, -50%) scale(calc(var(--scale, 1) * 1.12));
+  }
+}
+
 .round-info {
   display: flex;
   align-items: center;
@@ -684,7 +732,7 @@ ol.list {
 
 /* The cards overlap more the more there are, down to a strip showing the corner. */
 .hand-card + .hand-card {
-  margin-left: clamp(-36px, calc((100% - var(--count) * 56px) / max(var(--count) - 1, 1)), 4px);
+  margin-left: clamp(-36px, calc((100% - var(--count) * 56px) / max(var(--count) - 1, 1)), -10px);
 }
 
 .hand-card:disabled {
@@ -719,7 +767,9 @@ ol.list {
     transition: none;
   }
   .seat.turn,
-  .trick-card {
+  .trick-card,
+  .trick-card.trick-winner,
+  .trick-taken {
     animation: none;
   }
 }
