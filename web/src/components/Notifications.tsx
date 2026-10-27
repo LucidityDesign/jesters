@@ -3,11 +3,28 @@ import { useNotifications } from "../notifications";
 import { ErrorText } from "./Layout";
 
 const FAILED = () => t("Could not turn on notifications.");
+const HOME_SCREEN = () =>
+  t(
+    "To get notifications on iPhone or iPad, add Jesters to your Home Screen (Share → Add to Home Screen) and open it from there. You start there as a new guest.",
+  );
 
 /** On the home screen: an offer to turn notifications on, until the player decides. */
 export function NotificationOffer({ uid }: { uid: string }) {
   const notifications = useNotifications(uid);
   if (!notifications.offer && !notifications.failed) return null;
+  if (notifications.state === "homeScreen") {
+    return (
+      <div className="notice">
+        <p>
+          <span aria-hidden="true">🔔 </span>
+          {HOME_SCREEN()}
+        </p>
+        <div className="actions">
+          <button onClick={notifications.dismiss}>{t("OK")}</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="notice">
       <p>
@@ -54,6 +71,7 @@ export function NotificationSettings({ uid }: { uid: string }) {
           {t("Notifications are blocked. Allow them for this site in your browser's settings.")}
         </p>
       )}
+      {state === "homeScreen" && <p className="hint">{HOME_SCREEN()}</p>}
       {state === "unsupported" && (
         <p className="hint">{t("This browser can't show notifications.")}</p>
       )}
