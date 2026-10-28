@@ -128,6 +128,16 @@ export function leaders(game: GameDoc): number[] {
   return scores.flatMap((score, seat) => (score === best ? [seat] : []));
 }
 
+/**
+ * Each seat's place by total, 1 for the best; tied seats share a place and the next place is
+ * skipped (30, 30, 20 → 1, 1, 3). `null` for everyone while all totals are level.
+ */
+export function places(game: GameDoc): (number | null)[] {
+  const scores = totals(game);
+  if (scores.every((score) => score === scores[0])) return scores.map(() => null);
+  return scores.map((score) => 1 + scores.filter((other) => other > score).length);
+}
+
 export type CardKind =
   { type: "regular"; suit: Suit; rank: number } | { type: "wizard" } | { type: "jester" };
 

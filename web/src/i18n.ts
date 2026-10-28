@@ -159,6 +159,7 @@ export const DE: Record<string, string> = {
     "{name} hat das Spiel verlassen, daher wurde es vorzeitig beendet.",
   "Winner: {names}": "Gewonnen: {names}",
   Standings: "Rangliste",
+  "Place {place}": "Platz {place}",
   "Score sheet": "Punkteliste",
   "Game ended": "Spiel beendet",
   "Game over": "Spiel vorbei",

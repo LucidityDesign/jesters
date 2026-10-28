@@ -1,5 +1,6 @@
+import { Medal } from "../components/Medal";
 import { t } from "../i18n";
-import type { GameDoc } from "../model";
+import { type GameDoc, places } from "../model";
 import { nameAt } from "./Home";
 
 /** Rounds × players: running total, with bid / tricks won below. */
@@ -7,6 +8,7 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
   if (game.results.length === 0) {
     return <p className="hint">{t("Scores appear after the first round.")}</p>;
   }
+  const place = places(game);
   return (
     <div className="score-sheet">
       <table>
@@ -15,6 +17,7 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
             <th scope="col">{t("Round")}</th>
             {game.players.map((player, seat) => (
               <th scope="col" key={player.uid}>
+                <Medal place={place[seat] ?? null} />
                 {nameAt(game, seat)}
               </th>
             ))}
