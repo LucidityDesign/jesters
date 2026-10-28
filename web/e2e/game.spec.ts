@@ -116,6 +116,25 @@ test("a guest plays against two bots", async ({ browser }) => {
   // A toast tells Erik how round 2 went.
   await expect(erik.locator(".toast")).toContainText(/Round 2 · Bid \d, won \d/);
   await expect(erik.locator(".toast")).toContainText(/[+-]?\d+ points/);
+
+  // Restarting the app on the game page opens the game again.
+  await erik.reload();
+  await expect(roundThree).toBeVisible();
+});
+
+test("a player removed from the lobby sees that the game is gone", async ({ browser }) => {
+  const gus = await guest(browser, "Gus");
+  await gus.getByRole("button", { name: "New game" }).click();
+  await expect(gus.getByRole("heading", { name: "Lobby" })).toBeVisible();
+  const roomKey = (await gus.locator(".room-key strong").textContent()) as string;
+  const hana = await guest(browser, "Hana", `/join/${roomKey}`);
+  await hana.getByRole("button", { name: "Join", exact: true }).click();
+  await expect(hana.getByText("Waiting for the host to start the game.")).toBeVisible();
+
+  await gus.getByRole("button", { name: "Remove: Hana" }).click();
+  await expect(hana.getByRole("heading", { name: "Game not available" })).toBeVisible({
+    timeout: 3_000,
+  });
 });
 
 test("shows when the connection is lost and when it is back", async ({ browser }) => {
