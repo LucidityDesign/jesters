@@ -1001,7 +1001,8 @@ ol.list {
 
 .medal {
   flex-shrink: 0;
-  margin-right: 4px;
+  margin-right: 2px;
+  font-size: 0.85em;
   line-height: 1;
 }
 
