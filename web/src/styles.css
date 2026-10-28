@@ -764,6 +764,11 @@ ol.list {
 }
 
 /* Emoji reactions: floating over the sender's seat, sent from the corner of the table. */
+/* Above the trick cards (layered from 0 up to 5) while the reaction floats. */
+.seat.reacting {
+  z-index: 7;
+}
+
 .reaction {
   position: absolute;
   bottom: calc(100% - 4px);
