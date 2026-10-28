@@ -318,9 +318,12 @@ function Players({
               )}
             </span>
             <span className="seat-stats">
-              <span className={made ? "made" : "hint"}>
-                {bid === null ? t("won {won}", { won }) : t("won {won} of {bid}", { won, bid })}
-              </span>
+              {/* Nothing to count before the player has bid. */}
+              {bid !== null && (
+                <span className={made ? "made" : "hint"}>
+                  {t("won {won} of {bid}", { won, bid })}
+                </span>
+              )}
               <strong
                 className="score"
                 aria-label={t("Score: {score}", { score: scores[seat] ?? 0 })}

@@ -126,7 +126,6 @@ export const DE: Record<string, string> = {
   "Waiting for {name} to play": "Warten, bis {name} spielt",
   Dealer: "Geber",
   "Current turn": "Ist am Zug",
-  "won {won}": "{won} gemacht",
   "won {won} of {bid}": "{won} von {bid} gemacht",
   "Score: {score}": "Punkte: {score}",
   "Trump: {suit}": "Trumpf: {suit}",
