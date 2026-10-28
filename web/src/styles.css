@@ -999,6 +999,18 @@ ol.list {
   font-weight: 700;
 }
 
+.medal {
+  flex-shrink: 0;
+  margin-right: 4px;
+  line-height: 1;
+}
+
+.standing-name {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .score-sheet {
   overflow-x: auto;
 }

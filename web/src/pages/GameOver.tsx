@@ -1,12 +1,14 @@
 import { Page } from "../components/Layout";
+import { Medal } from "../components/Medal";
 import { formatList, t } from "../i18n";
-import { type GameDoc, leaders, totals } from "../model";
+import { type GameDoc, leaders, places, totals } from "../model";
 import { Link } from "../router";
 import { nameAt } from "./Home";
 import { ScoreSheet } from "./ScoreSheet";
 
 export function GameOver({ game, uid }: { game: GameDoc; uid: string }) {
   const scores = totals(game);
+  const place = places(game);
   const standings = scores
     .map((total, seat) => ({ seat, total }))
     .sort((a, b) => b.total - a.total);
@@ -29,8 +31,11 @@ export function GameOver({ game, uid }: { game: GameDoc; uid: string }) {
         <ol className="list">
           {standings.map(({ seat, total }) => (
             <li key={seat} className="row row-inline">
-              <span className={game.playerUids[seat] === uid ? "me" : undefined}>
-                {nameAt(game, seat)}
+              <span className="standing-name">
+                <Medal place={place[seat] ?? null} />
+                <span className={game.playerUids[seat] === uid ? "me" : undefined}>
+                  {nameAt(game, seat)}
+                </span>
               </span>
               <strong className="score">{total}</strong>
             </li>

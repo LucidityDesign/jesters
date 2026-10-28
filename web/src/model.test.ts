@@ -5,6 +5,7 @@ import {
   lastRoundSummary,
   lastTrickOfRound,
   leaders,
+  places,
   sortHand,
   totals,
   trickLeader,
@@ -47,6 +48,15 @@ describe("scores", () => {
     expect(totals(game)).toEqual([20, 30, 30]);
     expect(leaders(game)).toEqual([1, 2]);
     expect(totals({ ...game, results: [] })).toEqual([0, 0, 0]);
+  });
+
+  it("ranks seats, sharing places on ties, and none while everyone is level", () => {
+    expect(places(game)).toEqual([3, 1, 1]);
+    const result = (totals: number[]) => ({ round: 1, bids: [], won: [], deltas: [], totals });
+    expect(places({ ...game, results: [result([10, 40, 20])] })).toEqual([3, 1, 2]);
+    expect(places({ ...game, results: [result([10, 10, -20])] })).toEqual([1, 1, 3]);
+    expect(places({ ...game, results: [result([10, 10, 10])] })).toEqual([null, null, null]);
+    expect(places({ ...game, results: [] })).toEqual([null, null, null]);
   });
 });
 
