@@ -12,6 +12,8 @@ import {
   getDoc,
   getDocs,
   query,
+  serverTimestamp,
+  Timestamp,
   setDoc,
   updateDoc,
   where,
@@ -71,6 +73,49 @@ describe("hands", () => {
 
   it("cannot be written by clients", async () => {
     await assertFails(setDoc(doc(as("alice"), "games/rules-g1/hands/alice"), { cards: ["W1"] }));
+  });
+});
+
+describe("reactions", () => {
+  const react = (uid: string, emoji = "👍", game = "rules-g1") =>
+    setDoc(doc(as(uid), `games/${game}/reactions/${uid}`), {
+      emoji,
+      at: serverTimestamp(),
+      nonce: "abc",
+    });
+
+  it("can be sent by players, at most one per second", async () => {
+    await assertSucceeds(react("bob"));
+    await assertFails(react("bob", "🎉"));
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "games/rules-g1/reactions/bob"), {
+        at: Timestamp.fromMillis(Date.now() - 2000),
+      });
+    });
+    await assertSucceeds(react("bob", "🎉"));
+  });
+
+  it("are readable by the game's players only", async () => {
+    await assertSucceeds(getDocs(collection(as("alice"), "games/rules-g1/reactions")));
+    await assertFails(getDocs(collection(as("mallory"), "games/rules-g1/reactions")));
+  });
+
+  it("reject other players, games, emojis, fields and times", async () => {
+    await assertFails(react("mallory"));
+    await assertFails(
+      setDoc(doc(as("alice"), "games/rules-g1/reactions/bob"), {
+        emoji: "👍",
+        at: serverTimestamp(),
+        nonce: "abc",
+      }),
+    );
+    await assertFails(react("alice", "💩"));
+    await assertFails(react("alice", "👍", "missing"));
+    const mine = doc(as("alice"), "games/rules-g1/reactions/alice");
+    await assertFails(setDoc(mine, { emoji: "👍", at: Timestamp.now(), nonce: "abc" }));
+    await assertFails(setDoc(mine, { emoji: "👍", at: serverTimestamp(), nonce: "abc", x: 1 }));
+    await assertFails(setDoc(mine, { emoji: "👍", at: serverTimestamp(), nonce: "" }));
+    await assertFails(deleteDoc(doc(as("bob"), "games/rules-g1/reactions/bob")));
   });
 });
 

@@ -39,6 +39,7 @@ export const refs = {
     getFirestore().doc(`games/${gameId}/secret/state`).withConverter(converter<SecretDoc>()),
   hand: (gameId: string, uid: string) =>
     getFirestore().doc(`games/${gameId}/hands/${uid}`).withConverter(converter<HandDoc>()),
+  reaction: (gameId: string, uid: string) => getFirestore().doc(`games/${gameId}/reactions/${uid}`),
   roomKey: (key: string) =>
     getFirestore().doc(`roomKeys/${key}`).withConverter(converter<RoomKeyDoc>()),
 };

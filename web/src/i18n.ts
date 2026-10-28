@@ -137,6 +137,8 @@ export const DE: Record<string, string> = {
   "Bids: {total} of {cards}": "Ansagen: {total} von {cards}",
   "Current trick": "Aktueller Stich",
   "In the lead": "In Führung",
+  React: "Reagieren",
+  Reactions: "Reaktionen",
   "{name}, highest card so far": "{name}, bisher höchste Karte",
   "{name} won the last trick": "{name} hat den letzten Stich gemacht",
   "No cards played yet": "Noch keine Karten gespielt",

@@ -60,6 +60,15 @@ test("three guests create, join and play the first two rounds", async ({ browser
     await expect(page.getByRole("heading", { name: "Round 1 of 20" })).toBeVisible();
   }
 
+  // An emoji reaction floats over the sender's seat for everyone.
+  await anna.getByRole("button", { name: "React" }).click();
+  await anna.getByRole("button", { name: "🎉" }).click();
+  for (const page of players) {
+    await expect(
+      page.locator(".seat", { hasText: "Anna" }).getByRole("img", { name: "🎉" }),
+    ).toBeVisible();
+  }
+
   // Play until round 3 starts: every round is dealt, bid, played and scored.
   for (let moves = 0; moves < 40; moves++) {
     if (await anna.getByRole("heading", { name: "Round 3 of 20" }).isVisible()) break;

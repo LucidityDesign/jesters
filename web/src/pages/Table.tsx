@@ -31,6 +31,13 @@ import {
   trickCardPosition,
   type TrickLayout,
 } from "../tableLayout";
+import {
+  REACTION_COOLDOWN_MS,
+  REACTIONS,
+  sendReaction,
+  type ShownReaction,
+  useReactions,
+} from "../reactions";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
 import { ScoreSheet } from "./ScoreSheet";
@@ -56,6 +63,7 @@ export function Table({
   const feltRef = useRef<HTMLDivElement>(null);
   const trickLayout = useTrickLayout(feltRef, mySeat, game.players.length);
   const plusOne = useTrickTaken(game);
+  const reactions = useReactions(gameId);
   const round = game.round;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
@@ -74,8 +82,9 @@ export function Table({
       <div className="table-area">
         <div className={`felt${game.players.length >= 5 ? " felt-crowded" : ""}`} ref={feltRef}>
           <Trick game={game} mySeat={mySeat} layout={trickLayout} />
-          <Players game={game} uid={uid} mySeat={mySeat} plusOne={plusOne} />
+          <Players game={game} uid={uid} mySeat={mySeat} plusOne={plusOne} reactions={reactions} />
         </div>
+        <ReactionPicker gameId={gameId} uid={uid} />
       </div>
       <p
         className={`hint trick-hint${game.trick && game.trick.cards.length > 0 ? "" : lastTrickOfRound(game) ? " trick-hint-won" : ""}`}
@@ -242,11 +251,13 @@ function Players({
   uid,
   mySeat,
   plusOne,
+  reactions,
 }: {
   game: GameDoc;
   uid: string;
   mySeat: number;
   plusOne: { seat: number; key: string | null } | null;
+  reactions: ReadonlyMap<string, ShownReaction>;
 }) {
   const scores = totals(game);
   const count = Math.max(game.players.length, 1);
@@ -265,6 +276,7 @@ function Players({
         const isTurn = game.turnSeat === seat;
         const { x, y } = seatPosition(seat, mySeat, count, 1);
         const made = bid !== null && won === bid;
+        const reaction = reactions.get(player.uid);
         return (
           <li
             key={player.uid}
@@ -275,6 +287,12 @@ function Players({
               // Keyed by the trick, so it pops again when the same player takes the next one.
               <span key={plusOne.key} className="trick-taken" aria-hidden="true">
                 +1
+              </span>
+            )}
+            {reaction && (
+              // Keyed by the reaction, so the same emoji pops again when it is sent twice.
+              <span key={reaction.key} className="reaction" role="img" aria-label={reaction.emoji}>
+                {reaction.emoji}
               </span>
             )}
             <span className="seat-name">
@@ -463,6 +481,50 @@ function Hand({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** A button that opens a row of emojis to react with; the emoji then floats over the own seat. */
+function ReactionPicker({ gameId, uid }: { gameId: string; uid: string }) {
+  const [open, setOpen] = useState(false);
+  const [coolingDown, setCoolingDown] = useState(false);
+  useEffect(() => {
+    if (!coolingDown) return;
+    const timer = setTimeout(() => setCoolingDown(false), REACTION_COOLDOWN_MS);
+    return () => clearTimeout(timer);
+  }, [coolingDown]);
+
+  return (
+    <div className="reactions" onKeyDown={(event) => event.key === "Escape" && setOpen(false)}>
+      {open && (
+        <div className="reaction-choices" role="group" aria-label={t("Reactions")}>
+          {REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              className="reaction-choice"
+              disabled={coolingDown}
+              onClick={() => {
+                setOpen(false);
+                setCoolingDown(true);
+                // Reactions are a nice extra: a lost one is not worth an error message.
+                sendReaction(gameId, uid, emoji).catch(() => {});
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+      <button
+        className="reaction-toggle"
+        aria-expanded={open}
+        aria-label={t("React")}
+        title={t("React")}
+        onClick={() => setOpen(!open)}
+      >
+        <span aria-hidden="true">😊</span>
+      </button>
     </div>
   );
 }
