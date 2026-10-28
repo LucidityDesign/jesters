@@ -280,7 +280,7 @@ function Players({
         return (
           <li
             key={player.uid}
-            className={`seat${isTurn ? " turn" : ""}${seat === trickTaker ? " took-trick" : ""}`}
+            className={`seat${isTurn ? " turn" : ""}${seat === trickTaker ? " took-trick" : ""}${reaction ? " reacting" : ""}`}
             style={{ left: `${x}%`, top: `${y}%` }}
           >
             {seat === plusOne?.seat && (
