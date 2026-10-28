@@ -8,7 +8,7 @@ import { leave } from "./rooms.js";
 
 /**
  * Deletes the caller's data (GDPR): leaves every active game (ending running ones for everyone),
- * removes their name from finished games, and deletes their hands, profile and guest account.
+ * removes their name from finished games, and deletes their hands, reactions, profile and guest account.
  * Other players keep the score sheets of past games, without the name.
  */
 export const deleteMyData = onCall(CALLABLE, async (request) => {
@@ -31,6 +31,7 @@ export const deleteMyData = onCall(CALLABLE, async (request) => {
         });
       }
       tx.delete(refs.hand(gameId, uid));
+      tx.delete(refs.reaction(gameId, uid));
     });
   }
 

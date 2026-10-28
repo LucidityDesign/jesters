@@ -21,12 +21,32 @@ service cloud.firestore {
         && (!('locale' in data) || (data.locale is string && data.locale.size() <= 35));
     }
 
+    function isPlayer(gameId) {
+      return request.auth.uid in get(/databases/$(database)/documents/games/$(gameId)).data.playerUids;
+    }
+
+    // Keep the emojis in sync with REACTIONS in web/src/reactions.ts.
+    function validReaction(data) {
+      return data.keys().hasOnly(['emoji', 'at', 'nonce'])
+        && data.emoji in ['👍', '😂', '😮', '😡', '🎉', '🙈', '🔥', '👏']
+        && data.at == request.time
+        && data.nonce is string && data.nonce.size() >= 1 && data.nonce.size() <= 16;
+    }
+
     match /games/{gameId} {
       // Also allows queries constrained with `where("playerUids", "array-contains", uid)`.
       allow read: if signedIn() && request.auth.uid in resource.data.playerUids;
 
       match /hands/{uid} {
         allow read: if signedIn() && request.auth.uid == uid;
+      }
+
+      // One document per player, overwritten by each new emoji reaction (at most one per second).
+      match /reactions/{uid} {
+        allow read: if signedIn() && isPlayer(gameId);
+        allow create, update: if signedIn() && request.auth.uid == uid && isPlayer(gameId)
+          && validReaction(request.resource.data)
+          && (resource == null || request.time > resource.data.at + duration.value(1, 's'));
       }
 
       // games/{gameId}/secret/* has no rule: never readable by clients.

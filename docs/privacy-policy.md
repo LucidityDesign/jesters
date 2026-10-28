@@ -27,7 +27,7 @@ Jesters funktioniert ohne Registrierung. Wir verarbeiten nur, was für das Spiel
 | --- | --- |
 | Zufällige Gast-ID (Firebase Authentication) | Dich deinen Spielen zuordnen |
 | Anzeigename, den du selbst wählst | Deinen Mitspielern zeigen, wer du bist |
-| Spieldaten (Raumcodes, Karten, Ansagen, Stiche, Punkte) | Das Spiel durchführen |
+| Spieldaten (Raumcodes, Karten, Ansagen, Stiche, Punkte, Emoji-Reaktionen) | Das Spiel durchführen |
 | Push-Token des Geräts bzw. Browsers | Benachrichtigen, wenn du dran bist (nur wenn du Mitteilungen erlaubst) |
 | Zeitzone und Sprache des Geräts | Erinnerungen nur tagsüber (9–21 Uhr) und in deiner Sprache senden |
 | App-Check-Nachweis (Apple App Attest bzw. im Browser Google reCAPTCHA Enterprise) | Prüfen, dass Anfragen von der echten App kommen (Missbrauchsschutz) |
@@ -53,8 +53,8 @@ Missbrauchsschutz Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem si
 - **Apple** stellt Push-Mitteilungen über den Apple Push Notification Service zu.
 - Im Browser stellt der Push-Dienst deines Browsers die Mitteilungen zu (z. B. Google für Chrome,
   Mozilla für Firefox, Apple für Safari).
-- **Deine Mitspieler** sehen deinen Anzeigenamen und deine Spielzüge, aber nie deine Karten auf
-  der Hand.
+- **Deine Mitspieler** sehen deinen Anzeigenamen, deine Spielzüge und deine Emoji-Reaktionen, aber
+  nie deine Karten auf der Hand.
 
 ### 5. Speicherdauer
 
@@ -95,7 +95,7 @@ Jesters works without registration. We only process what the game needs:
 | --- | --- |
 | Random guest ID (Firebase Authentication) | Link you to your games |
 | The display name you choose | Show your fellow players who you are |
-| Game data (room keys, cards, bids, tricks, scores) | Run the game |
+| Game data (room keys, cards, bids, tricks, scores, emoji reactions) | Run the game |
 | The device's or browser's push token | Notify you when it's your turn (only if you allow notifications) |
 | The device's time zone and language | Send reminders only during the day (9:00–21:00) and in your language |
 | App Check attestation (Apple App Attest, or Google reCAPTCHA Enterprise in the browser) | Check that requests come from the genuine app (abuse prevention) |
@@ -121,7 +121,8 @@ Art. 6(1)(b) GDPR (providing the game you use) and, for abuse prevention, Art. 6
 - **Apple** delivers push notifications through the Apple Push Notification service.
 - In the browser, your browser's push service delivers notifications (e.g. Google for Chrome,
   Mozilla for Firefox, Apple for Safari).
-- **Your fellow players** see your display name and your moves, but never the cards in your hand.
+- **Your fellow players** see your display name, your moves and your emoji reactions, but never the
+  cards in your hand.
 
 ### 5. Retention
 

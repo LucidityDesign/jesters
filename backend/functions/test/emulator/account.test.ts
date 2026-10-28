@@ -1,5 +1,5 @@
 import { initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { newPlayers, setUpRoom } from "./client.js";
 
@@ -40,6 +40,9 @@ describe("deleteMyData", () => {
     await anna.call("startGame", { gameId: running.gameId });
     const lobby = await setUpRoom([anna, dave]);
     expect(await exists(`games/${running.gameId}/hands/${anna.uid}`)).toBe(true);
+    const reaction = `games/${running.gameId}/reactions/${anna.uid}`;
+    await setDoc(doc(anna.db, reaction), { emoji: "🎉", at: serverTimestamp(), nonce: "n1" });
+    expect(await exists(reaction)).toBe(true);
 
     await anna.call("deleteMyData");
 
@@ -48,6 +51,7 @@ describe("deleteMyData", () => {
     expect(ended.players.map((player) => player.name)).toEqual(["", "Ben", "Cleo"]);
     expect(await exists(`games/${running.gameId}/hands/${anna.uid}`)).toBe(false);
     expect(await exists(`games/${running.gameId}/hands/${ben.uid}`)).toBe(true);
+    expect(await exists(reaction)).toBe(false);
 
     const room = (await dave.read<Game>(`games/${lobby.gameId}`)) as Game;
     expect(room).toMatchObject({ hostUid: dave.uid, playerUids: [dave.uid], status: "lobby" });
