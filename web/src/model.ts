@@ -1,3 +1,5 @@
+import type { Timestamp } from "firebase/firestore";
+
 // Mirrors the Firestore documents written by the backend (backend/functions/src/game/model.ts).
 // Arrays described "by seat" are indexed by seat, the index in `players`.
 
@@ -48,6 +50,15 @@ export interface RoundResult {
   totals: number[];
 }
 
+/**
+ * A person's auto-play: a bot plays for them until they take over, until `until`, or through
+ * round `untilRound`.
+ */
+export interface AutoPlay {
+  until?: Timestamp;
+  untilRound?: number;
+}
+
 /** `games/{gameId}` */
 export interface GameDoc {
   status: GameStatus;
@@ -67,6 +78,8 @@ export interface GameDoc {
   abandonedBy?: string;
   /** Closed automatically after a long time without a move. */
   expired?: boolean;
+  /** People who let a bot play for them, by uid. */
+  autoPlay?: Record<string, AutoPlay>;
 }
 
 /** `games/{gameId}/hands/{uid}`, readable only by that player. */
@@ -201,3 +214,15 @@ export function sortHand(cards: readonly Card[]): Card[] {
 
 export const MIN_PLAYERS = 3;
 export const MAX_PLAYERS = 6;
+
+/**
+ * `uid`'s auto-play while it lasts at `now` (ms), else null. Mirrors `autoPlays` in the backend,
+ * which decides by when a turn began.
+ */
+export function activeAutoPlay(game: GameDoc, uid: string, now: number): AutoPlay | null {
+  const auto = game.autoPlay?.[uid];
+  if (!auto || !game.active) return null;
+  if (auto.until && now >= auto.until.toMillis()) return null;
+  if (auto.untilRound !== undefined && (game.round?.number ?? 1) > auto.untilRound) return null;
+  return auto;
+}

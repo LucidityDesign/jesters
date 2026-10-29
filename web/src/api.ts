@@ -37,6 +37,9 @@ export const api = {
     call("placeBid", { gameId, version, bid }),
   playCard: (gameId: string, version: number, card: Card) =>
     call("playCard", { gameId, version, card }),
+  /** Lets a bot play for the player, until they take over or for some minutes or rounds. */
+  setAutoPlay: (gameId: string, on: boolean, limit: { minutes?: number; rounds?: number } = {}) =>
+    call("setAutoPlay", { gameId, on, ...limit }),
   /** Deletes the guest's data and account on the server, then signs out. */
   deleteMyData: async () => {
     await call("deleteMyData");

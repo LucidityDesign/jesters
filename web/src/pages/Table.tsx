@@ -11,6 +11,8 @@ import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardVie
 import { ErrorText, Page } from "../components/Layout";
 import { t } from "../i18n";
 import {
+  activeAutoPlay,
+  type AutoPlay,
   type Card,
   cardKind,
   type GameDoc,
@@ -66,6 +68,10 @@ export function Table({
   const trickLayout = useTrickLayout(feltRef, mySeat, game.players.length);
   const plusOne = useTrickTaken(game);
   const reactions = useReactions(gameId);
+  // Auto-play runs out by the clock; a new end time needs the time now, not of the last tick.
+  const autoPlayKey = JSON.stringify(game.autoPlay ?? {});
+  const now = useNow(autoPlayKey === "{}" ? null : 10_000, autoPlayKey);
+  const myAutoPlay = activeAutoPlay(game, uid, now);
   const round = game.round;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
@@ -84,9 +90,21 @@ export function Table({
       <div className="table-area">
         <div className={`felt${game.players.length >= 5 ? " felt-crowded" : ""}`} ref={feltRef}>
           <Trick game={game} mySeat={mySeat} layout={trickLayout} />
-          <Players game={game} uid={uid} mySeat={mySeat} plusOne={plusOne} reactions={reactions} />
+          <Players
+            game={game}
+            uid={uid}
+            mySeat={mySeat}
+            plusOne={plusOne}
+            reactions={reactions}
+            now={now}
+          />
         </div>
         <LookBack game={game} />
+        <AutoPlayMenu
+          active={myAutoPlay !== null}
+          disabled={action.isSending}
+          onChoose={(limit) => action.run(() => api.setAutoPlay(gameId, true, limit))}
+        />
         <ReactionPicker gameId={gameId} uid={uid} />
       </div>
       <p
@@ -94,6 +112,22 @@ export function Table({
       >
         {trickHint(game)}
       </p>
+
+      {myAutoPlay && (
+        <div className="auto-play-bar" role="status">
+          <span>
+            <span aria-hidden="true">🤖 </span>
+            <strong>{t("Auto-play is on")}</strong> {autoPlayEnd(myAutoPlay, now)}
+          </span>
+          <button
+            className="primary"
+            disabled={action.isSending}
+            onClick={() => action.run(() => api.setAutoPlay(gameId, false))}
+          >
+            {t("Take over")}
+          </button>
+        </div>
+      )}
 
       <p className={`banner${myTurn ? " banner-active" : ""}`} role="status">
         {bannerText(game, myTurn)}
@@ -224,6 +258,35 @@ function useTrickLayout(
 }
 
 /** The seats around the table: name, bot and dealer badges, tricks won of the bid, and score. */
+/** The current time, renewed every `intervalMs` (not at all with null) and when `key` changes. */
+function useNow(intervalMs: number | null, key: string): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (intervalMs === null) return;
+    const tick = () => setNow(Date.now());
+    // At once as well: the time kept since the last tick may be out of date.
+    const first = setTimeout(tick, 0);
+    const timer = setInterval(tick, intervalMs);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [intervalMs, key]);
+  return now;
+}
+
+/** When the player's auto-play ends, for the bar above the banner. */
+function autoPlayEnd(auto: AutoPlay, now: number): string {
+  if (auto.until) {
+    const minutes = Math.max(1, Math.ceil((auto.until.toMillis() - now) / 60_000));
+    return t("· {minutes} min left", { minutes });
+  }
+  if (auto.untilRound !== undefined) {
+    return t("· until the end of round {round}", { round: auto.untilRound });
+  }
+  return t("· until you take over");
+}
+
 /** How long the "+1" stays at the seat of a trick's winner. */
 const PLUS_ONE_MS = 3000;
 
@@ -312,12 +375,14 @@ function Players({
   mySeat,
   plusOne,
   reactions,
+  now,
 }: {
   game: GameDoc;
   uid: string;
   mySeat: number;
   plusOne: { seat: number; key: string | null } | null;
   reactions: ReadonlyMap<string, ShownReaction>;
+  now: number;
 }) {
   const scores = totals(game);
   const roundPoints = useRoundPoints(game);
@@ -374,6 +439,12 @@ function Players({
                 <span className="badge" title={t("Bot")}>
                   <span aria-hidden="true">🤖</span>
                   <span className="visually-hidden">{t("Bot")}</span>
+                </span>
+              )}
+              {!player.bot && activeAutoPlay(game, player.uid, now) && (
+                <span className="badge badge-auto" title={t("Auto-play")}>
+                  <span aria-hidden="true">🤖</span>
+                  <span className="visually-hidden">{t("Auto-play")}</span>
                 </span>
               )}
               {game.round?.dealerSeat === seat && (
@@ -731,6 +802,73 @@ function LookBack({ game }: { game: GameDoc }) {
         onClick={() => setOpen(!open)}
       >
         <span aria-hidden="true">🕘</span>
+      </button>
+    </div>
+  );
+}
+
+const AUTO_PLAY_MINUTES = [5, 10, 60];
+const AUTO_PLAY_ROUNDS = [1, 2, 3, 5];
+
+/** A button that opens the choices for letting a bot play for the player. */
+function AutoPlayMenu({
+  active,
+  disabled,
+  onChoose,
+}: {
+  active: boolean;
+  disabled: boolean;
+  onChoose(limit: { minutes?: number; rounds?: number }): void;
+}) {
+  const [open, setOpen] = useState(false);
+  const choose = (limit: { minutes?: number; rounds?: number }) => {
+    setOpen(false);
+    onChoose(limit);
+  };
+  return (
+    <div className="auto-play" onKeyDown={(event) => event.key === "Escape" && setOpen(false)}>
+      {open && (
+        <div className="auto-play-menu" role="group" aria-label={t("Auto-play")}>
+          <p>{t("Let a bot play for you")}</p>
+          <button disabled={disabled} onClick={() => choose({})}>
+            {t("Until I take over")}
+          </button>
+          <div className="auto-play-row">
+            <span>{t("Minutes")}</span>
+            {AUTO_PLAY_MINUTES.map((minutes) => (
+              <button
+                key={minutes}
+                disabled={disabled}
+                aria-label={t("{minutes} minutes", { minutes })}
+                onClick={() => choose({ minutes })}
+              >
+                {minutes}
+              </button>
+            ))}
+          </div>
+          <div className="auto-play-row">
+            <span>{t("Rounds")}</span>
+            {AUTO_PLAY_ROUNDS.map((rounds) => (
+              <button
+                key={rounds}
+                disabled={disabled}
+                aria-label={t("Rounds: {rounds}", { rounds })}
+                onClick={() => choose({ rounds })}
+              >
+                {rounds}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button
+        className={`auto-play-toggle${active ? " auto-play-on" : ""}`}
+        aria-expanded={open}
+        aria-label={t("Auto-play")}
+        title={t("Auto-play")}
+        onClick={() => setOpen(!open)}
+      >
+        <span aria-hidden="true">🤖</span>
       </button>
     </div>
   );

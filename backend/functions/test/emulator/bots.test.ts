@@ -10,6 +10,7 @@ interface Game {
   playerUids: string[];
   results: { totals: number[] }[];
   lastMoveAt?: Record<string, unknown>;
+  autoPlay?: Record<string, unknown>;
 }
 
 interface Hand {
@@ -95,5 +96,49 @@ describe("bots", () => {
         await anna.call("playCard", { gameId, version, card: hand.legalCards[0] });
       }
     }
+  });
+});
+
+describe("auto-play", () => {
+  it("lets a bot play for a person for some rounds", { timeout: 120_000 }, async () => {
+    const [anna] = await newPlayers("Anna");
+    const { gameId } = await setUpRoom([anna]);
+    expect(await rejection(anna.call("setAutoPlay", { gameId, on: true }))).toBe("WRONG_PHASE");
+    await anna.call("addBot", { gameId });
+    await anna.call("addBot", { gameId });
+    await anna.call("startGame", { gameId });
+
+    // Round 1 plays itself; then the game waits for Anna in round 2.
+    await anna.call("setAutoPlay", { gameId, on: true, rounds: 1 });
+    let game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    expect(game.autoPlay).toEqual({ [anna.uid]: { untilRound: 1 } });
+    for (let attempt = 0; attempt < 100; attempt++) {
+      game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+      if (game.results.length === 1 && game.turnUid === anna.uid) break;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    expect(game.results).toHaveLength(1);
+    expect(game.turnUid).toBe(anna.uid);
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    expect(game.turnUid).toBe(anna.uid);
+    // The bot's moves are not hers: "your turn" pushes are not held back.
+    expect(game.lastMoveAt?.[anna.uid]).toBeUndefined();
+
+    // Her own move ends auto-play.
+    const hand = (await anna.read<Hand>(`games/${gameId}/hands/${anna.uid}`)) as Hand;
+    const version = game.version;
+    if (game.status === "choosingTrump") {
+      await anna.call("chooseTrump", { gameId, version, suit: "S" });
+    } else {
+      await anna.call("placeBid", { gameId, version, bid: hand.forbiddenBid === 0 ? 1 : 0 });
+    }
+    game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    expect(game.autoPlay).toEqual({});
+
+    await anna.call("setAutoPlay", { gameId, on: true, minutes: 10 });
+    await anna.call("setAutoPlay", { gameId, on: false });
+    game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    expect(game.autoPlay).toEqual({});
   });
 });

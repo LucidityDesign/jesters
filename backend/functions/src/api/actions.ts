@@ -1,12 +1,12 @@
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
 import { type Action, reduce } from "../engine/index.js";
-import { stateFromSecret } from "../game/model.js";
+import { type AutoPlay, stateFromSecret } from "../game/model.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
 import { fail, parse, requireAuth } from "./errors.js";
 import { getMemberGame } from "./rooms.js";
-import { ChooseTrumpInput, PlaceBidInput, PlayCardInput } from "./schemas.js";
+import { ChooseTrumpInput, PlaceBidInput, PlayCardInput, SetAutoPlayInput } from "./schemas.js";
 
 /** Applies a player's action to a running game in one transaction. Returns the new version. */
 async function perform(
@@ -52,4 +52,33 @@ export const playCard = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(PlayCardInput, request.data);
   return perform(uid, input, (seat) => ({ type: "play", seat, card: input.card }));
+});
+
+/**
+ * Lets a bot play for the caller (until they take over, for some minutes or rounds), or stops it.
+ * The change itself starts the bot when it is the caller's turn (see `moveBot`); a move of their
+ * own also stops it (see `writeState`).
+ */
+export const setAutoPlay = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const input = parse(SetAutoPlayInput, request.data);
+  return getFirestore().runTransaction(async (tx) => {
+    const game = await getMemberGame(tx, input.gameId, uid);
+    if (game.status === "lobby") fail("WRONG_PHASE", "The game has not started yet.");
+    if (!game.active) fail("GAME_OVER", "This game is over.");
+
+    const autoPlay: AutoPlay = {};
+    if (input.minutes !== undefined) {
+      autoPlay.until = Timestamp.fromMillis(Date.now() + input.minutes * 60_000);
+    }
+    if (input.rounds !== undefined) {
+      autoPlay.untilRound = (game.round?.number ?? 1) + input.rounds - 1;
+    }
+    tx.update(refs.game(input.gameId), {
+      [`autoPlay.${uid}`]: input.on ? autoPlay : FieldValue.delete(),
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return { version: game.version + 1 };
+  });
 });

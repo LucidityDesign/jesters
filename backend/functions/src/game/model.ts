@@ -25,10 +25,48 @@ export interface Player {
   aggression?: number;
 }
 
-/** The level of the bot whose turn it is in a running game, or `null` when a person is to move. */
-export function botToMove(game: Pick<GameDoc, "active" | "players" | "turnSeat">): BotLevel | null {
+/**
+ * A person's auto-play: a bot plays for them until they take over, until `until`, or through
+ * round `untilRound`.
+ */
+export interface AutoPlay {
+  until?: Timestamp;
+  untilRound?: number;
+}
+
+/** The bot level that plays for people on auto-play. */
+export const AUTO_PLAY_LEVEL: BotLevel = "beginner";
+
+/**
+ * Whether `uid`'s auto-play covers a turn that began at `at` (ms) in round `round`. The turn's
+ * start decides, so a turn either is played by the bot or notifies the person, never neither.
+ */
+export function autoPlays(
+  game: Partial<Pick<GameDoc, "autoPlay">>,
+  uid: string,
+  round: number,
+  at: number,
+): boolean {
+  const auto = game.autoPlay?.[uid];
+  if (!auto) return false;
+  if (auto.until && at >= auto.until.toMillis()) return false;
+  return auto.untilRound === undefined || round <= auto.untilRound;
+}
+
+/**
+ * The level of the bot that moves now in a running game: a computer player's, or the one playing
+ * for a person on auto-play. `null` when a person is to move.
+ */
+export function botToMove(
+  game: Pick<GameDoc, "active" | "players" | "turnSeat"> &
+    Partial<Pick<GameDoc, "autoPlay" | "round" | "updatedAt">>,
+): BotLevel | null {
   if (!game.active || game.turnSeat === null) return null;
-  return game.players[game.turnSeat]?.bot ?? null;
+  const player = game.players[game.turnSeat];
+  if (!player) return null;
+  if (player.bot) return player.bot;
+  const turnBegan = game.updatedAt?.toMillis() ?? Date.now();
+  return autoPlays(game, player.uid, game.round?.number ?? 1, turnBegan) ? AUTO_PLAY_LEVEL : null;
 }
 
 export interface PublicRound {
@@ -84,6 +122,8 @@ export interface GameDoc extends PublicPlay {
   lastReminderAt?: Timestamp;
   /** When each person last made a move here, by uid (see notify/messages.ts). */
   lastMoveAt?: Record<string, Timestamp>;
+  /** People who let a bot play for them, by uid (see `setAutoPlay`). */
+  autoPlay?: Record<string, AutoPlay>;
 }
 
 /** `games/{gameId}/hands/{uid}`: readable only by that player. */
