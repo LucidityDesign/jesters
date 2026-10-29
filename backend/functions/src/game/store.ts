@@ -54,18 +54,24 @@ export function writeState(
   game: GameDoc,
   previous: GameState | null,
   next: GameState,
+  { byBot = false }: { byBot?: boolean } = {},
 ): void {
   const play = publicPlay(next, game.playerUids);
   const finished = next.phase === "finished";
-  // Whoever had the turn made this move (unless the game just started).
+  // Whoever had the turn made this move (unless the game just started), or a bot for them.
   const mover = previous === null ? undefined : game.players.find((p) => p.uid === game.turnUid);
+  const person = mover && !mover.bot ? mover : undefined;
   tx.update(refs.game(gameId), {
     ...play,
     active: !finished,
     version: game.version + 1,
     updatedAt: FieldValue.serverTimestamp(),
     ...(play.turnUid !== game.turnUid ? { turnSince: FieldValue.serverTimestamp() } : {}),
-    ...(mover && !mover.bot ? { [`lastMoveAt.${mover.uid}`]: FieldValue.serverTimestamp() } : {}),
+    ...(person && !byBot ? { [`lastMoveAt.${person.uid}`]: FieldValue.serverTimestamp() } : {}),
+    // A person who moves themselves has taken over from their auto-play.
+    ...(person && !byBot && game.autoPlay?.[person.uid]
+      ? { [`autoPlay.${person.uid}`]: FieldValue.delete() }
+      : {}),
   });
   tx.set(refs.secret(gameId), secretDoc(next));
 

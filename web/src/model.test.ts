@@ -1,5 +1,7 @@
+import type { Timestamp } from "firebase/firestore";
 import { describe, expect, it } from "vitest";
 import {
+  activeAutoPlay,
   cardKind,
   type GameDoc,
   lastRoundSummary,
@@ -72,6 +74,27 @@ describe("lastTrickOfRound", () => {
   it("clears the table when a new round starts", () => {
     expect(lastTrickOfRound(withTricks([0, 0, 0]))).toBeNull();
     expect(lastTrickOfRound({ lastTrick: null, round: null } as unknown as GameDoc)).toBeNull();
+  });
+});
+
+describe("activeAutoPlay", () => {
+  const at = (ms: number) => ({ toMillis: () => ms }) as Timestamp;
+  const inRound = (number: number, autoPlay: GameDoc["autoPlay"], active = true) =>
+    ({ active, round: { number }, autoPlay }) as unknown as GameDoc;
+
+  it("lasts until taken over or the game ends", () => {
+    expect(activeAutoPlay(inRound(3, { a: {} }), "a", 0)).toEqual({});
+    expect(activeAutoPlay(inRound(3, { a: {} }), "b", 0)).toBeNull();
+    expect(activeAutoPlay(inRound(3, { a: {} }, false), "a", 0)).toBeNull();
+    expect(activeAutoPlay(inRound(3, undefined), "a", 0)).toBeNull();
+  });
+
+  it("ends at its time or after its last round", () => {
+    const timed = inRound(3, { a: { until: at(5000) } });
+    expect(activeAutoPlay(timed, "a", 4999)).not.toBeNull();
+    expect(activeAutoPlay(timed, "a", 5000)).toBeNull();
+    expect(activeAutoPlay(inRound(4, { a: { untilRound: 4 } }), "a", 0)).not.toBeNull();
+    expect(activeAutoPlay(inRound(5, { a: { untilRound: 4 } }), "a", 0)).toBeNull();
   });
 });
 

@@ -85,7 +85,7 @@ export const moveBot = onDocumentUpdated(
         logger.error(`The ${level} bot made a move the rules reject: ${result.error}`, { gameId });
         return;
       }
-      writeState(tx, gameId, game, state, result.state);
+      writeState(tx, gameId, game, state, result.state, { byBot: true });
     });
   },
 );

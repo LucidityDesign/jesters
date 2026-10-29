@@ -52,3 +52,23 @@ export const PlayCardInput = z.object({
   version: Version,
   card: z.custom<Card>(isCard, "Invalid card."),
 });
+
+/**
+ * Auto-play on or off. While on, it lasts until switched off (or the game ends), for `minutes`,
+ * or for `rounds` rounds counting the current one.
+ */
+export const SetAutoPlayInput = z
+  .object({
+    gameId: GameId,
+    on: z.boolean(),
+    minutes: z
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 60)
+      .optional(),
+    rounds: z.number().int().min(1).max(20).optional(),
+  })
+  .refine((input) => input.minutes === undefined || input.rounds === undefined, {
+    message: "Choose minutes or rounds, not both.",
+  });

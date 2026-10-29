@@ -139,6 +139,24 @@ describe("notificationsFor", () => {
     ]);
   });
 
+  it("doesn't tell players on auto-play that it's their turn, until it ends", () => {
+    const at = (ms: number) => ({ toMillis: () => ms }) as GameDoc["updatedAt"];
+    const before = game({ status: "playing", round: round(3), turnUid: "b", turnSeat: 1 });
+    const after = (until: number) =>
+      game({
+        status: "playing",
+        round: round(3),
+        turnUid: "a",
+        turnSeat: 0,
+        updatedAt: at(1_000_000),
+        autoPlay: { a: { until: at(until) } },
+      });
+    expect(notificationsFor("g1", before, after(1_000_001))).toEqual([]);
+    expect(notificationsFor("g1", before, after(1_000_000))).toMatchObject([
+      { uid: "a", bodyKey: "PUSH_TURN_PLAY" },
+    ]);
+  });
+
   it("stays quiet while the same player keeps the turn", () => {
     const before = game({ status: "playing", round: round(3), turnUid: "b", version: 5 });
     expect(notificationsFor("g1", before, { ...before, version: 6 })).toEqual([]);

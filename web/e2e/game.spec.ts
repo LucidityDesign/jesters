@@ -130,6 +130,17 @@ test("a guest plays against two bots", async ({ browser }) => {
   // Restarting the app on the game page opens the game again.
   await erik.reload();
   await expect(roundThree).toBeVisible();
+
+  // Auto-play: a bot plays for Erik until he takes over.
+  await erik.getByRole("button", { name: "Auto-play" }).click();
+  await erik.getByRole("button", { name: "Until I take over" }).click();
+  const bar = erik.locator(".auto-play-bar");
+  await expect(bar).toContainText("Auto-play is on · until you take over");
+  await expect(erik.getByRole("heading", { name: "Round 4 of 20" })).toBeVisible({
+    timeout: 60_000,
+  });
+  await bar.getByRole("button", { name: "Take over" }).click();
+  await expect(bar).toBeHidden();
 });
 
 test("a player removed from the lobby sees that the game is gone", async ({ browser }) => {

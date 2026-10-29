@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { gameWith, seededRandom } from "../../test/helpers.js";
 import { reduce } from "../engine/index.js";
-import { botToMove, handDoc, lobbyPlay, publicPlay, secretDoc, stateFromSecret } from "./model.js";
+import type { Timestamp } from "firebase-admin/firestore";
+import {
+  botToMove,
+  handDoc,
+  lobbyPlay,
+  type PublicRound,
+  publicPlay,
+  secretDoc,
+  stateFromSecret,
+} from "./model.js";
 
 const uids = ["alice", "bob", "carol"];
 const game = gameWith({
@@ -113,6 +122,35 @@ describe("botToMove", () => {
     { uid: "a", name: "Anna" },
     { uid: "bot-1", name: "Merlin", bot: "beginner" as const },
   ];
+  const at = (ms: number) => ({ toMillis: () => ms }) as Timestamp;
+  const inRound = (number: number) => ({ number }) as PublicRound;
+
+  it("plays for a person on auto-play", () => {
+    const annasTurn = {
+      active: true,
+      players,
+      turnSeat: 0,
+      round: inRound(3),
+      updatedAt: at(5000),
+    };
+    expect(botToMove({ ...annasTurn, autoPlay: { a: {} } })).toBe("beginner");
+    expect(botToMove({ ...annasTurn, autoPlay: { b: {} } })).toBeNull();
+    expect(botToMove({ ...annasTurn, autoPlay: { a: {} }, active: false })).toBeNull();
+  });
+
+  it("stops auto-play at its time, decided by when the turn began", () => {
+    const annasTurn = { active: true, players, turnSeat: 0, round: inRound(3) };
+    const autoPlay = { a: { until: at(5000) } };
+    expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(4999) })).toBe("beginner");
+    expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(5000) })).toBeNull();
+  });
+
+  it("stops auto-play after its last round", () => {
+    const annasTurn = { active: true, players, turnSeat: 0, updatedAt: at(0) };
+    const autoPlay = { a: { untilRound: 4 } };
+    expect(botToMove({ ...annasTurn, autoPlay, round: inRound(4) })).toBe("beginner");
+    expect(botToMove({ ...annasTurn, autoPlay, round: inRound(5) })).toBeNull();
+  });
 
   it("names the level of the bot whose turn it is", () => {
     expect(botToMove({ active: true, players, turnSeat: 1 })).toBe("beginner");

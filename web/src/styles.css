@@ -929,6 +929,79 @@ ol.list {
   background: var(--accent-soft);
 }
 
+/* Auto-play: next to the last trick button; its choices open upwards. */
+.auto-play {
+  position: absolute;
+  left: 52px;
+  bottom: 0;
+  z-index: 5;
+}
+
+.auto-play-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border-radius: 99px;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.auto-play-toggle.auto-play-on {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.auto-play-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.2);
+  font-size: 0.9rem;
+  transform-origin: 22px 100%;
+  animation: popover-in 0.2s ease-out;
+}
+
+.auto-play-menu p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.auto-play-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auto-play-row > span {
+  min-width: 4.5em;
+}
+
+.auto-play-row button {
+  min-width: 44px;
+  padding: 8px;
+}
+
+.auto-play-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 6px 6px 6px 12px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  font-size: 0.9rem;
+  animation: unfold 0.25s ease-out;
+}
+
 /* The last trick and round, opened from the other corner of the table. */
 .look-back {
   position: absolute;
@@ -1390,6 +1463,8 @@ ol.list {
   .toast,
   .reaction-choices,
   .look-back-panel,
+  .auto-play-menu,
+  .auto-play-bar,
   .scores[open] > :not(summary) {
     animation: none;
   }
