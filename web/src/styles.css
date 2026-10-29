@@ -902,6 +902,20 @@ ol.list {
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.2);
+  transform-origin: calc(100% - 22px) 100%;
+  animation: popover-in 0.2s ease-out;
+}
+
+/* Popovers grow out of the button that opened them. */
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
 }
 
 .reaction-choice {
@@ -944,6 +958,8 @@ ol.list {
   background: var(--surface);
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.2);
   font-size: 0.9rem;
+  transform-origin: 22px 0;
+  animation: popover-in 0.2s ease-out;
 }
 
 .look-back-panel h3 {
@@ -1229,6 +1245,17 @@ ol.list {
   align-items: center;
 }
 
+.scores[open] > :not(summary) {
+  animation: unfold 0.25s ease-out;
+}
+
+@keyframes unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
 /* Connection */
 
 .connection-region {
@@ -1248,7 +1275,7 @@ ol.list {
   font-weight: 600;
   background: var(--warning-soft);
   color: var(--text);
-  animation: toast-in 0.2s ease-out;
+  animation: toast-in 0.35s ease-out;
 }
 
 .connection-back {
@@ -1310,7 +1337,7 @@ ol.list {
   background: var(--surface);
   box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
   pointer-events: auto;
-  animation: toast-in 0.2s ease-out;
+  animation: toast-in 0.35s ease-out;
 }
 
 .toast-made {
@@ -1328,15 +1355,23 @@ ol.list {
   white-space: nowrap;
 }
 
+/* Drops in from above and settles. */
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(-24px) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scale(1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toast {
+  .toast,
+  .reaction-choices,
+  .look-back-panel,
+  .scores[open] > :not(summary) {
     animation: none;
   }
 }
