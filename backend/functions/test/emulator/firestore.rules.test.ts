@@ -94,6 +94,13 @@ describe("reactions", () => {
     });
     // Also emojis made of several characters.
     await assertSucceeds(react("bob", "😮‍💨"));
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "games/rules-g1/reactions/bob"), {
+        at: Timestamp.fromMillis(Date.now() - 2000),
+      });
+    });
+    // ❤️ with its emoji variation selector, as the picker sends it.
+    await assertSucceeds(react("bob", "❤️"));
   });
 
   it("are readable by the game's players only", async () => {

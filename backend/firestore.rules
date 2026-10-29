@@ -28,7 +28,7 @@ service cloud.firestore {
     // Keep the emojis in sync with REACTIONS in web/src/reactions.ts.
     function validReaction(data) {
       return data.keys().hasOnly(['emoji', 'at', 'nonce'])
-        && data.emoji in ['👍', '👎', '👏', '🤝', '😂', '😮', '😮‍💨', '😡', '🎉', '🔥', '🤞', '🙈']
+        && data.emoji in ['👍', '👎', '👏', '🤝', '😂', '😮', '😮‍💨', '😡', '🎉', '🔥', '🤞', '🙈', '❤️', '👑', '🐥', '🐌']
         && data.at == request.time
         && data.nonce is string && data.nonce.size() >= 1 && data.nonce.size() <= 16;
     }
