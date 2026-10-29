@@ -1243,6 +1243,25 @@ ol.list {
   min-height: 44px;
   display: flex;
   align-items: center;
+  gap: 8px;
+  list-style: none;
+}
+
+/* Safari draws its own marker; the triangle below replaces it everywhere. */
+.scores summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A triangle that points down once the scores are open. */
+.scores summary::before {
+  content: "";
+  border-block: 5px solid transparent;
+  border-inline-start: 7px solid currentColor;
+  transition: transform 0.2s ease-out;
+}
+
+.scores[open] summary::before {
+  transform: rotate(90deg);
 }
 
 .scores[open] > :not(summary) {
@@ -1373,6 +1392,9 @@ ol.list {
   .look-back-panel,
   .scores[open] > :not(summary) {
     animation: none;
+  }
+  .scores summary::before {
+    transition: none;
   }
 }
 
