@@ -41,6 +41,16 @@ export const REACTION_MOTION: Readonly<Record<string, string>> = {
   "🐌": "crawl",
 };
 
+/** Apple's emoji font draws the snail facing right; the others draw it facing left. */
+const APPLE =
+  typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+
+/** How a reaction moves (a CSS class `reaction-<motion>`), or undefined to just float up. */
+export function reactionMotion(emoji: string): string | undefined {
+  const motion = REACTION_MOTION[emoji];
+  return motion === "crawl" && APPLE ? "crawl-right" : motion;
+}
+
 /** How long a reaction floats over the sender's seat. */
 export const REACTION_MS = 3500;
 
