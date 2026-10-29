@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { GameDoc } from "../game/model.js";
-import { notificationsFor, PLAYING_RECENTLY_MS, reminderFor } from "./messages.js";
+import { Timestamp } from "firebase-admin/firestore";
+import {
+  notificationsFor,
+  PLAYING_RECENTLY_MS,
+  REACTION_PUSH_GAP_MS,
+  reactionNotifications,
+  reminderFor,
+} from "./messages.js";
 
 const base = {
   roomKey: "K7Q2XM",
@@ -182,5 +189,49 @@ describe("reminderFor", () => {
       bodyKey: "PUSH_REMINDER",
       args: ["Anna, Cleo"],
     });
+  });
+});
+
+describe("reactionNotifications", () => {
+  const reaction = (emoji: string, atMs: number) => ({
+    emoji,
+    at: Timestamp.fromMillis(atMs),
+    nonce: "n",
+  });
+  const withBot = game({
+    status: "playing",
+    players: [
+      { uid: "a", name: "Anna" },
+      { uid: "b", name: "Ben" },
+      { uid: "bot-x", name: "Merlin", bot: "beginner" },
+    ],
+    playerUids: ["a", "b", "bot-x"],
+  });
+
+  it("tells the other people, not the sender or bots", () => {
+    expect(reactionNotifications("g1", withBot, "a", undefined, reaction("🎉", 0))).toEqual([
+      {
+        uid: "b",
+        gameId: "g1",
+        titleKey: "PUSH_TITLE_GAME",
+        bodyKey: "PUSH_REACTION",
+        args: ["Anna", "🎉"],
+        collapseKey: "g1-reactions",
+      },
+    ]);
+  });
+
+  it("skips a reaction that follows the sender's last one closely", () => {
+    const first = reaction("👍", 1_000_000);
+    const soon = reaction("😂", 1_000_000 + REACTION_PUSH_GAP_MS - 1);
+    const later = reaction("😂", 1_000_000 + REACTION_PUSH_GAP_MS);
+    expect(reactionNotifications("g1", withBot, "a", first, soon)).toEqual([]);
+    expect(reactionNotifications("g1", withBot, "a", first, later)).toHaveLength(1);
+  });
+
+  it("skips ended games and people who are not playing", () => {
+    const ended = { ...withBot, status: "abandoned" } as GameDoc;
+    expect(reactionNotifications("g1", ended, "a", undefined, reaction("👍", 0))).toEqual([]);
+    expect(reactionNotifications("g1", withBot, "z", undefined, reaction("👍", 0))).toEqual([]);
   });
 });

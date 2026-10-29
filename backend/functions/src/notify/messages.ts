@@ -1,3 +1,4 @@
+import type { Timestamp } from "firebase-admin/firestore";
 import { botToMove, type GameDoc } from "../game/model.js";
 
 /**
@@ -10,6 +11,11 @@ export interface PushMessage {
   titleKey: string;
   bodyKey: string;
   args: string[];
+  /**
+   * A newer notification with the same key replaces this one on the device. Without one, the
+   * notifications of a game replace each other in the browser.
+   */
+  collapseKey?: string;
 }
 
 /**
@@ -120,4 +126,36 @@ export function reminderFor(gameId: string, game: GameDoc, uid: string): PushMes
     bodyKey: "PUSH_REMINDER",
     args: [othersOf(game, uid)],
   };
+}
+
+/** The emoji reactions, as allowed by firestore.rules (and REACTIONS in web/src/reactions.ts). */
+export interface ReactionDoc {
+  emoji: string;
+  at: Timestamp;
+  nonce: string;
+}
+
+/**
+ * A player who reacts again this soon only shows on the table: the other players got a
+ * notification about the last reaction already.
+ */
+export const REACTION_PUSH_GAP_MS = 10 * 1000;
+
+/** Tells the other players about `uid`'s emoji reaction, unless they were just told about one. */
+export function reactionNotifications(
+  gameId: string,
+  game: GameDoc,
+  uid: string,
+  before: ReactionDoc | undefined,
+  after: ReactionDoc,
+): PushMessage[] {
+  if (game.status === "abandoned" || !game.playerUids.includes(uid)) return [];
+  if (before && after.at.toMillis() - before.at.toMillis() < REACTION_PUSH_GAP_MS) return [];
+  return toEveryone(game, gameId, [uid], {
+    titleKey: "PUSH_TITLE_GAME",
+    bodyKey: "PUSH_REACTION",
+    args: [nameOf(game, uid), after.emoji],
+    // Reactions replace each other, but not the "your turn" notification.
+    collapseKey: `${gameId}-reactions`,
+  });
 }

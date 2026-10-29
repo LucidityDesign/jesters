@@ -28,7 +28,7 @@ Jesters funktioniert ohne Registrierung. Wir verarbeiten nur, was für das Spiel
 | Zufällige Gast-ID (Firebase Authentication) | Dich deinen Spielen zuordnen |
 | Anzeigename, den du selbst wählst | Deinen Mitspielern zeigen, wer du bist |
 | Spieldaten (Raumcodes, Karten, Ansagen, Stiche, Punkte, Emoji-Reaktionen) | Das Spiel durchführen |
-| Push-Token des Geräts bzw. Browsers | Benachrichtigen, wenn du dran bist (nur wenn du Mitteilungen erlaubst) |
+| Push-Token des Geräts bzw. Browsers | Benachrichtigen, wenn du dran bist oder jemand mit einem Emoji reagiert (nur wenn du Mitteilungen erlaubst) |
 | Zeitzone und Sprache des Geräts | Erinnerungen nur tagsüber (9–21 Uhr) und in deiner Sprache senden |
 | App-Check-Nachweis (Apple App Attest bzw. im Browser Google reCAPTCHA Enterprise) | Prüfen, dass Anfragen von der echten App kommen (Missbrauchsschutz) |
 
@@ -96,7 +96,7 @@ Jesters works without registration. We only process what the game needs:
 | Random guest ID (Firebase Authentication) | Link you to your games |
 | The display name you choose | Show your fellow players who you are |
 | Game data (room keys, cards, bids, tricks, scores, emoji reactions) | Run the game |
-| The device's or browser's push token | Notify you when it's your turn (only if you allow notifications) |
+| The device's or browser's push token | Notify you when it's your turn or someone reacts with an emoji (only if you allow notifications) |
 | The device's time zone and language | Send reminders only during the day (9:00–21:00) and in your language |
 | App Check attestation (Apple App Attest, or Google reCAPTCHA Enterprise in the browser) | Check that requests come from the genuine app (abuse prevention) |
 

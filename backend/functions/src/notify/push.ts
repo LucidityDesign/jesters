@@ -33,6 +33,7 @@ async function sendOne(message: PushMessage): Promise<void> {
       tokens,
       data: { gameId: message.gameId },
       apns: {
+        ...(message.collapseKey && { headers: { "apns-collapse-id": message.collapseKey } }),
         payload: {
           aps: {
             alert: {
@@ -51,7 +52,7 @@ async function sendOne(message: PushMessage): Promise<void> {
           title: pushText(message.titleKey, message.args, user?.locale),
           body: pushText(message.bodyKey, message.args, user?.locale),
           icon: "/icon-192.png",
-          tag: message.gameId,
+          tag: message.collapseKey ?? message.gameId,
           renotify: true,
         },
         fcmOptions: { link: `/game/${message.gameId}` },
