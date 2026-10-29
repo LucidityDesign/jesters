@@ -19,8 +19,47 @@ import {
 export const MAX_ACTIVE_GAMES = 20;
 const ROOM_KEY_ATTEMPTS = 5;
 
-/** Names for bots, in the order they join a room. */
-export const BOT_NAMES = ["Merlin", "Morgana", "Prospero", "Circe", "Faust"] as const;
+/** Names for bots: wizards, witches, fairies and jesters from myths, legends and plays. */
+export const BOT_NAMES = [
+  "Merlin",
+  "Morgana",
+  "Prospero",
+  "Circe",
+  "Faust",
+  "Medea",
+  "Hecate",
+  "Nimue",
+  "Viviane",
+  "Melusine",
+  "Sycorax",
+  "Ariel",
+  "Oberon",
+  "Titania",
+  "Puck",
+  "Calypso",
+  "Agrippa",
+  "Paracelsus",
+  "Mephisto",
+  "Krabat",
+  "Rübezahl",
+  "Baba Yaga",
+  "Loki",
+  "Anansi",
+  "Yorick",
+  "Feste",
+  "Touchstone",
+  "Triboulet",
+  "Harlequin",
+  "Pierrot",
+  "Columbina",
+  "Eulenspiegel",
+] as const;
+
+/** A random bot name that nobody in the room has yet ("Bot" if all are taken). */
+export function pickBotName(taken: ReadonlySet<string>, randomInt = secureRandomInt): string {
+  const free = BOT_NAMES.filter((name) => !taken.has(name));
+  return free.length === 0 ? "Bot" : (free[randomInt(free.length)] as string);
+}
 
 /** A random temperament for a new bot, in steps of 0.01. */
 export function randomAggression(randomInt = secureRandomInt): number {
@@ -137,7 +176,7 @@ export const addBot = onCall(CALLABLE, async (request) => {
     if (game.players.length >= MAX_PLAYERS) fail("ROOM_FULL", "This room is full.");
 
     const taken = new Set(game.players.map((player) => player.name));
-    const name = BOT_NAMES.find((candidate) => !taken.has(candidate)) ?? "Bot";
+    const name = pickBotName(taken);
     // Bots have no sign-in account; the prefix keeps their ids apart from real user ids.
     const botUid = `bot-${refs.games().doc().id}`;
     tx.update(refs.game(input.gameId), {

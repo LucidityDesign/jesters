@@ -36,7 +36,11 @@ describe("bots", () => {
       bot: "beginner",
       aggression: expect.any(Number),
     });
-    expect(game.players.slice(2)).toEqual(["Merlin", "Morgana", "Prospero", "Circe"].map(bot));
+    const botNames = game.players.slice(2).map((player) => player.name);
+    expect(game.players.slice(2)).toEqual(botNames.map(bot));
+    // Random names, all different.
+    expect(new Set(botNames).size).toBe(4);
+    expect(botNames).not.toContain("Bot");
     for (const player of game.players.slice(2)) {
       expect(Math.abs(player.aggression as number)).toBeLessThanOrEqual(0.1);
     }
@@ -46,9 +50,7 @@ describe("bots", () => {
     expect(game.players.map((player) => player.name)).toEqual([
       "Anna",
       "Ben",
-      "Morgana",
-      "Prospero",
-      "Circe",
+      ...botNames.slice(1),
     ]);
 
     // A person, never a bot, takes over as host; a room with only bots is deleted.
