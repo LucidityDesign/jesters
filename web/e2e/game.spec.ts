@@ -96,7 +96,7 @@ test("a guest plays against two bots", async ({ browser }) => {
   await erik.getByRole("button", { name: "Add bot" }).click();
   await erik.getByRole("button", { name: "Add bot" }).click();
   await expect(erik.getByRole("heading", { name: "Players (3 of 6)" })).toBeVisible();
-  await expect(erik.getByText("Merlin")).toBeVisible();
+  await expect(erik.locator(".list .hint", { hasText: "Bot" })).toHaveCount(2);
   await erik.getByRole("button", { name: "Start game" }).click();
 
   await expect(erik.getByRole("heading", { name: "Round 1 of 20" })).toBeVisible();
