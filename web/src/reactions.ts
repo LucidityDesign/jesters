@@ -16,6 +16,10 @@ export const REACTIONS = [
   "🔥",
   "🤞",
   "🙈",
+  "❤️",
+  "👑",
+  "🐥",
+  "🐌",
 ] as const;
 
 /** How long a reaction floats over the sender's seat. */
