@@ -81,6 +81,16 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await anna.getByText("Scores").click();
   await expect(anna.locator(".score-sheet tbody tr")).toHaveCount(2);
 
+  // At the start of round 3, the look back shows round 2's last trick and how round 2 went.
+  await ben.getByRole("button", { name: "Last trick and round" }).click();
+  const lookBack = ben.getByRole("region", { name: "Last trick and round" });
+  await expect(lookBack.locator(".look-back-trick li")).toHaveCount(3);
+  await expect(lookBack.locator(".look-back-winner")).toHaveCount(1);
+  await expect(lookBack.getByText(/won the last trick/)).toBeVisible();
+  await expect(lookBack.getByRole("heading", { name: "Round 2" })).toBeVisible();
+  await expect(lookBack.locator("tbody tr")).toHaveCount(3);
+  await ben.screenshot({});
+
   // The home screen lists the game; leaving ends it for everyone.
   await ben.getByRole("link", { name: "Jesters" }).click();
   await expect(ben.getByRole("link", { name: /Anna, Ben/ })).toBeVisible();
