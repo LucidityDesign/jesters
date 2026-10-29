@@ -84,6 +84,7 @@ export function Table({
           <Trick game={game} mySeat={mySeat} layout={trickLayout} />
           <Players game={game} uid={uid} mySeat={mySeat} plusOne={plusOne} reactions={reactions} />
         </div>
+        <LookBack game={game} />
         <ReactionPicker gameId={gameId} uid={uid} />
       </div>
       <p
@@ -527,6 +528,91 @@ function ReactionPicker({ gameId, uid }: { gameId: string; uid: string }) {
         onClick={() => setOpen(!open)}
       >
         <span aria-hidden="true">😊</span>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * A button that opens the last completed trick (also the previous round's last one at the start
+ * of a round) and how everyone did in the last scored round.
+ */
+function LookBack({ game }: { game: GameDoc }) {
+  const [open, setOpen] = useState(false);
+  const trick = game.lastTrick;
+  const result = game.results.at(-1);
+  const count = Math.max(game.players.length, 1);
+  const label = t("Last trick and round");
+  return (
+    <div className="look-back" onKeyDown={(event) => event.key === "Escape" && setOpen(false)}>
+      {open && (
+        <div className="look-back-panel" role="region" aria-label={label}>
+          <h3>{t("Last trick")}</h3>
+          {trick ? (
+            <>
+              <ul className="look-back-trick">
+                {trick.cards.map((card, index) => {
+                  const seat = (trick.leaderSeat + index) % count;
+                  return (
+                    <li
+                      key={card}
+                      className={seat === trick.winnerSeat ? "look-back-winner" : undefined}
+                    >
+                      <CardView card={card} small />
+                      <span className="visually-hidden">{cardName(card)}</span>
+                      <span>{nameAt(game, seat)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="hint">
+                {t("{name} won the last trick", { name: nameAt(game, trick.winnerSeat) })}
+              </p>
+            </>
+          ) : (
+            <p className="hint">{t("No trick played yet")}</p>
+          )}
+          <h3>{result ? t("Round {round}", { round: result.round }) : t("Last round")}</h3>
+          {result ? (
+            <table className="look-back-round">
+              <thead>
+                <tr>
+                  <th scope="col">{t("Player")}</th>
+                  <th scope="col">{t("Bid")}</th>
+                  <th scope="col">{t("Won")}</th>
+                  <th scope="col">{t("Points")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {game.players.map((player, seat) => {
+                  const points = result.deltas[seat] ?? 0;
+                  return (
+                    <tr key={player.uid}>
+                      <th scope="row">{nameAt(game, seat)}</th>
+                      <td>{result.bids[seat] ?? 0}</td>
+                      <td>{result.won[seat] ?? 0}</td>
+                      <td className={points >= 0 ? "plus" : "minus"}>
+                        {points > 0 ? "+" : ""}
+                        {points}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className="hint">{t("No round finished yet")}</p>
+          )}
+        </div>
+      )}
+      <button
+        className="look-back-toggle"
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+        onClick={() => setOpen(!open)}
+      >
+        <span aria-hidden="true">🕘</span>
       </button>
     </div>
   );
