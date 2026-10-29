@@ -22,6 +22,25 @@ export const REACTIONS = [
   "🐌",
 ] as const;
 
+/**
+ * How some reactions move over the sender's seat (a CSS class `reaction-<motion>`); the others
+ * float up.
+ */
+export const REACTION_MOTION: Readonly<Record<string, string>> = {
+  "👍": "nod",
+  "👎": "nod",
+  "👏": "clap",
+  "😂": "laugh",
+  "😡": "shake",
+  "🎉": "burst",
+  "🔥": "flicker",
+  "🤞": "wiggle",
+  "❤️": "beat",
+  "👑": "crown",
+  "🐥": "hop",
+  "🐌": "crawl",
+};
+
 /** How long a reaction floats over the sender's seat. */
 export const REACTION_MS = 3500;
 
