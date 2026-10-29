@@ -12,4 +12,4 @@ export {
   updateSettings,
 } from "./api/rooms.js";
 export { deleteEndedGames, expireStaleGames, sendTurnReminders } from "./scheduled.js";
-export { moveBot, onGameUpdated } from "./triggers.js";
+export { moveBot, onGameUpdated, onReaction } from "./triggers.js";

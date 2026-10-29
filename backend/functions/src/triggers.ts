@@ -1,11 +1,11 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { botAction } from "./bots/index.js";
 import { reduce } from "./engine/index.js";
 import { botToMove, type GameDoc, stateFromSecret } from "./game/model.js";
 import { refs, secureRandomInt, writeState } from "./game/store.js";
-import { notificationsFor } from "./notify/messages.js";
+import { notificationsFor, type ReactionDoc, reactionNotifications } from "./notify/messages.js";
 import { sendPush } from "./notify/push.js";
 
 /** Sends "your turn", "game started" and "game over" notifications when a game changes. */
@@ -14,6 +14,18 @@ export const onGameUpdated = onDocumentUpdated("games/{gameId}", async (event) =
   const after = event.data?.after.data() as GameDoc | undefined;
   if (!before || !after) return;
   await sendPush(notificationsFor(event.params.gameId, before, after));
+});
+
+/** Tells the other players about an emoji reaction. */
+export const onReaction = onDocumentWritten("games/{gameId}/reactions/{uid}", async (event) => {
+  const after = event.data?.after.data() as ReactionDoc | undefined;
+  // Deleted along with the player's data.
+  if (!after) return;
+  const before = event.data?.before.data() as ReactionDoc | undefined;
+  const { gameId, uid } = event.params;
+  const game = (await refs.game(gameId).get()).data();
+  if (!game) return;
+  await sendPush(reactionNotifications(gameId, game, uid, before, after));
 });
 
 /**

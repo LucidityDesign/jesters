@@ -735,6 +735,23 @@
         }
       }
     },
+    "PUSH_REACTION": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ reacted: %2$@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ reagiert: %2$@"
+          }
+        }
+      }
+    },
     "PUSH_REMINDER": {
       "extractionState": "manual",
       "localizations": {
