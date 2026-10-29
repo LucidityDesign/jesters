@@ -16,6 +16,7 @@ import {
   type GameDoc,
   type HandDoc,
   isMyTurn,
+  type LastTrick,
   lastTrickOfRound,
   SUITS,
   leaders,
@@ -33,6 +34,7 @@ import {
 } from "../tableLayout";
 import {
   REACTION_COOLDOWN_MS,
+  REACTION_MOTION,
   REACTIONS,
   sendReaction,
   type ShownReaction,
@@ -226,13 +228,20 @@ function useTrickLayout(
 const PLUS_ONE_MS = 3000;
 
 /**
+ * Identifies a completed trick. The last trick stays in the game when the next round starts, so
+ * the key changes only with the next trick.
+ */
+function trickKey(trick: LastTrick | null): string | null {
+  return trick ? `${trick.leaderSeat}:${trick.cards.join()}` : null;
+}
+
+/**
  * The seat that just took a trick, for `PLUS_ONE_MS`, also when it already leads the next one.
  * Tricks taken before the page was opened don't count.
  */
 function useTrickTaken(game: GameDoc): { seat: number; key: string | null } | null {
   const last = game.lastTrick;
-  // The last trick stays in the game when the next round starts; its cards and leader identify it.
-  const key = last ? `${last.leaderSeat}:${last.cards.join()}` : null;
+  const key = trickKey(last);
   const [seenKey, setSeenKey] = useState(key);
   const [taker, setTaker] = useState<number | null>(null);
   if (key !== seenKey) {
@@ -245,6 +254,56 @@ function useTrickTaken(game: GameDoc): { seat: number; key: string | null } | nu
     return () => clearTimeout(timer);
   }, [taker, seenKey]);
   return taker === null ? null : { seat: taker, key: seenKey };
+}
+
+/** How long each seat shows its points from the round just scored. */
+const ROUND_POINTS_MS = 3500;
+
+/**
+ * Everyone's points from the round just scored, for `ROUND_POINTS_MS`. Rounds scored before the
+ * page was opened don't count.
+ */
+function useRoundPoints(game: GameDoc): { deltas: number[]; key: number } | null {
+  const rounds = game.results.length;
+  const [seenRounds, setSeenRounds] = useState(rounds);
+  const [points, setPoints] = useState<{ deltas: number[]; key: number } | null>(null);
+  if (rounds !== seenRounds) {
+    setSeenRounds(rounds);
+    const result = game.results.at(-1);
+    setPoints(rounds > seenRounds && result ? { deltas: result.deltas, key: rounds } : null);
+  }
+  useEffect(() => {
+    if (!points) return;
+    const timer = setTimeout(() => setPoints(null), ROUND_POINTS_MS);
+    return () => clearTimeout(timer);
+  }, [points]);
+  return points;
+}
+
+const COUNT_MS = 900;
+
+/** A score that counts up (or down) to a new value instead of jumping. */
+function Score({ value }: { value: number }) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current;
+    from.current = value;
+    const instant = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const began = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      const progress = instant ? 1 : Math.min(1, (now - began) / COUNT_MS);
+      const eased = 1 - (1 - progress) ** 3;
+      setShown(Math.round(start + (value - start) * eased));
+      if (progress < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return (
+    <strong className="score" aria-label={t("Score: {score}", { score: value })}>
+      {shown}
+    </strong>
+  );
 }
 
 function Players({
@@ -261,6 +320,7 @@ function Players({
   reactions: ReadonlyMap<string, ShownReaction>;
 }) {
   const scores = totals(game);
+  const roundPoints = useRoundPoints(game);
   const count = Math.max(game.players.length, 1);
   const dealer = t("Dealer");
   // A crown for the highest score, once there is one (not while everyone is level).
@@ -292,8 +352,13 @@ function Players({
             )}
             {reaction && (
               // Keyed by the reaction, so the same emoji pops again when it is sent twice.
-              <span key={reaction.key} className="reaction" role="img" aria-label={reaction.emoji}>
-                {reaction.emoji}
+              <span
+                key={reaction.key}
+                className={`reaction reaction-${REACTION_MOTION[reaction.emoji] ?? "float"}`}
+                role="img"
+                aria-label={reaction.emoji}
+              >
+                <span className="reaction-inner">{reaction.emoji}</span>
               </span>
             )}
             <span className="seat-name">
@@ -325,13 +390,19 @@ function Players({
                   {t("won {won} of {bid}", { won, bid })}
                 </span>
               )}
-              <strong
-                className="score"
-                aria-label={t("Score: {score}", { score: scores[seat] ?? 0 })}
-              >
-                {scores[seat] ?? 0}
-              </strong>
+              <Score value={scores[seat] ?? 0} />
             </span>
+            {roundPoints && (
+              // Keyed by the round, so it pops again after the next one.
+              <span
+                key={roundPoints.key}
+                className={`round-points ${(roundPoints.deltas[seat] ?? 0) >= 0 ? "round-plus" : "round-minus"}`}
+                aria-hidden="true"
+              >
+                {(roundPoints.deltas[seat] ?? 0) > 0 ? "+" : ""}
+                {roundPoints.deltas[seat] ?? 0}
+              </span>
+            )}
           </li>
         );
       })}
@@ -392,10 +463,33 @@ function trickHint(game: GameDoc): string {
  * each in front of the player who played it. New cards slide in from their player's seat; the
  * winner of the last trick stands out.
  */
+/** How long a finished trick takes to slide over to its winner. */
+const COLLECT_MS = 600;
+
+/**
+ * The finished trick that just left the table (when the next trick or round started), for
+ * `COLLECT_MS`, so it can slide over to its winner.
+ */
+function useCollected(shown: LastTrick | null): LastTrick | null {
+  const [seen, setSeen] = useState(shown);
+  const [collected, setCollected] = useState<LastTrick | null>(null);
+  if (trickKey(shown) !== trickKey(seen)) {
+    setSeen(shown);
+    if (seen) setCollected(seen);
+  }
+  useEffect(() => {
+    if (!collected) return;
+    const timer = setTimeout(() => setCollected(null), COLLECT_MS);
+    return () => clearTimeout(timer);
+  }, [collected]);
+  return collected;
+}
+
 function Trick({ game, mySeat, layout }: { game: GameDoc; mySeat: number; layout: TrickLayout }) {
   const lastTrick = lastTrickOfRound(game);
   const current = game.trick && game.trick.cards.length > 0 ? game.trick : null;
   const trick = current ?? lastTrick;
+  const collected = useCollected(current ? null : lastTrick);
   // While a trick is played, the card taking it so far stands out a little.
   const leading =
     current && current.cards.length >= 2
@@ -407,6 +501,30 @@ function Trick({ game, mySeat, layout }: { game: GameDoc; mySeat: number; layout
   );
   return (
     <section className="trick" aria-label={t("Current trick")}>
+      {collected?.cards.map((card, index) => {
+        const seat = (collected.leaderSeat + index) % count;
+        const at = trickCardPosition(seatDirection(seat, mySeat, count), layout);
+        const to = seatPosition(collected.winnerSeat, mySeat, count, 1);
+        const style = {
+          left: `${at.x}%`,
+          top: `${at.y}%`,
+          "--to-x": `${to.x}%`,
+          "--to-y": `${to.y}%`,
+          "--scale": layout.scale,
+          zIndex: layers[seat],
+        } as CSSProperties;
+        return (
+          // Keyed apart from the cards on the table: the next round can deal the same card again.
+          <figure
+            key={`collected-${card}`}
+            className="trick-card trick-collected faded"
+            style={style}
+            aria-hidden="true"
+          >
+            <CardView card={card} />
+          </figure>
+        );
+      })}
       {trick?.cards.map((card, index) => {
         const seat = (trick.leaderSeat + index) % count;
         const at = trickCardPosition(seatDirection(seat, mySeat, count), layout);

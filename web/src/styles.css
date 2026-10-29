@@ -643,6 +643,67 @@ ol.list {
   }
 }
 
+/* A finished trick slides over to its winner when the next trick or round starts. */
+.trick-card.trick-collected {
+  pointer-events: none;
+  animation: trick-collect 0.6s ease-in forwards;
+}
+
+@keyframes trick-collect {
+  to {
+    left: var(--to-x);
+    top: var(--to-y);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(calc(var(--scale, 1) * 0.35));
+  }
+}
+
+/* Each seat's points from the round just scored, below the seat. */
+.round-points {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  z-index: 1;
+  padding: 1px 7px;
+  border-radius: 99px;
+  color: var(--bg);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  animation: round-points 3.5s ease-out forwards;
+}
+
+.round-plus {
+  background: var(--plus);
+}
+
+.round-minus {
+  background: var(--minus);
+}
+
+@keyframes round-points {
+  0% {
+    transform: translate(-50%, -6px) scale(0.4);
+    opacity: 0;
+  }
+  8% {
+    transform: translate(-50%, 0) scale(1.15);
+    opacity: 1;
+  }
+  14% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 6px) scale(1);
+    opacity: 0;
+  }
+}
+
 .round-info {
   display: flex;
   align-items: center;
@@ -774,6 +835,7 @@ ol.list {
   bottom: calc(100% - 4px);
   left: 50%;
   z-index: 4;
+  transform: translateX(-50%);
   font-size: 1.9rem;
   line-height: 1;
   pointer-events: none;
@@ -934,6 +996,177 @@ ol.list {
   text-align: left;
 }
 
+/* Some reactions move in their own way (REACTION_MOTION in reactions.ts) while they float. */
+.reaction-inner {
+  display: inline-block;
+}
+
+.reaction-nod .reaction-inner {
+  transform-origin: 50% 90%;
+  animation: reaction-nod 0.35s ease-in-out 0.35s 6 alternate;
+}
+
+@keyframes reaction-nod {
+  to {
+    transform: rotate(-18deg);
+  }
+}
+
+.reaction-clap .reaction-inner {
+  animation: reaction-clap 0.22s ease-in-out 0.35s 10 alternate;
+}
+
+@keyframes reaction-clap {
+  to {
+    transform: scale(0.8, 1.08);
+  }
+}
+
+.reaction-laugh .reaction-inner {
+  animation: reaction-laugh 0.18s ease-in-out 0.35s 12 alternate;
+}
+
+@keyframes reaction-laugh {
+  from {
+    transform: rotate(-10deg) translateY(0);
+  }
+  to {
+    transform: rotate(10deg) translateY(-3px);
+  }
+}
+
+.reaction-shake .reaction-inner {
+  animation: reaction-shake 0.08s linear 0.35s 20 alternate;
+}
+
+@keyframes reaction-shake {
+  from {
+    transform: translateX(-3px);
+  }
+  to {
+    transform: translateX(3px);
+  }
+}
+
+.reaction-burst .reaction-inner {
+  animation: reaction-burst 0.8s ease-out 0.2s;
+}
+
+@keyframes reaction-burst {
+  40% {
+    transform: rotate(-25deg) scale(1.5);
+  }
+  70% {
+    transform: rotate(10deg) scale(1.1);
+  }
+}
+
+.reaction-flicker .reaction-inner {
+  transform-origin: 50% 100%;
+  animation: reaction-flicker 0.15s steps(2) infinite alternate;
+}
+
+@keyframes reaction-flicker {
+  from {
+    transform: scale(1, 1.1) rotate(-4deg);
+  }
+  to {
+    transform: scale(1.05, 0.95) rotate(4deg);
+  }
+}
+
+.reaction-wiggle .reaction-inner {
+  transform-origin: 50% 90%;
+  animation: reaction-wiggle 0.3s ease-in-out 0.35s 8 alternate;
+}
+
+@keyframes reaction-wiggle {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(12deg);
+  }
+}
+
+.reaction-beat .reaction-inner {
+  animation: reaction-beat 0.9s ease-in-out 0.35s 3;
+}
+
+@keyframes reaction-beat {
+  15%,
+  45% {
+    transform: scale(1.35);
+  }
+  30%,
+  60% {
+    transform: scale(1);
+  }
+}
+
+.reaction-hop .reaction-inner {
+  animation: reaction-hop 0.45s ease-out 0.35s 6;
+}
+
+@keyframes reaction-hop {
+  40% {
+    transform: translateY(-12px) scale(0.95, 1.05);
+  }
+  80% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
+}
+
+/* The snail crawls slowly across the top of the seat instead of floating up. */
+.reaction.reaction-crawl {
+  animation: reaction-crawl 3.5s linear forwards;
+}
+
+@keyframes reaction-crawl {
+  0% {
+    transform: translateX(20%);
+    opacity: 0;
+  }
+  10%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+}
+
+/* The crown drops onto the sender's seat and stays there for a moment. */
+.reaction.reaction-crown {
+  bottom: calc(100% - 10px);
+  animation: reaction-crown 3.5s ease-out forwards;
+}
+
+@keyframes reaction-crown {
+  0% {
+    transform: translate(-50%, -48px) rotate(-25deg);
+    opacity: 0;
+  }
+  18% {
+    transform: translate(-50%, 0) rotate(0);
+    opacity: 1;
+  }
+  24% {
+    transform: translate(-50%, -7px) rotate(4deg);
+  }
+  30% {
+    transform: translate(-50%, 0) rotate(0);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hand-card {
     transition: none;
@@ -944,8 +1177,20 @@ ol.list {
   .trick-taken {
     animation: none;
   }
-  .reaction {
+  .reaction,
+  .reaction.reaction-crawl,
+  .reaction.reaction-crown {
     animation: reaction-fade 3.5s step-end forwards;
+  }
+  .reaction .reaction-inner,
+  .round-points {
+    animation: none;
+  }
+  .round-points {
+    transform: translateX(-50%);
+  }
+  .trick-card.trick-collected {
+    display: none;
   }
 }
 
