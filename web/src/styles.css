@@ -1117,9 +1117,16 @@ ol.list {
   }
 }
 
-/* The snail crawls slowly across the top of the seat instead of floating up. */
+/*
+ * The snail crawls slowly across the top of the seat instead of floating up, the way it looks:
+ * left in most emoji fonts, right in Apple's (see reactionMotion in reactions.ts).
+ */
 .reaction.reaction-crawl {
   animation: reaction-crawl 3.5s linear forwards;
+}
+
+.reaction.reaction-crawl-right {
+  animation: reaction-crawl-right 3.5s linear forwards;
 }
 
 @keyframes reaction-crawl {
@@ -1133,6 +1140,21 @@ ol.list {
   }
   100% {
     transform: translateX(-120%);
+    opacity: 0;
+  }
+}
+
+@keyframes reaction-crawl-right {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  10%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(20%);
     opacity: 0;
   }
 }
@@ -1179,6 +1201,7 @@ ol.list {
   }
   .reaction,
   .reaction.reaction-crawl,
+  .reaction.reaction-crawl-right,
   .reaction.reaction-crown {
     animation: reaction-fade 3.5s step-end forwards;
   }

@@ -34,7 +34,7 @@ import {
 } from "../tableLayout";
 import {
   REACTION_COOLDOWN_MS,
-  REACTION_MOTION,
+  reactionMotion,
   REACTIONS,
   sendReaction,
   type ShownReaction,
@@ -354,7 +354,7 @@ function Players({
               // Keyed by the reaction, so the same emoji pops again when it is sent twice.
               <span
                 key={reaction.key}
-                className={`reaction reaction-${REACTION_MOTION[reaction.emoji] ?? "float"}`}
+                className={`reaction reaction-${reactionMotion(reaction.emoji) ?? "float"}`}
                 role="img"
                 aria-label={reaction.emoji}
               >
