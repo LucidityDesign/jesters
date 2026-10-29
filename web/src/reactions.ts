@@ -3,7 +3,20 @@ import { useEffect, useState } from "react";
 import { firebase } from "./firebase";
 
 /** The emojis players can react with. Keep in sync with `validReaction` in firestore.rules. */
-export const REACTIONS = ["👍", "😂", "😮", "😡", "🎉", "🙈", "🔥", "👏"] as const;
+export const REACTIONS = [
+  "👍",
+  "👎",
+  "👏",
+  "🤝",
+  "😂",
+  "😮",
+  "😮‍💨",
+  "😡",
+  "🎉",
+  "🔥",
+  "🤞",
+  "🙈",
+] as const;
 
 /** How long a reaction floats over the sender's seat. */
 export const REACTION_MS = 3500;

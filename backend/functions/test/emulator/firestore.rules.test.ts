@@ -92,7 +92,8 @@ describe("reactions", () => {
         at: Timestamp.fromMillis(Date.now() - 2000),
       });
     });
-    await assertSucceeds(react("bob", "🎉"));
+    // Also emojis made of several characters.
+    await assertSucceeds(react("bob", "😮‍💨"));
   });
 
   it("are readable by the game's players only", async () => {
