@@ -35,18 +35,34 @@ export interface Strategy {
   play(view: BotView, randomInt: RandomInt): Card;
 }
 
-/** How much the search bots simulate per decision. Tuned with `pnpm simulate`. */
+/**
+ * How much the search bots simulate per decision at a 3-player table; larger tables get more
+ * deals (`dealsFor`). Tuned with `pnpm simulate tournament`.
+ */
 export const SEARCH_BUDGETS: Record<Exclude<BotLevel, "easy">, SearchBudget> = {
   medium: { playDeals: 20, bidDeals: 12, fitBids: false, maxMillis: 250 },
   hard: { playDeals: 120, bidDeals: 60, fitBids: true, maxMillis: 600 },
 };
 
+/**
+ * `budget` for a table of `playerCount`: more hidden hands make each deal noisier, so the deal
+ * counts grow from ×1 at 3 players to ×3 at 6. The time limit stays the same.
+ */
+export function dealsFor(budget: SearchBudget, playerCount: number): SearchBudget {
+  const factor = 1 + ((playerCount - 3) * 2) / 3;
+  return {
+    ...budget,
+    playDeals: Math.ceil(budget.playDeals * factor),
+    bidDeals: Math.ceil(budget.bidDeals * factor),
+  };
+}
+
 function searchStrategy(budget: SearchBudget): Strategy {
   return {
     // A Wizard turned up is rare; the Easy bot's rule (the longest suit) does well enough.
     chooseTrump: (view) => easy.chooseTrump(view),
-    bid: (view, randomInt) => searchBid(view, budget, randomInt),
-    play: (view, randomInt) => searchPlay(view, budget, randomInt),
+    bid: (view, randomInt) => searchBid(view, dealsFor(budget, view.playerCount), randomInt),
+    play: (view, randomInt) => searchPlay(view, dealsFor(budget, view.playerCount), randomInt),
   };
 }
 

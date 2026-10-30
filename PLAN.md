@@ -156,6 +156,7 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
     is simulated: rounds are scored on their own. Bids get a first look with a few deals each,
     then the close calls get the rest (successive halving). Hard simulates more and may think up
     to 0.6 s per move, Medium 0.25 s; the thinking time comes off the pause before the move.
+    Larger tables get more deals (×3 at 6 players), within the same time limits.
   - The others' likely bids come from win rates per card measured in simulations
     (`bots/calibration.ts`, written by `pnpm simulate calibrate`); `pnpm simulate tournament`
     plays the levels against each other.

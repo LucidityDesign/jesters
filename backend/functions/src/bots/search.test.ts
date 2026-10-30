@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
-import { botAction, type BotLevel, playBots, SEARCH_BUDGETS } from "./index.js";
+import { botAction, type BotLevel, dealsFor, playBots, SEARCH_BUDGETS } from "./index.js";
 import { handSizes, knownVoids, sampleDeal, unseenCards } from "./knowledge.js";
 import { pickCard, type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
@@ -216,6 +216,16 @@ describe("the Medium and Hard bots", () => {
     },
     60_000,
   );
+
+  it("simulate more deals at larger tables, within the same time limit", () => {
+    const base = SEARCH_BUDGETS.medium;
+    expect(dealsFor(base, 3)).toEqual(base);
+    expect(dealsFor(base, 6)).toEqual({
+      ...base,
+      playDeals: base.playDeals * 3,
+      bidDeals: base.bidDeals * 3,
+    });
+  });
 
   it("think within their time limits", () => {
     expect(SEARCH_BUDGETS.medium.maxMillis).toBeLessThan(SEARCH_BUDGETS.hard.maxMillis);
