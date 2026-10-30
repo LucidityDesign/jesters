@@ -4,9 +4,10 @@
 // Messaging's: `notification` holds the texts (see backend/functions/src/notify/push.ts) and
 // `data.gameId` the game.
 
-const SAFARI =
-  /Safari/.test(self.navigator.userAgent) &&
-  !/Chrome|Chromium|CriOS|Edg|Android/.test(self.navigator.userAgent);
+// Only Chromium (Chrome, Edge, …; not on iOS) lets a push show nothing. Safari, every browser on
+// iOS and web apps on the Home Screen, whose user agent doesn't even say "Safari", revoke the
+// subscription after a few such pushes.
+const MAY_SHOW_NOTHING = /Chrome\/|Chromium\//.test(self.navigator.userAgent);
 
 self.addEventListener("push", (event) => {
   let payload;
@@ -20,14 +21,14 @@ self.addEventListener("push", (event) => {
   const gameId = payload.data?.gameId;
   event.waitUntil(
     (async () => {
-      // A player looking at the app sees the change there already. Safari, though, revokes the
-      // subscription after pushes that show nothing, so there it is shown silently and closed.
+      // A player looking at the app sees the change there already. Where every push must show
+      // something (see above), it is shown silently and closed.
       // Focused, not just visible: on a desktop a window stays visible behind other apps.
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       const looking = windows.some(
         (client) => client.focused && client.visibilityState === "visible",
       );
-      if (looking && !SAFARI) return;
+      if (looking && MAY_SHOW_NOTHING) return;
       await self.registration.showNotification(title ?? "Jesters", {
         body,
         icon: icon ?? "/icon-192.png",
