@@ -62,6 +62,8 @@ export interface GameState {
   trick: Trick;
   /** The most recently completed trick, possibly from the previous round. */
   lastTrick: CompletedTrick | null;
+  /** The tricks completed in this round so far, in order (cards everyone has seen). */
+  roundTricks: CompletedTrick[];
   results: RoundResult[];
 }
 
@@ -112,6 +114,7 @@ export function createGame(options: NewGameOptions): GameState {
     tricksWon: [],
     trick: { leader: 0, cards: [] },
     lastTrick: null,
+    roundTricks: [],
     results: [],
   };
   const dealer = options.dealer ?? randomInt(playerCount);
@@ -147,6 +150,7 @@ export function startRound(
     bids: Array<number | null>(n).fill(null),
     tricksWon: Array<number>(n).fill(0),
     trick: { leader: firstBidder, cards: [] },
+    roundTricks: [],
   };
 }
 
@@ -212,11 +216,13 @@ function playCard(state: GameState, seat: number, card: Card, randomInt: RandomI
 
   const winner = (trick.leader + trickWinner(trick.cards, state.trumpSuit)) % state.playerCount;
   const tricksWon = state.tricksWon.with(winner, (state.tricksWon[winner] as number) + 1);
+  const completed = { ...trick, winner };
   const afterTrick: GameState = {
     ...state,
     hands,
     tricksWon,
-    lastTrick: { ...trick, winner },
+    lastTrick: completed,
+    roundTricks: [...state.roundTricks, completed],
     trick: { leader: winner, cards: [] },
     turn: winner,
   };

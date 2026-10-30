@@ -17,6 +17,14 @@ export default defineConfig({
         },
       },
       {
+        // Slow simulations, run by hand: `pnpm simulate calibrate` or `pnpm simulate tournament`.
+        test: {
+          name: "simulate",
+          include: ["test/simulate/**/*.sim.ts"],
+          testTimeout: 60 * 60_000,
+        },
+      },
+      {
         // Runs inside `firebase emulators:exec` (see `pnpm test:emulator`).
         test: {
           name: "emulator",

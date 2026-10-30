@@ -6,6 +6,7 @@ import {
   botToMove,
   handDoc,
   lobbyPlay,
+  type Player,
   type PublicRound,
   publicPlay,
   secretDoc,
@@ -120,7 +121,7 @@ describe("lobbyPlay", () => {
 describe("botToMove", () => {
   const players = [
     { uid: "a", name: "Anna" },
-    { uid: "bot-1", name: "Merlin", bot: "beginner" as const },
+    { uid: "bot-1", name: "Merlin", bot: "hard" as const },
   ];
   const at = (ms: number) => ({ toMillis: () => ms }) as Timestamp;
   const inRound = (number: number) => ({ number }) as PublicRound;
@@ -133,7 +134,7 @@ describe("botToMove", () => {
       round: inRound(3),
       updatedAt: at(5000),
     };
-    expect(botToMove({ ...annasTurn, autoPlay: { a: {} } })).toBe("beginner");
+    expect(botToMove({ ...annasTurn, autoPlay: { a: {} } })).toBe("medium");
     expect(botToMove({ ...annasTurn, autoPlay: { b: {} } })).toBeNull();
     expect(botToMove({ ...annasTurn, autoPlay: { a: {} }, active: false })).toBeNull();
   });
@@ -141,19 +142,24 @@ describe("botToMove", () => {
   it("stops auto-play at its time, decided by when the turn began", () => {
     const annasTurn = { active: true, players, turnSeat: 0, round: inRound(3) };
     const autoPlay = { a: { until: at(5000) } };
-    expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(4999) })).toBe("beginner");
+    expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(4999) })).toBe("medium");
     expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(5000) })).toBeNull();
   });
 
   it("stops auto-play after its last round", () => {
     const annasTurn = { active: true, players, turnSeat: 0, updatedAt: at(0) };
     const autoPlay = { a: { untilRound: 4 } };
-    expect(botToMove({ ...annasTurn, autoPlay, round: inRound(4) })).toBe("beginner");
+    expect(botToMove({ ...annasTurn, autoPlay, round: inRound(4) })).toBe("medium");
     expect(botToMove({ ...annasTurn, autoPlay, round: inRound(5) })).toBeNull();
   });
 
   it("names the level of the bot whose turn it is", () => {
-    expect(botToMove({ active: true, players, turnSeat: 1 })).toBe("beginner");
+    expect(botToMove({ active: true, players, turnSeat: 1 })).toBe("hard");
+  });
+
+  it("plays bots from older versions as easy", () => {
+    const legacy = [players[0] as Player, { uid: "bot-2", name: "Puck", bot: "beginner" as const }];
+    expect(botToMove({ active: true, players: legacy, turnSeat: 1 })).toBe("easy");
   });
 
   it("is null for people, in the lobby and once the game is over", () => {

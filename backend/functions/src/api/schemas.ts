@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BOT_LEVELS } from "../bots/index.js";
+import { BOT_LEVELS, normalizeLevel } from "../bots/index.js";
 import { type Card, isCard, SUITS } from "../engine/index.js";
 
 export const PlayerName = z
@@ -34,7 +34,13 @@ export const UpdateSettingsInput = z.object({ gameId: GameId, noEvenBids: z.bool
 
 export const AddBotInput = z.object({
   gameId: GameId,
-  level: z.enum(BOT_LEVELS).default("beginner"),
+  // Older app versions send "beginner", which plays as easy now.
+  level: z
+    .preprocess(
+      (level) => (typeof level === "string" ? (normalizeLevel(level) ?? level) : level),
+      z.enum(BOT_LEVELS),
+    )
+    .default("easy"),
 });
 
 export const RemovePlayerInput = z.object({ gameId: GameId, uid: z.string().min(1).max(128) });

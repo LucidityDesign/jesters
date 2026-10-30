@@ -3,6 +3,7 @@ import SwiftUI
 struct LobbyView: View {
     let model: GameModel
     let game: GameDoc
+    @AppStorage("botLevel") private var botLevel: BotLevel = .medium
 
     private var isHost: Bool {
         game.hostUid == model.uid
@@ -42,8 +43,8 @@ struct LobbyView: View {
                         if player.uid == model.uid {
                             Text("You").foregroundStyle(.secondary)
                         }
-                        if player.isBot {
-                            Text("Bot").foregroundStyle(.secondary)
+                        if let level = player.botLevel {
+                            Text("Bot (\(level.name))").foregroundStyle(.secondary)
                         }
                     }
                     .swipeActions {
@@ -55,8 +56,14 @@ struct LobbyView: View {
                     }
                 }
                 if isHost && game.players.count < 6 {
+                    Picker("Bot level", selection: $botLevel) {
+                        ForEach(BotLevel.allCases, id: \.self) { level in
+                            Text(level.name).tag(level)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                     Button {
-                        Task { await model.addBot() }
+                        Task { await model.addBot(level: botLevel) }
                     } label: {
                         Label("Add bot", systemImage: "cpu")
                     }
@@ -70,7 +77,7 @@ struct LobbyView: View {
                 } else if game.players.count < 3 {
                     Text("At least 3 players are needed. Invite friends or add bots.")
                 } else if game.players.contains(where: \.isBot) {
-                    Text("Bots play at beginner level and make their moves right away.")
+                    Text("Easy bots play by simple rules; Medium and Hard ones think ahead.")
                 }
             }
 

@@ -114,8 +114,8 @@ enum API {
         let _: OKResponse = try await call("startGame", GameRequest(gameId: gameId))
     }
 
-    static func addBot(gameId: String) async throws {
-        let _: OKResponse = try await call("addBot", AddBotRequest(gameId: gameId, level: "beginner"))
+    static func addBot(gameId: String, level: BotLevel) async throws {
+        let _: OKResponse = try await call("addBot", AddBotRequest(gameId: gameId, level: level.rawValue))
     }
 
     static func removePlayer(gameId: String, uid: String) async throws {

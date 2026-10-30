@@ -52,7 +52,7 @@ describe("notificationsFor", () => {
       players: [
         { uid: "a", name: "Anna" },
         { uid: "b", name: "Ben" },
-        { uid: "bot-x", name: "Merlin", bot: "beginner" },
+        { uid: "bot-x", name: "Merlin", bot: "easy" },
       ],
       playerUids: ["a", "b", "bot-x"],
     });
@@ -221,7 +221,7 @@ describe("reactionNotifications", () => {
     players: [
       { uid: "a", name: "Anna" },
       { uid: "b", name: "Ben" },
-      { uid: "bot-x", name: "Merlin", bot: "beginner" },
+      { uid: "bot-x", name: "Merlin", bot: "easy" },
     ],
     playerUids: ["a", "b", "bot-x"],
   });

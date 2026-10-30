@@ -27,6 +27,8 @@ pnpm install
 pnpm lint && pnpm typecheck
 pnpm test                # unit tests
 pnpm test:emulator       # integration tests against the emulators
+pnpm simulate tournament # bot levels play each other (slow; GAMES, PLAYERS, LEVELS env vars)
+pnpm simulate calibrate  # re-measure the card win rates the bots use (then pnpm format)
 pnpm emulators           # start the emulators (UI at http://127.0.0.1:4000)
 ```
 

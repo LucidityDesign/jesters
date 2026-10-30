@@ -18,6 +18,15 @@ function playWholeGame(playerCount: number, seed: number, noEvenBids: boolean): 
       expect(cards.sort()).toEqual(createDeck().sort());
       expect(state.hands.every((hand) => hand.length === round)).toBe(true);
     }
+    if (state.trick.cards.length === 0) {
+      // Between tricks, every card is in one place: a hand, the deck or this round's tricks.
+      const placed = [
+        ...state.hands.flat(),
+        ...state.deck,
+        ...state.roundTricks.flatMap((trick) => trick.cards),
+      ];
+      expect(placed.sort()).toEqual(createDeck().sort());
+    }
     const result = reduce(state, randomAction(state, randomInt), randomInt);
     if (!result.ok) throw new Error(`random allowed action rejected: ${result.error}`);
     state = result.state;

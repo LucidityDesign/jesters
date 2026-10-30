@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AddBotInput,
   CreateRoomInput,
   PlaceBidInput,
   PlayCardInput,
@@ -33,6 +34,18 @@ describe("action inputs", () => {
     expect(PlayCardInput.safeParse({ gameId: "g1", card: "H15" }).success).toBe(false);
     expect(PlaceBidInput.safeParse({ gameId: "g1", bid: 1.5 }).success).toBe(false);
     expect(PlaceBidInput.safeParse({ gameId: "g/1", bid: 1 }).success).toBe(false);
+  });
+});
+
+describe("AddBotInput", () => {
+  it("takes the three levels, easy by default", () => {
+    expect(AddBotInput.parse({ gameId: "g1" }).level).toBe("easy");
+    expect(AddBotInput.parse({ gameId: "g1", level: "hard" }).level).toBe("hard");
+    expect(AddBotInput.safeParse({ gameId: "g1", level: "expert" }).success).toBe(false);
+  });
+
+  it("reads the level older app versions send as easy", () => {
+    expect(AddBotInput.parse({ gameId: "g1", level: "beginner" }).level).toBe("easy");
   });
 });
 

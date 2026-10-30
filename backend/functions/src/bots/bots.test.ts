@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { gameWith, playRandomly, seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
-import { bid, bidPressure, chooseTrump, play, playingAggression } from "./beginner.js";
+import { bid, bidPressure, chooseTrump, play, playingAggression } from "./easy.js";
 import { botAction, type BotLevel, playBots } from "./index.js";
 import { type BotView, viewFor } from "./view.js";
 
@@ -29,6 +29,8 @@ function playingView(options: {
     bids: [options.bid, ...Array<number>(playerCount - 1).fill(0)],
     tricksWon: [options.won ?? 0, ...Array<number>(playerCount - 1).fill(0)],
     trick: { leader: 1, cards: options.trick ?? [] },
+    roundTricks: [],
+    noEvenBids: true,
     legalCards: options.hand,
     forbiddenBid: null,
     results: [],
@@ -57,7 +59,7 @@ describe("viewFor", () => {
   });
 });
 
-describe("the beginner bot", () => {
+describe("the easy bot", () => {
   it("picks its longest suit as trump", () => {
     const state = gameWith({
       hands: [
@@ -202,7 +204,7 @@ describe("playBots", () => {
   it("plays whole games with legal moves only", () => {
     fc.assert(
       fc.property(
-        fc.array(fc.constantFrom<BotLevel | null>("beginner", null), {
+        fc.array(fc.constantFrom<BotLevel | null>("easy", null), {
           minLength: 3,
           maxLength: 6,
         }),
@@ -219,8 +221,8 @@ describe("playBots", () => {
   it("stops at a person's turn", () => {
     const state = createGame({ playerCount: 3, randomInt: seededRandom(3), dealer: 0 });
     // Seat 1 bids first.
-    expect(playBots(state, [null, null, "beginner"], seededRandom(4))).toBe(state);
-    const after = playBots(state, ["beginner", "beginner", null], seededRandom(4));
+    expect(playBots(state, [null, null, "easy"], seededRandom(4))).toBe(state);
+    const after = playBots(state, ["easy", "easy", null], seededRandom(4));
     expect(after.turn).toBe(2);
     expect(after.bids[1]).not.toBeNull();
   });
@@ -230,7 +232,7 @@ describe("playBots", () => {
     for (let seed = 0; seed < 40; seed++) {
       const randomInt = seededRandom(seed);
       let state = createGame({ playerCount: 3, randomInt });
-      const levels: (BotLevel | null)[] = ["beginner", null, null];
+      const levels: (BotLevel | null)[] = ["easy", null, null];
       while (state.phase !== "finished") {
         state = playBots(state, levels, randomInt);
         if (state.phase === "finished") break;
@@ -247,6 +249,6 @@ describe("playBots", () => {
   it("makes moves the rules accept", () => {
     const randomInt = seededRandom(9);
     const state = createGame({ playerCount: 4, randomInt });
-    expect(reduce(state, botAction(state, "beginner"), randomInt).ok).toBe(true);
+    expect(reduce(state, botAction(state, "easy"), randomInt).ok).toBe(true);
   });
 });

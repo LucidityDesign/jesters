@@ -68,8 +68,8 @@ final class GameModel {
         await send { try await API.startGame(gameId: self.gameId) }
     }
 
-    func addBot() async {
-        await send { try await API.addBot(gameId: self.gameId) }
+    func addBot(level: BotLevel) async {
+        await send { try await API.addBot(gameId: self.gameId, level: level) }
     }
 
     func remove(_ playerUid: String) async {

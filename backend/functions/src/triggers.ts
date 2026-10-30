@@ -1,7 +1,8 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
-import { botAction } from "./bots/index.js";
+import { type BotLevel, botAction, thinkingMillis } from "./bots/index.js";
+import type { GameState } from "./engine/index.js";
 import { reduce } from "./engine/index.js";
 import { botToMove, type GameDoc, stateFromSecret } from "./game/model.js";
 import { refs, secureRandomInt, writeState } from "./game/store.js";
@@ -58,14 +59,17 @@ export function botDelayMs(
  * version that has already moved on does nothing.
  */
 export const moveBot = onDocumentUpdated(
-  { document: "games/{gameId}", retry: true },
+  // A whole CPU: the Medium and Hard bots simulate thousands of rounds per move.
+  { document: "games/{gameId}", retry: true, cpu: 1, memory: "512MiB" },
   async (event) => {
     const after = event.data?.after.data() as GameDoc | undefined;
-    if (!after || botToMove(after) === null) return;
+    const toMove = after && botToMove(after);
+    if (!after || !toMove) return;
 
     const delay = botDelayMs(event.data?.before.data() as GameDoc | undefined, after);
     const sinceLastMove = Date.now() - after.updatedAt.toMillis();
-    const wait = Math.min(delay, Math.max(0, delay - sinceLastMove));
+    // The bot thinks after the wait, so the time it may think comes off the wait.
+    const wait = Math.max(0, Math.min(delay, delay - sinceLastMove) - thinkingMillis(toMove));
     await new Promise((resolve) => setTimeout(resolve, wait));
 
     const gameId = event.params.gameId;
@@ -79,7 +83,7 @@ export const moveBot = onDocumentUpdated(
 
       const state = stateFromSecret(secret);
       const aggression = game.players[game.turnSeat as number]?.aggression ?? 0;
-      const result = reduce(state, botAction(state, level, aggression), secureRandomInt);
+      const result = reduce(state, decide(state, level, aggression, gameId), secureRandomInt);
       if (!result.ok) {
         // A bug in the strategy; retrying would not help.
         logger.error(`The ${level} bot made a move the rules reject: ${result.error}`, { gameId });
@@ -89,3 +93,14 @@ export const moveBot = onDocumentUpdated(
     });
   },
 );
+
+/** The bot's move; should a search bot ever fail, the Easy bot moves instead, so no game stalls. */
+function decide(state: GameState, level: BotLevel, aggression: number, gameId: string) {
+  try {
+    return botAction(state, level, aggression, secureRandomInt);
+  } catch (error) {
+    if (level === "easy") throw error;
+    logger.error(`The ${level} bot failed, the easy bot moves instead`, { gameId, error });
+    return botAction(state, "easy", aggression, secureRandomInt);
+  }
+}

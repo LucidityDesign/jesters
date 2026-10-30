@@ -144,8 +144,8 @@ struct PlayersView: View {
                     Text(player.name)
                         .fontWeight(player.uid == uid ? .bold : .regular)
                         .lineLimit(1)
-                    if player.isBot {
-                        Text("Bot")
+                    if let level = player.botLevel {
+                        Text("Bot (\(level.name))")
                             .font(.caption)
                             .padding(.horizontal, 6)
                             .background(.quaternary, in: Capsule())

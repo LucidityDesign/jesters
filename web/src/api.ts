@@ -3,7 +3,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { type FunctionsError, httpsCallable } from "firebase/functions";
 import { firebase } from "./firebase";
 import { t } from "./i18n";
-import type { Card, Suit } from "./model";
+import type { BotLevel, Card, Suit } from "./model";
 
 async function call<Response = { ok: true }>(name: string, data: object = {}): Promise<Response> {
   const result = await httpsCallable<object, Response>(firebase().functions, name)(data);
@@ -28,7 +28,7 @@ export const api = {
   updateSettings: (gameId: string, noEvenBids: boolean) =>
     call("updateSettings", { gameId, noEvenBids }),
   startGame: (gameId: string) => call("startGame", { gameId }),
-  addBot: (gameId: string) => call("addBot", { gameId, level: "beginner" }),
+  addBot: (gameId: string, level: BotLevel) => call("addBot", { gameId, level }),
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),
   leaveGame: (gameId: string) => call("leaveGame", { gameId }),
   chooseTrump: (gameId: string, version: number, suit: Suit) =>

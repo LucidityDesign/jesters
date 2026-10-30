@@ -34,7 +34,7 @@ describe("bots", () => {
     const bot = (name: string) => ({
       uid: expect.stringMatching(/^bot-/),
       name,
-      bot: "beginner",
+      bot: "easy",
       aggression: expect.any(Number),
     });
     const botNames = game.players.slice(2).map((player) => player.name);

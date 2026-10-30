@@ -10,7 +10,7 @@ import {
 } from "../engine/index.js";
 import type { BotView } from "./view.js";
 
-// The beginner bot: simple rules of thumb, no card counting. It bids what its strong cards
+// The easy bot: simple rules of thumb, no card counting. It bids what its strong cards
 // should win, given what the others have bid, then tries to take tricks while it needs them and
 // to lose them otherwise. Its aggression (-0.1 to 0.1) makes it bid higher or lower and take
 // tricks with stronger or cheaper cards; while playing, the total of the bids shifts it.
@@ -75,7 +75,7 @@ export function bid(view: BotView): number {
 }
 
 /** How strong `card` is in the current trick, for picking the weakest or strongest one. */
-function strength(card: Card, view: BotView): number {
+export function strength(card: Card, view: BotView): number {
   if (isWizard(card)) return 100;
   if (isJester(card)) return 0;
   const rank = rankOf(card) as number;
@@ -83,7 +83,7 @@ function strength(card: Card, view: BotView): number {
   return rank;
 }
 
-function wouldWinNow(card: Card, view: BotView): boolean {
+export function wouldWinNow(card: Card, view: BotView): boolean {
   const cards = [...view.trick.cards, card];
   return trickWinner(cards, view.trumpSuit) === cards.length - 1;
 }

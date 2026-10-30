@@ -2,9 +2,31 @@ import { type ReactNode, useState } from "react";
 import { api } from "../api";
 import { ErrorText, Page } from "../components/Layout";
 import { t } from "../i18n";
-import { MIN_PLAYERS, MAX_PLAYERS, type GameDoc } from "../model";
+import {
+  BOT_LEVELS,
+  botLevel,
+  type BotLevel,
+  MIN_PLAYERS,
+  MAX_PLAYERS,
+  type GameDoc,
+} from "../model";
+import { load, save } from "../storage";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
+
+const BOT_LEVEL_KEY = "botLevel";
+
+/** The name of a bot level, as shown to people. */
+export function botLevelName(level: BotLevel): string {
+  switch (level) {
+    case "easy":
+      return t("Easy");
+    case "medium":
+      return t("Medium");
+    case "hard":
+      return t("Hard");
+  }
+}
 
 export function Lobby({
   gameId,
@@ -22,6 +44,7 @@ export function Lobby({
   const isHost = game.hostUid === uid;
   const canStart = game.players.length >= MIN_PLAYERS && !action.isSending;
   const [copied, setCopied] = useState(false);
+  const [level, setLevel] = useState<BotLevel>(() => botLevel(load(BOT_LEVEL_KEY) ?? "medium"));
   const inviteLink = `${location.origin}/join/${game.roomKey}`;
 
   async function invite() {
@@ -52,7 +75,7 @@ export function Lobby({
                 {[
                   player.uid === game.hostUid && t("Host"),
                   player.uid === uid && t("You"),
-                  player.bot && t("Bot"),
+                  player.bot && `${t("Bot")} (${botLevelName(botLevel(player.bot))})`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -72,8 +95,26 @@ export function Lobby({
         </ul>
         {isHost && game.players.length < MAX_PLAYERS && (
           <div className="actions">
+            <fieldset className="segmented">
+              <legend className="visually-hidden">{t("Bot level")}</legend>
+              {BOT_LEVELS.map((option) => (
+                <label key={option}>
+                  <input
+                    type="radio"
+                    name="bot-level"
+                    value={option}
+                    checked={level === option}
+                    onChange={() => {
+                      setLevel(option);
+                      save(BOT_LEVEL_KEY, option);
+                    }}
+                  />
+                  <span>{botLevelName(option)}</span>
+                </label>
+              ))}
+            </fieldset>
             <button
-              onClick={() => action.run(() => api.addBot(gameId))}
+              onClick={() => action.run(() => api.addBot(gameId, level))}
               disabled={action.isSending}
             >
               {t("Add bot")}
@@ -86,7 +127,7 @@ export function Lobby({
             : game.players.length < MIN_PLAYERS
               ? t("At least 3 players are needed. Invite friends or add bots.")
               : game.players.some((player) => player.bot)
-                ? t("Bots play at beginner level and make their moves right away.")
+                ? t("Easy bots play by simple rules; Medium and Hard ones think ahead.")
                 : null}
         </p>
       </section>
