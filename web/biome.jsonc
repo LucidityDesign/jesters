@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!pnpm-lock.yaml",
+      "!dist",
+      "!coverage",
+      "!test-results",
+      "!playwright-report"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "linter": {
+    "domains": {
+      "react": "recommended"
+    },
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "error",
+        // Flags unrelated selectors that merely share an element type.
+        "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        // Deliberate: the name, room key and code fields are the only thing on their screens.
+        "noAutofocus": "off",
+        // Buttons outside forms don't submit anything; inside forms, submitting is meant.
+        "useButtonType": "off",
+        // Menus are labelled groups of buttons, closed with Escape on their wrapper.
+        "useSemanticElements": "off",
+        "noStaticElementInteractions": "off",
+        // The labels name codes and scores; the browser tests find them by them.
+        "useAriaPropsSupportedByRole": "off"
+      }
+    }
+  }
+}

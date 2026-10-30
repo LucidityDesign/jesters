@@ -1,6 +1,6 @@
 import { writeSync } from "node:fs";
 import { expect, it } from "vitest";
-import { botAction, type BotLevel } from "../../src/bots/index.js";
+import { type BotLevel, botAction } from "../../src/bots/index.js";
 import { createGame, type GameState, reduce } from "../../src/engine/index.js";
 import { seededRandom } from "../helpers.js";
 

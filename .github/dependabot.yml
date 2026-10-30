@@ -16,7 +16,7 @@ updates:
       backend-minor-and-patch:
         update-types: [minor, patch]
     ignore:
-      # typescript-eslint supports TypeScript 6 only; raise both together.
+      # TypeScript 7 (the native compiler) is a step of its own: raise it by hand and run all checks.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
       # Cloud Functions run on Node 22.

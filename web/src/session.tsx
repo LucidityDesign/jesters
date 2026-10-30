@@ -37,6 +37,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [signInFailed, setSignInFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new attempt signs in again
   useEffect(() => {
     const { auth } = firebase();
     return onAuthStateChanged(auth, (user) => {

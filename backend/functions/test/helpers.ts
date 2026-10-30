@@ -1,4 +1,4 @@
-import { type Card, createDeck, type RandomInt, type Suit, SUITS } from "../src/engine/cards.js";
+import { type Card, createDeck, type RandomInt, SUITS, type Suit } from "../src/engine/cards.js";
 import {
   type Action,
   createGame,

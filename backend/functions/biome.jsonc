@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": ["**", "!pnpm-lock.yaml", "!lib", "!coverage"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "error"
+      },
+      "suspicious": {
+        // Mistakes the tests' after(…) helper for a hook.
+        "noDuplicateTestHooks": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/engine/**/*.ts",
+        "src/bots/**/*.ts",
+        "!src/engine/**/*.test.ts",
+        "!src/bots/**/*.test.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error"
+          },
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "firebase",
+                      "firebase/**",
+                      "firebase-*",
+                      "firebase-*/**",
+                      "@firebase/**"
+                    ],
+                    "message": "The rules engine and the bots stay pure: no Firebase, no Node APIs, no I/O."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

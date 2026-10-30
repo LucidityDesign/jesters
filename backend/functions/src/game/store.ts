@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import {
   type DocumentData,
   FieldValue,
@@ -7,7 +8,6 @@ import {
   type Transaction,
   type WithFieldValue,
 } from "firebase-admin/firestore";
-import { isDeepStrictEqual } from "node:util";
 import type { GameState, RandomInt } from "../engine/index.js";
 import {
   type GameDoc,

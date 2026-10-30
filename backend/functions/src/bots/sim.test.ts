@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { type Card, createDeck, type Suit, trickWinner } from "../engine/index.js";
-import { playOut, rolloutCard, type RoundSim, winnerIndex } from "./sim.js";
+import { playOut, type RoundSim, rolloutCard, winnerIndex } from "./sim.js";
 
 /** A rollout state where seat 0 is to play to `trick` (led by the seats before it). */
 function simWith(options: {

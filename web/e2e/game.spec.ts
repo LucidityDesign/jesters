@@ -189,7 +189,7 @@ test("a guest moves to another device with a transfer code", async ({ browser })
   await phone.getByRole("link", { name: "I already play on another device" }).click();
   await phone.getByLabel("Transfer code").fill(code.toLowerCase());
   await phone.getByRole("button", { name: "Move here" }).click();
-  await expect(phone.getByRole("link", { name: "Anna" })).toBeVisible();
+  await expect(phone.getByRole("link", { name: "Anna", exact: true })).toBeVisible();
   await expect(phone.locator('a[href^="/game/"]')).toHaveCount(1);
 
   // The code works once.

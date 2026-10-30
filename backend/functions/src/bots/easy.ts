@@ -3,9 +3,9 @@ import {
   isJester,
   isWizard,
   rankOf,
+  SUITS,
   type Suit,
   suitOf,
-  SUITS,
   trickWinner,
 } from "../engine/index.js";
 import type { BotView } from "./view.js";

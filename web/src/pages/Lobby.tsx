@@ -4,11 +4,11 @@ import { ErrorText, Page } from "../components/Layout";
 import { t } from "../i18n";
 import {
   BOT_LEVELS,
-  botLevel,
   type BotLevel,
-  MIN_PLAYERS,
-  MAX_PLAYERS,
+  botLevel,
   type GameDoc,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
 } from "../model";
 import { load, save } from "../storage";
 import type { useAction } from "../useAction";

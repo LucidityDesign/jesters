@@ -7,8 +7,8 @@ import {
   isWizard,
   parseCard,
   rankOf,
-  shuffle,
   SUITS,
+  shuffle,
   suitOf,
 } from "./cards.js";
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { gameWith, playRandomly, seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
 import { bid, bidPressure, chooseTrump, play, playingAggression } from "./easy.js";
-import { botAction, type BotLevel, playBots } from "./index.js";
+import { type BotLevel, botAction, playBots } from "./index.js";
 import { type BotView, viewFor } from "./view.js";
 
 /** A view in the playing phase with the given hand and trick, for testing `play`. */

@@ -27,7 +27,7 @@ export function navigate(path: string, { replace = false } = {}): void {
   if (replace) history.replaceState(null, "", path);
   else history.pushState(null, "", path);
   window.scrollTo(0, 0);
-  listeners.forEach((listener) => listener());
+  for (const listener of listeners) listener();
 }
 
 export function useRoute(): Route {

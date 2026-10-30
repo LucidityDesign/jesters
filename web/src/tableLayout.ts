@@ -76,7 +76,7 @@ export function trickCardLayers(directions: readonly { x: number; y: number }[])
     .map((direction, index) => ({ ...direction, index }))
     .sort((a, b) => a.y - b.y || a.x - b.x);
   const layers = Array<number>(directions.length);
-  order.forEach(({ index }, layer) => (layers[index] = layer));
+  for (const [layer, { index }] of order.entries()) layers[index] = layer;
   return layers;
 }
 

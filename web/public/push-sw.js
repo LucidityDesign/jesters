@@ -35,7 +35,7 @@ self.addEventListener("push", (event) => {
       });
       if (looking) {
         const shown = await self.registration.getNotifications({ tag });
-        shown.forEach((notification) => notification.close());
+        for (const notification of shown) notification.close();
       }
     })(),
   );

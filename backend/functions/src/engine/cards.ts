@@ -14,7 +14,9 @@ export type Rank = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
 export type Card = `${Suit}${Rank}` | `W${1 | 2 | 3 | 4}` | `J${1 | 2 | 3 | 4}`;
 
 export type ParsedCard =
-  { kind: "suit"; suit: Suit; rank: Rank } | { kind: "wizard" } | { kind: "jester" };
+  | { kind: "suit"; suit: Suit; rank: Rank }
+  | { kind: "wizard" }
+  | { kind: "jester" };
 
 const CARD_PATTERN = /^(?:[HDCS](?:[2-9]|1[0-4])|[WJ][1-4])$/;
 

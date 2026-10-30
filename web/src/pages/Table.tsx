@@ -11,8 +11,8 @@ import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardVie
 import { ErrorText, Page } from "../components/Layout";
 import { t } from "../i18n";
 import {
-  activeAutoPlay,
   type AutoPlay,
+  activeAutoPlay,
   botLevel,
   type Card,
   cardKind,
@@ -21,28 +21,28 @@ import {
   isMyTurn,
   type LastTrick,
   lastTrickOfRound,
-  SUITS,
   leaders,
+  SUITS,
   sortHand,
   totals,
   trickLeader,
 } from "../model";
 import {
+  REACTION_COOLDOWN_MS,
+  REACTIONS,
+  reactionMotion,
+  type ShownReaction,
+  sendReaction,
+  useReactions,
+} from "../reactions";
+import {
   type Box,
   DEFAULT_TRICK_LAYOUT,
   fitTrick,
+  type TrickLayout,
   trickCardLayers,
   trickCardPosition,
-  type TrickLayout,
 } from "../tableLayout";
-import {
-  REACTION_COOLDOWN_MS,
-  reactionMotion,
-  REACTIONS,
-  sendReaction,
-  type ShownReaction,
-  useReactions,
-} from "../reactions";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
 import { botLevelName } from "./Lobby";
@@ -263,6 +263,7 @@ function useTrickLayout(
 /** The current time, renewed every `intervalMs` (not at all with null) and when `key` changes. */
 function useNow(intervalMs: number | null, key: string): number {
   const [now, setNow] = useState(() => Date.now());
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new key restarts the clock
   useEffect(() => {
     if (intervalMs === null) return;
     const tick = () => setNow(Date.now());
@@ -313,6 +314,7 @@ function useTrickTaken(game: GameDoc): { seat: number; key: string | null } | nu
     setSeenKey(key);
     setTaker(last ? last.winnerSeat : null);
   }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the next trick restarts the timer
   useEffect(() => {
     if (taker === null) return;
     const timer = setTimeout(() => setTaker(null), PLUS_ONE_MS);
@@ -897,6 +899,7 @@ function BidPicker({
       <div className="bids">
         {Array.from({ length: maxBid + 1 }, (_, bid) => (
           <button
+            // biome-ignore lint/suspicious/noArrayIndexKey: the index is the bid
             key={bid}
             className="primary"
             disabled={disabled || bid === forbiddenBid}
