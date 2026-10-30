@@ -17,7 +17,7 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 | Pace | **Asynchronous.** There is no turn timer; turns can take hours. The next player gets a push notification. |
 | Accounts | **Guest only.** There is no sign-up. Players pick a display name and get an anonymous Firebase identity. |
 | Joining | Players join a room with a short **room key** (e.g. `K7Q2XM`), typed in or opened from a shared link. |
-| Bots | The host can add **beginner bots** in the lobby; the server makes their moves. The server never plays a card for a person. Stronger, AI-based bots may follow. |
+| Bots | The host can add bots in the lobby at three levels, **Easy, Medium and Hard**; the server makes their moves. The server plays a card for a person only on auto-play, which they turn on themselves. LLM-based bots may follow ([docs/plans/llm-bots.md](docs/plans/llm-bots.md)). |
 | Design | **Very simple.** System fonts, colors and SF Symbols; cards drawn in SwiftUI; minimal animation; no custom artwork beyond the app icon. |
 | Region | **Europe.** All regional Google Cloud resources are in `europe-west3` (Frankfurt). Schedules use the `Europe/Berlin` time zone. Only EU-hosted services are used where there is a choice (see §2). |
 | Locales | The app follows the device's language and region (date, time and number formats; 24-hour clock where that is the local convention). Languages: English (base) and German; more European languages can be added through the string catalog. |
@@ -137,17 +137,31 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
   Players can join only while the room is in the lobby.
 - The host (room creator) starts the game when 3–6 players have joined and can remove
   players while in the lobby.
-- **Bots:** in the lobby the host can fill seats with computer players (`addBot`), so a game can
-  start with a single person. Bots have no account (`uid` `bot-…`, `bot: "beginner"` on the
-  player). A Firestore trigger (`moveBot`) makes each bot move 0.5 to 2 s (at random) after the move
+- **Bots:** in the lobby the host can fill seats with computer players (`addBot` with a level:
+  `easy`, `medium` or `hard`), so a game can start with a single person. Bots have no account
+  (`uid` `bot-…`, `bot: "medium"` etc. on the player; games from before the levels hold
+  `"beginner"`, which plays as easy). A Firestore trigger (`moveBot`) makes each bot move 0.5 to 2 s (at random) after the move
   before (at least 5 s when a new round starts), one card at a time, so people can follow along. A bot never becomes host; a lobby with
   only bots left is deleted. Bots get no notifications. Strategies live in `functions/src/bots/` and see only a `BotView`
-  (their own hand plus the table), so they can't cheat. The beginner bot follows simple rules of
-  thumb: it bids what its cards should win given the bids so far, keeps its Jesters for tricks it
-  must lose, and has a random aggression (-0.1 to 0.1, `aggression` on the player) that makes it
-  bid higher or lower and take tricks with stronger or cheaper cards; while playing, more bids
-  than cards make it more aggressive, fewer more cautious. Stronger, AI-based levels
-  can be added later as further strategies.
+  (their own hand plus the table, including the cards played this round), so they can't cheat.
+  - **Easy** follows simple rules of thumb: it bids what its cards should win given the bids so
+    far, keeps its Jesters for tricks it must lose, and has a random aggression (-0.1 to 0.1,
+    `aggression` on the player) that makes it bid higher or lower and take tricks with stronger or
+    cheaper cards; while playing, more bids than cards make it more aggressive, fewer more cautious.
+  - **Medium** and **Hard** use Monte Carlo search (`bots/search.ts`): for each possible bid or
+    card, they deal the cards they haven't seen to the others many times at random, consistent
+    with the table (cards played, suits a player failed to follow; Hard also deals hands that fit
+    the bids), play each deal to the end of the round with a bid-aware rollout policy
+    (`bots/sim.ts`), and pick the move with the best average round score. Only the current round
+    is simulated: rounds are scored on their own. Bids get a first look with a few deals each,
+    then the close calls get the rest (successive halving). Hard simulates more and may think up
+    to 0.6 s per move, Medium 0.25 s; the thinking time comes off the pause before the move.
+  - The others' likely bids come from win rates per card measured in simulations
+    (`bots/calibration.ts`, written by `pnpm simulate calibrate`); `pnpm simulate tournament`
+    plays the levels against each other.
+  - **Auto-play** always plays at Medium; people can't choose its level.
+  - Ideas for later: LLM-based levels (plan in `docs/plans/llm-bots.md`), or a network trained
+    by self-play.
 - **Abandoned games:** without turn timers, a game can stall. Mitigations in v1:
   - a reminder push to the player whose turn it is, once their turn has been pending for 24 h
     and then daily. Reminders are sent only between 09:00 and 21:00 in **the player's own time
@@ -173,7 +187,7 @@ roomKeys/{key}                          // functions only
 games/{gameId}                          // readable by the game's players
   status: "lobby" | "choosingTrump" | "bidding" | "playing" | "finished" | "abandoned"
   roomKey: "K7Q2XM", hostUid, settings { noEvenBids: true }
-  players: [{ uid, name, bot? }]        // index = seat, in join order; bot: "beginner" for bots
+  players: [{ uid, name, bot? }]        // index = seat, in join order; bot: "easy" | "medium" | "hard" for bots
   playerUids: [uid]                     // for "my games" queries
   active: bool                          // false once finished or abandoned
   // Arrays below are indexed by seat.
@@ -219,7 +233,7 @@ backend/
         round.ts         // dealing, trump, bidding (incl. no-even-bids), round transitions
         scoring.ts
         game.ts          // state machine: reduce(state, action) -> state | error
-      bots/              // computer players, pure like the engine: BotView, strategies, playBots()
+      bots/              // computer players, pure like the engine: BotView, strategies (easy, search), playBots()
       game/              // Firestore mapping
         model.ts         // document shapes; engine state → public game / hand documents
         store.ts         // document references; writeState() inside a transaction
@@ -350,10 +364,10 @@ The random-move test clients exist only in the test suite; they are not a produc
 | **M4** | Async and push (≈1 wk) | Turn pushes, deep link from push and share links, reminders, leave/abandon, stale-game cleanup |
 | **M5** | Beta and launch (≈2 wk) | Localization pass, accessibility, App Check, privacy manifest and privacy policy (GDPR), TestFlight beta, App Store listing in the EU storefronts first |
 | **M6** | Web app | React web app with the full game (guest, lobby, table, scores), English and German, served by Firebase Hosting; invite links and the privacy policy on the web domain; no web notifications |
-| **M7** | Bots | Beginner bots the host can add in the lobby (web and iOS); the server moves for them. Stronger, AI-based levels later |
+| **M7** | Bots | Bots at three levels (Easy, Medium, Hard) the host can add in the lobby (web and iOS); the server moves for them. LLM-based levels later |
 
 **After v1 (maybe):** an optional account upgrade (Sign in with Apple) to keep games
-across devices, stronger (AI-based) bots, rule variants (blind bidding), an iPad layout,
+across devices, LLM-based bots, rule variants (blind bidding), an iPad layout,
 chat and emotes.
 
 ---

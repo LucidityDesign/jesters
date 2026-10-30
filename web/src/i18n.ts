@@ -104,8 +104,12 @@ export const DE: Record<string, string> = {
   "Add bot": "Bot hinzufügen",
   "At least 3 players are needed. Invite friends or add bots.":
     "Es werden mindestens 3 Spieler benötigt. Lade Freunde ein oder füge Bots hinzu.",
-  "Bots play at beginner level and make their moves right away.":
-    "Bots spielen auf Anfängerniveau und ziehen sofort.",
+  "Easy bots play by simple rules; Medium and Hard ones think ahead.":
+    "Leichte Bots spielen nach einfachen Regeln, mittlere und schwere denken voraus.",
+  "Bot level": "Bot-Stärke",
+  Easy: "Leicht",
+  Medium: "Mittel",
+  Hard: "Schwer",
   "Players ({count} of {max})": "Spieler ({count} von {max})",
   "Waiting for the host to start the game.": "Warten, bis der Gastgeber das Spiel startet.",
   "At least 3 players are needed.": "Es werden mindestens 3 Spieler benötigt.",

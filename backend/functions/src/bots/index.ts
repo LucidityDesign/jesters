@@ -7,37 +7,76 @@ import {
   reduce,
   type Suit,
 } from "../engine/index.js";
-import * as beginner from "./beginner.js";
+import * as easy from "./easy.js";
+import { type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
 
 export type { BotView } from "./view.js";
 
-export const BOT_LEVELS = ["beginner"] as const;
+export const BOT_LEVELS = ["easy", "medium", "hard"] as const;
 export type BotLevel = (typeof BOT_LEVELS)[number];
+
+/** Levels stored by earlier versions, and the level each one plays as now. */
+const LEGACY_LEVELS: Record<string, BotLevel> = { beginner: "easy" };
+
+/** The level a stored or requested level plays as, or `null` if there is no such level. */
+export function normalizeLevel(level: string): BotLevel | null {
+  if ((BOT_LEVELS as readonly string[]).includes(level)) return level as BotLevel;
+  return LEGACY_LEVELS[level] ?? null;
+}
 
 /** How cautious (negative) or aggressive (positive) a bot can be; each bot gets its own. */
 export const AGGRESSION_RANGE = { min: -0.1, max: 0.1 };
 
 /** How a bot decides. Each level is one strategy; it only sees its own `BotView`. */
 export interface Strategy {
-  chooseTrump(view: BotView): Suit;
-  bid(view: BotView): number;
-  play(view: BotView): Card;
+  chooseTrump(view: BotView, randomInt: RandomInt): Suit;
+  bid(view: BotView, randomInt: RandomInt): number;
+  play(view: BotView, randomInt: RandomInt): Card;
 }
 
-const STRATEGIES: Record<BotLevel, Strategy> = { beginner };
+/** How much the search bots simulate per decision. Tuned with `pnpm simulate`. */
+export const SEARCH_BUDGETS: Record<Exclude<BotLevel, "easy">, SearchBudget> = {
+  medium: { playDeals: 20, bidDeals: 12, fitBids: false, maxMillis: 250 },
+  hard: { playDeals: 120, bidDeals: 60, fitBids: true, maxMillis: 600 },
+};
+
+function searchStrategy(budget: SearchBudget): Strategy {
+  return {
+    // A Wizard turned up is rare; the Easy bot's rule (the longest suit) does well enough.
+    chooseTrump: (view) => easy.chooseTrump(view),
+    bid: (view, randomInt) => searchBid(view, budget, randomInt),
+    play: (view, randomInt) => searchPlay(view, budget, randomInt),
+  };
+}
+
+const STRATEGIES: Record<BotLevel, Strategy> = {
+  easy,
+  medium: searchStrategy(SEARCH_BUDGETS.medium),
+  hard: searchStrategy(SEARCH_BUDGETS.hard),
+};
+
+/** The longest a level may think about one move, in ms. */
+export function thinkingMillis(level: BotLevel): number {
+  return level === "easy" ? 0 : SEARCH_BUDGETS[level].maxMillis;
+}
 
 /** The move of the bot whose turn it is. */
-export function botAction(state: GameState, level: BotLevel, aggression = 0): Action {
+export function botAction(
+  state: GameState,
+  level: BotLevel,
+  aggression = 0,
+  randomInt: RandomInt = (max) => Math.floor(Math.random() * max),
+): Action {
   const view = viewFor(state, aggression);
   const strategy = STRATEGIES[level];
   switch (view.phase) {
     case "choosingTrump":
-      return { type: "chooseTrump", seat: view.seat, suit: strategy.chooseTrump(view) };
+      return { type: "chooseTrump", seat: view.seat, suit: strategy.chooseTrump(view, randomInt) };
     case "bidding":
-      return { type: "bid", seat: view.seat, bid: strategy.bid(view) };
+      return { type: "bid", seat: view.seat, bid: strategy.bid(view, randomInt) };
     case "playing":
-      return { type: "play", seat: view.seat, card: strategy.play(view) };
+      return { type: "play", seat: view.seat, card: strategy.play(view, randomInt) };
   }
 }
 
@@ -58,7 +97,7 @@ export function playBots(
     if (level === null) return current;
     const result = reduce(
       current,
-      botAction(current, level, aggression[current.turn as number] ?? 0),
+      botAction(current, level, aggression[current.turn as number] ?? 0, randomInt),
       randomInt,
     );
     if (!result.ok)

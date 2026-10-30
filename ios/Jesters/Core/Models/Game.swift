@@ -20,6 +20,29 @@ struct Player: Codable, Sendable, Hashable {
     var isBot: Bool {
         bot != nil
     }
+
+    /// How strong a computer player plays, `nil` for people.
+    var botLevel: BotLevel? {
+        bot.map(BotLevel.init(stored:))
+    }
+}
+
+/// How strong the bots the host can add play.
+enum BotLevel: String, CaseIterable, Sendable {
+    case easy, medium, hard
+
+    /// Older games store "beginner", which plays as easy; levels this version doesn't know show as easy.
+    init(stored: String) {
+        self = BotLevel(rawValue: stored) ?? .easy
+    }
+
+    var name: String {
+        switch self {
+        case .easy: String(localized: "Easy")
+        case .medium: String(localized: "Medium")
+        case .hard: String(localized: "Hard")
+        }
+    }
 }
 
 extension Player {

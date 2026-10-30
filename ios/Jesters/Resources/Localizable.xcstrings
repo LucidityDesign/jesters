@@ -131,12 +131,22 @@
         }
       }
     },
-    "Bots play at beginner level and make their moves right away.": {
+    "Bot (%@)": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bots spielen auf Anfängerniveau und ziehen sofort."
+            "value": "Bot (%@)"
+          }
+        }
+      }
+    },
+    "Bot level": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bot-Stärke"
           }
         }
       }
@@ -291,6 +301,26 @@
         }
       }
     },
+    "Easy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leicht"
+          }
+        }
+      }
+    },
+    "Easy bots play by simple rules; Medium and Hard ones think ahead.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leichte Bots spielen nach einfachen Regeln, mittlere und schwere denken voraus."
+          }
+        }
+      }
+    },
     "Ended early": {
       "localizations": {
         "de": {
@@ -357,6 +387,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spiel vorbei"
+          }
+        }
+      }
+    },
+    "Hard": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schwer"
           }
         }
       }
@@ -540,6 +580,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lobby"
+          }
+        }
+      }
+    },
+    "Medium": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mittel"
           }
         }
       }

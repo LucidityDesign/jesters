@@ -16,8 +16,17 @@ export interface Player {
   uid: string;
   /** Empty once the player has deleted their data. */
   name: string;
-  /** Set for computer players; the server makes their moves. */
-  bot?: "beginner";
+  /** Set for computer players; the server makes their moves. Older games hold "beginner" (= easy). */
+  bot?: string;
+}
+
+/** How strong the bots the host can add play. */
+export const BOT_LEVELS = ["easy", "medium", "hard"] as const;
+export type BotLevel = (typeof BOT_LEVELS)[number];
+
+/** The level a stored bot plays at; unknown values (from newer servers) count as easy. */
+export function botLevel(bot: string): BotLevel {
+  return (BOT_LEVELS as readonly string[]).includes(bot) ? (bot as BotLevel) : "easy";
 }
 
 export interface PublicRound {

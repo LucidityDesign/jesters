@@ -79,6 +79,14 @@ struct GameDocTests {
         let players = try JSONDecoder().decode([Player].self, from: Data(#"[{"uid":"a","name":"Anna"},{"uid":"bot-1","name":"Merlin","bot":"beginner"}]"#.utf8))
         #expect(players.map(\.isBot) == [false, true])
         #expect(players[1].bot == "beginner")
+        #expect(players[1].botLevel == .easy)
+        #expect(players[0].botLevel == nil)
+    }
+
+    @Test func readsBotLevels() {
+        #expect(BotLevel(stored: "hard") == .hard)
+        #expect(BotLevel(stored: "medium") == .medium)
+        #expect(BotLevel(stored: "something-new") == .easy)
     }
 
     @Test func omitsAMissingVersionWhenEncodingRequests() throws {

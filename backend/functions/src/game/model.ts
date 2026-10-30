@@ -1,5 +1,5 @@
 import type { Timestamp } from "firebase-admin/firestore";
-import type { BotLevel } from "../bots/index.js";
+import { type BotLevel, normalizeLevel } from "../bots/index.js";
 import {
   type Card,
   type CompletedTrick,
@@ -19,8 +19,8 @@ export interface Player {
   uid: string;
   /** Empty once the player has deleted their data. */
   name: string;
-  /** Set for computer players, which the server moves for. */
-  bot?: BotLevel;
+  /** Set for computer players, which the server moves for. Older games may hold `"beginner"` (= easy). */
+  bot?: BotLevel | "beginner";
   /** A bot's temperament, -0.1 (cautious) to 0.1 (aggressive): how high it bids and how it plays. */
   aggression?: number;
 }
@@ -34,8 +34,8 @@ export interface AutoPlay {
   untilRound?: number;
 }
 
-/** The bot level that plays for people on auto-play. */
-export const AUTO_PLAY_LEVEL: BotLevel = "beginner";
+/** The bot level that plays for people on auto-play. People can't choose it. */
+export const AUTO_PLAY_LEVEL: BotLevel = "medium";
 
 /**
  * Whether `uid`'s auto-play covers a turn that began at `at` (ms) in round `round`. The turn's
@@ -64,7 +64,7 @@ export function botToMove(
   if (!game.active || game.turnSeat === null) return null;
   const player = game.players[game.turnSeat];
   if (!player) return null;
-  if (player.bot) return player.bot;
+  if (player.bot) return normalizeLevel(player.bot) ?? "easy";
   const turnBegan = game.updatedAt?.toMillis() ?? Date.now();
   return autoPlays(game, player.uid, game.round?.number ?? 1, turnBegan) ? AUTO_PLAY_LEVEL : null;
 }
@@ -192,5 +192,7 @@ export function secretDoc(state: GameState): SecretDoc {
 }
 
 export function stateFromSecret(doc: SecretDoc): GameState {
-  return JSON.parse(doc.state) as GameState;
+  const state = JSON.parse(doc.state) as GameState;
+  // Games saved before the engine kept the round's tricks start their history late.
+  return { ...state, roundTricks: state.roundTricks ?? [] };
 }

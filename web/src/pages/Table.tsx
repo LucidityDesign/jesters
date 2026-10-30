@@ -13,6 +13,7 @@ import { t } from "../i18n";
 import {
   activeAutoPlay,
   type AutoPlay,
+  botLevel,
   type Card,
   cardKind,
   type GameDoc,
@@ -44,6 +45,7 @@ import {
 } from "../reactions";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
+import { botLevelName } from "./Lobby";
 import { ScoreSheet } from "./ScoreSheet";
 
 /** The game screen: players, trump, the current trick, whose turn it is, and the player's hand. */
@@ -436,9 +438,14 @@ function Players({
               )}
               <span className={player.uid === uid ? "me" : undefined}>{nameAt(game, seat)}</span>
               {player.bot && (
-                <span className="badge" title={t("Bot")}>
+                <span
+                  className="badge"
+                  title={`${t("Bot")} (${botLevelName(botLevel(player.bot))})`}
+                >
                   <span aria-hidden="true">🤖</span>
-                  <span className="visually-hidden">{t("Bot")}</span>
+                  <span className="visually-hidden">
+                    {`${t("Bot")} (${botLevelName(botLevel(player.bot))})`}
+                  </span>
                 </span>
               )}
               {!player.bot && activeAutoPlay(game, player.uid, now) && (

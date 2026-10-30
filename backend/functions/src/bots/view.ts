@@ -1,5 +1,6 @@
 import {
   type Card,
+  type CompletedTrick,
   forbiddenBid,
   type GameState,
   legalCardsFor,
@@ -25,6 +26,10 @@ export interface BotView {
   bids: (number | null)[];
   tricksWon: number[];
   trick: Trick;
+  /** The tricks completed in this round so far (may miss early ones in games from older versions). */
+  roundTricks: CompletedTrick[];
+  /** Whether the "no even bids" rule is on. */
+  noEvenBids: boolean;
   /** Cards this bot may play now (only while playing). */
   legalCards: Card[];
   /** The bid this bot may not make now ("no even bids"), or `null`. */
@@ -50,6 +55,8 @@ export function viewFor(state: GameState, aggression = 0): BotView {
     bids: state.bids,
     tricksWon: state.tricksWon,
     trick: state.trick,
+    roundTricks: state.roundTricks,
+    noEvenBids: state.settings.noEvenBids,
     legalCards: legalCardsFor(state, seat),
     forbiddenBid: forbiddenBid(state, seat),
     results: state.results,

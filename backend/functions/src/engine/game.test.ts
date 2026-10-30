@@ -215,6 +215,7 @@ describe("playing a round", () => {
     );
     expect(afterTrick.tricksWon).toEqual([1, 0, 0]);
     expect(afterTrick.lastTrick).toEqual({ leader: 1, cards: ["H2", "H9", "H14"], winner: 0 });
+    expect(afterTrick.roundTricks).toEqual([afterTrick.lastTrick]);
     expect(afterTrick.trick).toEqual({ leader: 0, cards: [] });
     expect(afterTrick.turn).toBe(0);
     expect(afterTrick.hands).toEqual([["C3"], ["W1"], ["D5"]]);
@@ -239,6 +240,7 @@ describe("playing a round", () => {
     expect(next.hands.map((hand) => hand.length)).toEqual([3, 3, 3]);
     expect(next.bids).toEqual([null, null, null]);
     expect(next.tricksWon).toEqual([0, 0, 0]);
+    expect(next.roundTricks).toEqual([]);
     expect(next.turn).toBe(next.phase === "choosingTrump" ? 1 : 2);
   });
 
