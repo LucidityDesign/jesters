@@ -247,6 +247,13 @@ describe("reactionNotifications", () => {
     expect(reactionNotifications("g1", withBot, "a", first, later)).toHaveLength(1);
   });
 
+  it("only shows the middle finger on the table, and doesn't count it for the gap", () => {
+    const rude = reaction("🖕", 1_000_000);
+    const soon = reaction("😂", 1_000_000 + 1000);
+    expect(reactionNotifications("g1", withBot, "a", undefined, rude)).toEqual([]);
+    expect(reactionNotifications("g1", withBot, "a", rude, soon)).toHaveLength(1);
+  });
+
   it("skips ended games and people who are not playing", () => {
     const ended = { ...withBot, status: "abandoned" } as GameDoc;
     expect(reactionNotifications("g1", ended, "a", undefined, reaction("👍", 0))).toEqual([]);
