@@ -544,9 +544,11 @@ ol.list {
   z-index: 2;
   transform: translate(-50%, -50%);
   display: grid;
+  /* One column no wider than the seat, so long names and stats stay inside it. */
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 1px;
-  max-width: 108px;
+  max-width: 120px;
   padding: 4px 8px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -577,9 +579,19 @@ ol.list {
 
 .seat-stats {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: baseline;
-  gap: 6px;
+  column-gap: 6px;
+  max-width: 100%;
   font-size: 0.75rem;
+}
+
+/* The score moves to a line of its own when it doesn't fit next to the count,
+   and a count too long for the seat wraps. */
+.seat-stats > span {
+  white-space: normal;
+  text-align: center;
 }
 
 .seat-stats .hint {
