@@ -6,6 +6,7 @@ export type Route =
   | { page: "game"; gameId: string }
   | { page: "profile" }
   | { page: "privacy" }
+  | { page: "transfer" }
   | { page: "notFound" };
 
 export function parseRoute(pathname: string): Route {
@@ -16,6 +17,7 @@ export function parseRoute(pathname: string): Route {
   if (first === "game" && second && parts.length === 2) return { page: "game", gameId: second };
   if (first === "profile" && parts.length === 1) return { page: "profile" };
   if (first === "privacy" && parts.length === 1) return { page: "privacy" };
+  if (first === "transfer" && parts.length === 1) return { page: "transfer" };
   return { page: "notFound" };
 }
 

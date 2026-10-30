@@ -183,6 +183,7 @@ Roles for the deploy account (Google Cloud → IAM → pencil next to the accoun
 | Service Usage Admin | Turning on the Google Cloud APIs the deploy needs |
 | Cloud Scheduler Admin | The scheduled jobs (reminders, closing and deleting old games) |
 | Cloud Run Admin | Letting the apps call the game functions (public invoker on every deploy) |
+| Service Account Admin | Letting the functions sign in a guest on another device (transfer codes); without it, the deploy prints the one `gcloud` command to run once |
 | Artifact Registry Administrator | Optional: the clean-up policy for old function images (otherwise a few cents per month) |
 
 On the first functions deploy, Firebase also asks for three one-time bindings for Google's own

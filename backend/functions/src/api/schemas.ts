@@ -78,3 +78,5 @@ export const SetAutoPlayInput = z
   .refine((input) => input.minutes === undefined || input.rounds === undefined, {
     message: "Choose minutes or rounds, not both.",
   });
+
+export const RedeemTransferCodeInput = z.object({ code: z.string().max(32) });

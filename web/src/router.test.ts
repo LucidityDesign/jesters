@@ -9,6 +9,7 @@ describe("routes", () => {
     expect(parseRoute("/game/abc123/")).toEqual({ page: "game", gameId: "abc123" });
     expect(parseRoute("/profile")).toEqual({ page: "profile" });
     expect(parseRoute("/privacy")).toEqual({ page: "privacy" });
+    expect(parseRoute("/transfer")).toEqual({ page: "transfer" });
   });
 
   it("rejects unknown paths", () => {

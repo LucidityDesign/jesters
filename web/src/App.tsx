@@ -6,6 +6,7 @@ import { Join } from "./pages/Join";
 import { NameScreen } from "./pages/NameScreen";
 import { Privacy } from "./pages/Privacy";
 import { Profile } from "./pages/Profile";
+import { Transfer } from "./pages/Transfer";
 import { useNotificationSetup } from "./notifications";
 import { Link, useRoute } from "./router";
 import { useSession } from "./session";
@@ -16,6 +17,8 @@ export function App() {
   useNotificationSetup(session.uid);
 
   if (route.page === "privacy") return <Privacy />;
+  // Also before choosing a name: a guest moving here keeps theirs.
+  if (route.page === "transfer") return <Transfer />;
   if (!session.displayName) return <NameScreen onSubmit={session.setDisplayName} />;
   if (!session.uid) {
     return (

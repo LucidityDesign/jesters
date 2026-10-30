@@ -1,5 +1,5 @@
 import { type FirebaseApp, initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, signInAnonymously } from "firebase/auth";
+import { type Auth, connectAuthEmulator, getAuth, signInAnonymously } from "firebase/auth";
 import {
   connectFirestoreEmulator,
   doc,
@@ -22,6 +22,7 @@ export interface TestPlayer {
   uid: string;
   name: string;
   app: FirebaseApp;
+  auth: Auth;
   db: Firestore;
   call<T = unknown>(name: string, data?: unknown): Promise<T>;
   /** Reads a document as this player (security rules apply). */
@@ -45,6 +46,7 @@ export async function newPlayer(name: string): Promise<TestPlayer> {
     uid: user.uid,
     name,
     app,
+    auth,
     db,
     call: async <T>(fn: string, data?: unknown) =>
       (await httpsCallable(functions, fn)(data)).data as T,

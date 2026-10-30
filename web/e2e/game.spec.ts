@@ -173,6 +173,32 @@ test("shows when the connection is lost and when it is back", async ({ browser }
   await expect(fay.getByRole("heading", { name: "Lobby" })).toBeVisible();
 });
 
+test("a guest moves to another device with a transfer code", async ({ browser }) => {
+  const anna = await guest(browser, "Anna");
+  await anna.getByRole("button", { name: "New game" }).click();
+  await expect(anna.getByRole("heading", { name: "Lobby" })).toBeVisible();
+  await anna.getByRole("link", { name: "Anna" }).click();
+  await anna.getByRole("button", { name: "Show transfer code" }).click();
+  const code = (await anna.getByLabel("Transfer code").textContent()) as string;
+  expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  await expect(anna.getByRole("img", { name: "QR code" })).toBeVisible();
+
+  // A new device: no name yet, straight to "I already play on another device".
+  const phone = await (await browser.newContext()).newPage();
+  await phone.goto("/");
+  await phone.getByRole("link", { name: "I already play on another device" }).click();
+  await phone.getByLabel("Transfer code").fill(code.toLowerCase());
+  await phone.getByRole("button", { name: "Move here" }).click();
+  await expect(phone.getByRole("link", { name: "Anna" })).toBeVisible();
+  await expect(phone.locator('a[href^="/game/"]')).toHaveCount(1);
+
+  // The code works once.
+  const other = await (await browser.newContext()).newPage();
+  await other.goto(`/transfer#${code}`);
+  await other.getByRole("button", { name: "Move here" }).click();
+  await expect(other.getByText("This code is wrong or has expired.")).toBeVisible();
+});
+
 test("a guest deletes their data and starts over", async ({ browser }) => {
   const dora = await guest(browser, "Dora");
   await dora.getByRole("button", { name: "New game" }).click();

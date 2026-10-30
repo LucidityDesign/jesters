@@ -15,7 +15,8 @@ export type ErrorReason =
   | "NOT_ENOUGH_PLAYERS"
   | "GAME_OVER"
   | "STALE_VERSION"
-  | "TOO_MANY_GAMES";
+  | "TOO_MANY_GAMES"
+  | "TRANSFER_CODE_INVALID";
 
 const STATUS: Record<ErrorReason, FunctionsErrorCode> = {
   WRONG_PHASE: "failed-precondition",
@@ -36,6 +37,7 @@ const STATUS: Record<ErrorReason, FunctionsErrorCode> = {
   GAME_OVER: "failed-precondition",
   STALE_VERSION: "aborted",
   TOO_MANY_GAMES: "resource-exhausted",
+  TRANSFER_CODE_INVALID: "not-found",
 };
 
 export function fail(reason: ErrorReason, message: string = reason): never {

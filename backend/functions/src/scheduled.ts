@@ -1,6 +1,7 @@
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { transferCodes } from "./api/transfer.js";
 import { refs } from "./game/store.js";
 import { reminderFor } from "./notify/messages.js";
 import { sendPush, type UserDoc } from "./notify/push.js";
@@ -66,7 +67,7 @@ export const expireStaleGames = onSchedule(
 /** How long finished and ended games are kept (see the privacy policy). */
 export const DELETE_ENDED_AFTER_MS = 90 * 24 * 60 * 60 * 1000;
 
-/** Daily: deletes games that ended 90 days ago, with their hands and state. */
+/** Daily: deletes games that ended 90 days ago, with their hands and state, and expired transfer codes. */
 export const deleteEndedGames = onSchedule(
   { schedule: "27 4 * * *", timeZone: SCHEDULE_TIME_ZONE },
   async () => {
@@ -81,5 +82,8 @@ export const deleteEndedGames = onSchedule(
       await getFirestore().recursiveDelete(snapshot.ref);
     }
     logger.info(`Deleted ${ended.size} ended games`);
+
+    const expired = await transferCodes().where("expiresAt", "<=", Timestamp.now()).get();
+    await Promise.all(expired.docs.map((code) => code.ref.delete()));
   },
 );

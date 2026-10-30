@@ -49,6 +49,9 @@ export function NameScreen({ onSubmit }: { onSubmit(name: string): void }) {
       <img src="/icon-192.png" alt="" width={96} height={96} />
       <h1>{t("Welcome to Jesters")}</h1>
       <NameForm initialName="" submitLabel={t("Let's play")} onSubmit={onSubmit} />
+      <p>
+        <Link to="/transfer">{t("I already play on another device")}</Link>
+      </p>
       <p className="hint">
         {t(
           "You play as a guest. Your games are linked to this browser and are lost if you clear its site data.",
