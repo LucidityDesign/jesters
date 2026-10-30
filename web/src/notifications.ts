@@ -1,4 +1,4 @@
-import { doc, setDoc } from "firebase/firestore";
+import { arrayRemove, doc, getDoc, setDoc } from "firebase/firestore";
 import { deleteToken, getMessaging, getToken, isSupported } from "firebase/messaging";
 import { useEffect, useState } from "react";
 import { firebase, usesEmulators } from "./firebase";
@@ -15,6 +15,10 @@ export type NotificationState = "unsupported" | "homeScreen" | "off" | "on" | "b
 const SERVICE_WORKER = "/push-sw.js";
 /** Set when the player turned notifications off here although the browser allows them. */
 const OFF_KEY = "notificationsOff";
+/** This browser's push token, to take it off the list when notifications are turned off here. */
+const TOKEN_KEY = "pushToken";
+/** How many devices of one guest get notifications (the rules allow 10). */
+const MAX_DEVICES = 5;
 /** Set when the player said "Not now" to the offer on the home screen. */
 const DISMISSED_KEY = "notificationsOfferDismissed";
 
@@ -41,13 +45,23 @@ function stateNow(isSupported: boolean): NotificationState {
   return Notification.permission === "granted" && !load(OFF_KEY) ? "on" : "off";
 }
 
-/** Gets this browser's push token and stores it as the guest's only device. */
-async function register(uid: string): Promise<void> {
+async function currentToken(): Promise<string> {
   const registration = await navigator.serviceWorker.register(SERVICE_WORKER);
-  const token = await getToken(getMessaging(firebase().app), {
-    serviceWorkerRegistration: registration,
-  });
-  await setDoc(doc(firebase().db, "users", uid), { fcmTokens: [token] }, { merge: true });
+  return getToken(getMessaging(firebase().app), { serviceWorkerRegistration: registration });
+}
+
+/**
+ * Gets this browser's push token and adds it to the guest's devices (a guest moved to another
+ * device keeps both), newest last. Tokens FCM no longer knows are removed by the backend.
+ */
+async function register(uid: string): Promise<void> {
+  const token = await currentToken();
+  const profile = doc(firebase().db, "users", uid);
+  const stored: unknown = (await getDoc(profile)).data()?.fcmTokens;
+  const others = Array.isArray(stored) ? stored.filter((other) => other !== token) : [];
+  const fcmTokens = [...others, token].slice(-MAX_DEVICES);
+  await setDoc(profile, { fcmTokens }, { merge: true });
+  save(TOKEN_KEY, token);
 }
 
 /**
@@ -110,7 +124,17 @@ export function useNotifications(uid: string) {
     setBusy(true);
     save(OFF_KEY, "1");
     try {
-      await setDoc(doc(firebase().db, "users", uid), { fcmTokens: [] }, { merge: true });
+      // Only this device: the guest's other devices keep their notifications.
+      // Registered by an earlier version, which didn't remember the token: ask for it.
+      const token = load(TOKEN_KEY) ?? (await currentToken().catch(() => null));
+      if (token) {
+        await setDoc(
+          doc(firebase().db, "users", uid),
+          { fcmTokens: arrayRemove(token) },
+          { merge: true },
+        );
+      }
+      save(TOKEN_KEY, null);
       await deleteToken(getMessaging(firebase().app));
     } catch {
       // Without a token on file nothing is sent, which is all that matters.

@@ -5,10 +5,12 @@ import { refs } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
 import { requireAuth } from "./errors.js";
 import { leave } from "./rooms.js";
+import { deleteTransferCodes } from "./transfer.js";
 
 /**
  * Deletes the caller's data (GDPR): leaves every active game (ending running ones for everyone),
- * removes their name from finished games, and deletes their hands, reactions, profile and guest account.
+ * removes their name from finished games, and deletes their hands, reactions, transfer codes,
+ * profile and guest account.
  * Other players keep the score sheets of past games, without the name.
  */
 export const deleteMyData = onCall(CALLABLE, async (request) => {
@@ -35,6 +37,7 @@ export const deleteMyData = onCall(CALLABLE, async (request) => {
     });
   }
 
+  await deleteTransferCodes(uid);
   await db.doc(`users/${uid}`).delete();
   await getAuth().deleteUser(uid);
   return { ok: true };

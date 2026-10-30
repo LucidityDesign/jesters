@@ -40,6 +40,11 @@ export const api = {
   /** Lets a bot play for the player, until they take over or for some minutes or rounds. */
   setAutoPlay: (gameId: string, on: boolean, limit: { minutes?: number; rounds?: number } = {}) =>
     call("setAutoPlay", { gameId, on, ...limit }),
+  /** A code to enter on another device to move this guest there (see `Transfer`). */
+  createTransferCode: () => call<{ code: string; expiresAt: number }>("createTransferCode"),
+  /** A sign-in token for the guest a transfer code belongs to, and their name. */
+  redeemTransferCode: (code: string) =>
+    call<{ token: string; displayName: string | null }>("redeemTransferCode", { code }),
   /** Deletes the guest's data and account on the server, then signs out. */
   deleteMyData: async () => {
     await call("deleteMyData");
@@ -62,6 +67,7 @@ const MESSAGES: Record<string, string> = {
   ROOM_FULL: "This game is full.",
   NOT_ENOUGH_PLAYERS: "At least 3 players are needed.",
   GAME_OVER: "This game is over.",
+  TRANSFER_CODE_INVALID: "This code is wrong or has expired.",
   STALE_VERSION: "The game changed in the meantime. Please try again.",
   TOO_MANY_GAMES: "You are in too many games. Finish or leave one first.",
   NOT_YOUR_TURN: "It's not your turn.",

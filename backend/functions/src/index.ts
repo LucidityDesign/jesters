@@ -1,6 +1,7 @@
 import "./setup.js";
 
 export { deleteMyData } from "./api/account.js";
+export { createTransferCode, redeemTransferCode } from "./api/transfer.js";
 export { chooseTrump, placeBid, playCard, setAutoPlay } from "./api/actions.js";
 export {
   addBot,

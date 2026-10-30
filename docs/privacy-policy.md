@@ -28,7 +28,8 @@ Jesters funktioniert ohne Registrierung. Wir verarbeiten nur, was für das Spiel
 | Zufällige Gast-ID (Firebase Authentication) | Dich deinen Spielen zuordnen |
 | Anzeigename, den du selbst wählst | Deinen Mitspielern zeigen, wer du bist |
 | Spieldaten (Raumcodes, Karten, Ansagen, Stiche, Punkte, Emoji-Reaktionen) | Das Spiel durchführen |
-| Push-Token des Geräts bzw. Browsers | Benachrichtigen, wenn du dran bist oder jemand mit einem Emoji reagiert (nur wenn du Mitteilungen erlaubst) |
+| Umzugscode, wenn du ihn anforderst (nur als Prüfsumme gespeichert, 10 Minuten gültig) | Dich als denselben Gast auf einem anderen Gerät anmelden |
+| Push-Token der Geräte bzw. Browser | Benachrichtigen, wenn du dran bist oder jemand mit einem Emoji reagiert (nur wenn du Mitteilungen erlaubst) |
 | Zeitzone und Sprache des Geräts | Erinnerungen nur tagsüber (9–21 Uhr) und in deiner Sprache senden |
 | App-Check-Nachweis (Apple App Attest bzw. im Browser Google reCAPTCHA Enterprise) | Prüfen, dass Anfragen von der echten App kommen (Missbrauchsschutz) |
 
@@ -62,6 +63,7 @@ Missbrauchsschutz Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem si
 - Beendete Spiele werden 90 Tage nach ihrem Ende gelöscht.
 - Dein Profil (Anzeigename, Push-Token, Zeitzone, Sprache) und deine Gast-ID bleiben gespeichert,
   bis du sie in der App löschst.
+- Umzugscodes werden beim Einlösen gelöscht, abgelaufene spätestens nach einem Tag.
 
 ### 6. Deine Rechte
 
@@ -96,7 +98,8 @@ Jesters works without registration. We only process what the game needs:
 | Random guest ID (Firebase Authentication) | Link you to your games |
 | The display name you choose | Show your fellow players who you are |
 | Game data (room keys, cards, bids, tricks, scores, emoji reactions) | Run the game |
-| The device's or browser's push token | Notify you when it's your turn or someone reacts with an emoji (only if you allow notifications) |
+| A transfer code, when you ask for one (stored only as a hash, valid for 10 minutes) | Sign you in as the same guest on another device |
+| The devices' or browsers' push tokens | Notify you when it's your turn or someone reacts with an emoji (only if you allow notifications) |
 | The device's time zone and language | Send reminders only during the day (9:00–21:00) and in your language |
 | App Check attestation (Apple App Attest, or Google reCAPTCHA Enterprise in the browser) | Check that requests come from the genuine app (abuse prevention) |
 
@@ -130,6 +133,7 @@ Art. 6(1)(b) GDPR (providing the game you use) and, for abuse prevention, Art. 6
 - Ended games are deleted 90 days after they end.
 - Your profile (display name, push token, time zone, language) and your guest ID are kept until you
   delete them in the app.
+- Transfer codes are deleted when used, expired ones within a day.
 
 ### 6. Your rights
 

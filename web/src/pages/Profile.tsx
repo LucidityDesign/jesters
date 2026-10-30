@@ -2,12 +2,13 @@ import { useState } from "react";
 import { errorMessage } from "../api";
 import { ErrorText, Page } from "../components/Layout";
 import { NotificationSettings } from "../components/Notifications";
+import { TransferCode } from "../components/TransferCode";
 import { t } from "../i18n";
 import { Link, navigate } from "../router";
 import { useSession } from "../session";
 import { NameForm } from "./NameScreen";
 
-/** Change the name, read the privacy policy or delete all data. */
+/** Change the name, move to another device, read the privacy policy or delete all data. */
 export function Profile() {
   const session = useSession();
   const [saved, setSaved] = useState(false);
@@ -45,6 +46,11 @@ export function Profile() {
       {saved && <p role="status">{t("Saved")}</p>}
 
       {session.uid && <NotificationSettings uid={session.uid} />}
+
+      <TransferCode />
+      <p>
+        <Link to="/transfer">{t("Move a guest from another device here")}</Link>
+      </p>
 
       <section>
         <h2>{t("Privacy")}</h2>

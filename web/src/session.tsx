@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 import { api } from "./api";
 import { firebase } from "./firebase";
@@ -15,6 +15,8 @@ export interface Session {
   setDisplayName(name: string): void;
   /** Deletes everything stored about this guest, then starts over as a new guest. */
   deleteMyData(): Promise<void>;
+  /** Continues here as the guest who showed `code` on their other device. */
+  moveHere(code: string): Promise<void>;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -25,7 +27,10 @@ export function useSession(): Session {
   return session;
 }
 
-/** Signs in as an anonymous guest (one per browser) and remembers the display name. */
+/**
+ * Signs in as an anonymous guest (one per browser, until moved with a transfer code) and
+ * remembers the display name.
+ */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [uid, setUid] = useState<string | null>(null);
   const [displayName, setName] = useState(() => load(NAME_KEY) ?? "");
@@ -50,6 +55,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     api.saveProfile(uid, displayName).catch(() => undefined);
   }, [uid, displayName]);
 
+  function setDisplayName(name: string) {
+    const trimmed = name.trim();
+    setName(trimmed);
+    save(NAME_KEY, trimmed);
+  }
+
   const session: Session = {
     uid,
     displayName,
@@ -58,15 +69,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSignInFailed(false);
       setAttempt((count) => count + 1);
     },
-    setDisplayName: (name) => {
-      const trimmed = name.trim();
-      setName(trimmed);
-      save(NAME_KEY, trimmed);
-    },
+    setDisplayName,
     deleteMyData: async () => {
       await api.deleteMyData();
       setName("");
       save(NAME_KEY, null);
+    },
+    moveHere: async (code) => {
+      const { token, displayName: name } = await api.redeemTransferCode(code);
+      await signInWithCustomToken(firebase().auth, token);
+      if (name) setDisplayName(name);
     },
   };
   return <SessionContext value={session}>{children}</SessionContext>;

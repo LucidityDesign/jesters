@@ -127,10 +127,12 @@ describe("reactions", () => {
   });
 });
 
-describe("secret state and room keys", () => {
+describe("secret state, room keys and transfer codes", () => {
   it("are never readable by clients", async () => {
     await assertFails(getDoc(doc(as("alice"), "games/rules-g1/secret/state")));
     await assertFails(getDoc(doc(as("alice"), "roomKeys/ABCDEF")));
+    await assertFails(getDoc(doc(as("alice"), "transferCodes/abc")));
+    await assertFails(getDocs(collection(as("alice"), "transferCodes")));
     await assertFails(getDocs(collection(as("alice"), "roomKeys")));
   });
 });
