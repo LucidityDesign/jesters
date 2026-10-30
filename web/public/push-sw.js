@@ -1,6 +1,6 @@
 /* global self, URL */
-// Shows the backend's push notifications ("Your turn", "Game over", …) while Jesters isn't on
-// screen, and opens the game when one is clicked. The payload is Firebase Cloud
+// Shows the backend's push notifications ("Your turn", "Game over", …) while Jesters isn't in
+// front, and opens the game when one is clicked. The payload is Firebase Cloud
 // Messaging's: `notification` holds the texts (see backend/functions/src/notify/push.ts) and
 // `data.gameId` the game.
 
@@ -22,8 +22,11 @@ self.addEventListener("push", (event) => {
     (async () => {
       // A player looking at the app sees the change there already. Safari, though, revokes the
       // subscription after pushes that show nothing, so there it is shown silently and closed.
+      // Focused, not just visible: on a desktop a window stays visible behind other apps.
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      const looking = windows.some((client) => client.visibilityState === "visible");
+      const looking = windows.some(
+        (client) => client.focused && client.visibilityState === "visible",
+      );
       if (looking && !SAFARI) return;
       await self.registration.showNotification(title ?? "Jesters", {
         body,
