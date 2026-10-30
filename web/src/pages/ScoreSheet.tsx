@@ -3,12 +3,17 @@ import { t } from "../i18n";
 import { type GameDoc, places } from "../model";
 import { nameAt } from "./Home";
 
-/** Rounds × players: running total, with bid / tricks won below. */
+/** Rounds × players: running total, with bid / tricks won below. 🤖 marks auto-played rounds. */
 export function ScoreSheet({ game }: { game: GameDoc }) {
   if (game.results.length === 0) {
     return <p className="hint">{t("Scores appear after the first round.")}</p>;
   }
   const place = places(game);
+  const autoPlayed = (uid: string, round: number) =>
+    game.autoPlayedRounds?.[uid]?.includes(round) ?? false;
+  const anyAutoPlayed = game.results.some((result) =>
+    game.players.some((player) => autoPlayed(player.uid, result.round)),
+  );
   return (
     <div className="score-sheet">
       <table>
@@ -32,6 +37,12 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
                 const won = result.won[seat] ?? 0;
                 return (
                   <td key={player.uid}>
+                    {autoPlayed(player.uid, result.round) && (
+                      <span className="auto-played" title={t("Played by auto-play")}>
+                        <span aria-hidden="true">🤖</span>
+                        <span className="visually-hidden">{t("Played by auto-play")}</span>
+                      </span>
+                    )}
                     {result.totals[seat] ?? 0}
                     <small
                       className={(result.deltas[seat] ?? 0) > 0 ? "plus" : "minus"}
@@ -46,7 +57,10 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="hint">{t("Small numbers: bid / tricks won")}</p>
+      <p className="hint">
+        {t("Small numbers: bid / tricks won")}
+        {anyAutoPlayed && ` · 🤖 ${t("Played by auto-play")}`}
+      </p>
     </div>
   );
 }

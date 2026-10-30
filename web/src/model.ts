@@ -94,6 +94,8 @@ export interface GameDoc {
   expired?: boolean;
   /** People who let a bot play for them, by uid. */
   autoPlay?: Record<string, AutoPlay>;
+  /** The rounds in which a bot moved for a person on auto-play, by uid. */
+  autoPlayedRounds?: Record<string, number[]>;
 }
 
 /** `games/{gameId}/hands/{uid}`, readable only by that player. */

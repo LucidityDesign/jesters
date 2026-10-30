@@ -124,6 +124,8 @@ export interface GameDoc extends PublicPlay {
   lastMoveAt?: Record<string, Timestamp>;
   /** People who let a bot play for them, by uid (see `setAutoPlay`). */
   autoPlay?: Record<string, AutoPlay>;
+  /** The rounds in which a bot moved for a person on auto-play, by uid (for the score sheet). */
+  autoPlayedRounds?: Record<string, number[]>;
 }
 
 /** `games/{gameId}/hands/{uid}`: readable only by that player. */
