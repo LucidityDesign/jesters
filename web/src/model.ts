@@ -10,7 +10,12 @@ export const SUITS: readonly Suit[] = ["H", "S", "D", "C"];
 export type Card = string;
 
 export type GameStatus =
-  "lobby" | "choosingTrump" | "bidding" | "playing" | "finished" | "abandoned";
+  | "lobby"
+  | "choosingTrump"
+  | "bidding"
+  | "playing"
+  | "finished"
+  | "abandoned";
 
 export interface Player {
   uid: string;
@@ -161,7 +166,9 @@ export function places(game: GameDoc): (number | null)[] {
 }
 
 export type CardKind =
-  { type: "regular"; suit: Suit; rank: number } | { type: "wizard" } | { type: "jester" };
+  | { type: "regular"; suit: Suit; rank: number }
+  | { type: "wizard" }
+  | { type: "jester" };
 
 type RegularKind = Extract<CardKind, { type: "regular" }>;
 

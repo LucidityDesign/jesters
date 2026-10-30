@@ -3,16 +3,16 @@ import {
   createDeck,
   forbiddenLastBid,
   type RandomInt,
-  shuffle,
-  type Suit,
   SUITS,
+  type Suit,
+  shuffle,
   suitOf,
   totalRounds,
 } from "../engine/index.js";
 import type { WinRates } from "./calibration.js";
 import { bid as easyBid } from "./easy.js";
 import { cardKind, ROUND_BUCKETS, roundBucket } from "./estimate.js";
-import { playCard, rolloutCard, type RoundSim, winnerIndex } from "./sim.js";
+import { playCard, type RoundSim, rolloutCard, winnerIndex } from "./sim.js";
 import type { BotView } from "./view.js";
 
 // Measures how often each kind of card wins its trick, for `calibration.ts`: deals random rounds,

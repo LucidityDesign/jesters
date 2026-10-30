@@ -31,7 +31,9 @@ export function deal(
 }
 
 export type TrumpDecision =
-  { kind: "suit"; suit: Suit } | { kind: "none" } | { kind: "dealerChooses" };
+  | { kind: "suit"; suit: Suit }
+  | { kind: "none" }
+  | { kind: "dealerChooses" };
 
 /** Trump from the face-up card: its suit; none for a Jester or no card (last round); dealer's choice for a Wizard. */
 export function trumpFromCard(card: Card | null): TrumpDecision {

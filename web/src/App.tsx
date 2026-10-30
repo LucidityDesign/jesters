@@ -1,5 +1,6 @@
 import { Page } from "./components/Layout";
 import { t } from "./i18n";
+import { useNotificationSetup } from "./notifications";
 import { Game } from "./pages/Game";
 import { Home } from "./pages/Home";
 import { Join } from "./pages/Join";
@@ -7,7 +8,6 @@ import { NameScreen } from "./pages/NameScreen";
 import { Privacy } from "./pages/Privacy";
 import { Profile } from "./pages/Profile";
 import { Transfer } from "./pages/Transfer";
-import { useNotificationSetup } from "./notifications";
 import { Link, useRoute } from "./router";
 import { useSession } from "./session";
 

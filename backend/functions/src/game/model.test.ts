@@ -1,7 +1,7 @@
+import type { Timestamp } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 import { gameWith, seededRandom } from "../../test/helpers.js";
 import { reduce } from "../engine/index.js";
-import type { Timestamp } from "firebase-admin/firestore";
 import {
   botToMove,
   handDoc,

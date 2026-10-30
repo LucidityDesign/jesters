@@ -23,7 +23,8 @@ export const sendTurnReminders = onSchedule(
       const game = snapshot.data();
       if (game.turnUid === null) continue;
       const user = (await getFirestore().doc(`users/${game.turnUid}`).get()).data() as
-        UserDoc | undefined;
+        | UserDoc
+        | undefined;
       if (!reminderDue(game, now, user?.timeZone)) continue;
 
       await snapshot.ref.update({ lastReminderAt: FieldValue.serverTimestamp() });

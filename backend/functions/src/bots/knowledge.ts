@@ -3,8 +3,8 @@ import {
   createDeck,
   ledSuit,
   type RandomInt,
-  shuffle,
   type Suit,
+  shuffle,
   suitOf,
 } from "../engine/index.js";
 import { estimateTricks } from "./estimate.js";
@@ -82,7 +82,7 @@ export function sampleDeal(view: BotView, options: DealOptions, randomInt: Rando
     for (const seat of opponents) {
       const hand = hands[seat] as Card[];
       const blocked = voids[seat] as Set<Suit>;
-      for (let i = 0; i < pool.length && hand.length < (sizes[seat] as number);) {
+      for (let i = 0; i < pool.length && hand.length < (sizes[seat] as number); ) {
         const card = pool[i] as Card;
         const suit = suitOf(card);
         if (respectVoids && suit !== null && blocked.has(suit)) {

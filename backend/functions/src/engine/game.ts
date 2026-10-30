@@ -1,7 +1,7 @@
-import { type Card, createDeck, type RandomInt, shuffle, type Suit, SUITS } from "./cards.js";
+import { type Card, createDeck, type RandomInt, SUITS, type Suit, shuffle } from "./cards.js";
 import {
-  deal,
   DECK_SIZE,
+  deal,
   forbiddenLastBid,
   MAX_PLAYERS,
   MIN_PLAYERS,

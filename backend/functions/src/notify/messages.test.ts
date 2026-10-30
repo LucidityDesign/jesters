@@ -1,6 +1,6 @@
+import { Timestamp } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 import type { GameDoc } from "../game/model.js";
-import { Timestamp } from "firebase-admin/firestore";
 import {
   notificationsFor,
   PLAYING_RECENTLY_MS,

@@ -7,8 +7,8 @@ import {
   forbiddenBid,
   type GameState,
   legalCardsFor,
-  reduce,
   type Result,
+  reduce,
   startRound,
 } from "./game.js";
 import { deal } from "./round.js";

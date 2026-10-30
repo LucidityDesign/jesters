@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
-import { botAction, type BotLevel, playBots, SEARCH_BUDGETS } from "./index.js";
+import { type BotLevel, botAction, playBots, SEARCH_BUDGETS } from "./index.js";
 import { handSizes, knownVoids, sampleDeal, unseenCards } from "./knowledge.js";
 import { pickCard, type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
