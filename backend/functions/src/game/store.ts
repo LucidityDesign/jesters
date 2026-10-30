@@ -72,6 +72,9 @@ export function writeState(
     ...(person && !byBot && game.autoPlay?.[person.uid]
       ? { [`autoPlay.${person.uid}`]: FieldValue.delete() }
       : {}),
+    ...(person && byBot && game.round
+      ? { [`autoPlayedRounds.${person.uid}`]: FieldValue.arrayUnion(game.round.number) }
+      : {}),
   });
   tx.set(refs.secret(gameId), secretDoc(next));
 

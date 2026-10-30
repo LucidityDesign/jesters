@@ -11,6 +11,7 @@ interface Game {
   results: { totals: number[] }[];
   lastMoveAt?: Record<string, unknown>;
   autoPlay?: Record<string, unknown>;
+  autoPlayedRounds?: Record<string, number[]>;
 }
 
 interface Hand {
@@ -124,6 +125,8 @@ describe("auto-play", () => {
     expect(game.turnUid).toBe(anna.uid);
     // The bot's moves are not hers: "your turn" pushes are not held back.
     expect(game.lastMoveAt?.[anna.uid]).toBeUndefined();
+    // The score sheet marks the round the bot played for her.
+    expect(game.autoPlayedRounds).toEqual({ [anna.uid]: [1] });
 
     // Her own move ends auto-play.
     const hand = (await anna.read<Hand>(`games/${gameId}/hands/${anna.uid}`)) as Hand;
@@ -135,6 +138,7 @@ describe("auto-play", () => {
     }
     game = (await anna.read<Game>(`games/${gameId}`)) as Game;
     expect(game.autoPlay).toEqual({});
+    expect(game.autoPlayedRounds).toEqual({ [anna.uid]: [1] });
 
     await anna.call("setAutoPlay", { gameId, on: true, minutes: 10 });
     await anna.call("setAutoPlay", { gameId, on: false });

@@ -197,6 +197,7 @@ export const DE: Record<string, string> = {
   "{points} points": "{points} Punkte",
   Close: "Schließen",
   "Small numbers: bid / tricks won": "Kleine Zahlen: Ansage / gemachte Stiche",
+  "Played by auto-play": "Vom Autopilot gespielt",
   "{name} left, so the game ended early.":
     "{name} hat das Spiel verlassen, daher wurde es vorzeitig beendet.",
   "Winner: {names}": "Gewonnen: {names}",

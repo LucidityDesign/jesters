@@ -1595,6 +1595,12 @@ ol.list {
   border-bottom: 1px solid var(--border);
 }
 
+/* A round a bot played for the person (auto-play). */
+.score-sheet .auto-played {
+  margin-right: 4px;
+  font-size: 0.75rem;
+}
+
 .score-sheet small {
   display: block;
   font-size: 0.75rem;
