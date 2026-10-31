@@ -59,24 +59,23 @@ export const PlayCardInput = z.object({
   card: z.custom<Card>(isCard, "Invalid card."),
 });
 
+/** How long auto-play may last: some minutes or some rounds, never open-ended. */
+export const AUTO_PLAY_MINUTES = [5, 10, 30] as const;
+export const AUTO_PLAY_ROUNDS = [1, 2, 3] as const;
+
 /**
- * Auto-play on or off. While on, it lasts until switched off (or the game ends), for `minutes`,
- * or for `rounds` rounds counting the current one.
+ * Auto-play on or off. Switching it on takes exactly one limit: `minutes`, or `rounds` rounds
+ * counting the current one.
  */
 export const SetAutoPlayInput = z
   .object({
     gameId: GameId,
     on: z.boolean(),
-    minutes: z
-      .number()
-      .int()
-      .min(1)
-      .max(24 * 60)
-      .optional(),
-    rounds: z.number().int().min(1).max(20).optional(),
+    minutes: z.union(AUTO_PLAY_MINUTES.map((minutes) => z.literal(minutes))).optional(),
+    rounds: z.union(AUTO_PLAY_ROUNDS.map((rounds) => z.literal(rounds))).optional(),
   })
-  .refine((input) => input.minutes === undefined || input.rounds === undefined, {
-    message: "Choose minutes or rounds, not both.",
+  .refine((input) => !input.on || (input.minutes === undefined) !== (input.rounds === undefined), {
+    message: "Choose minutes or rounds.",
   });
 
 export const RedeemTransferCodeInput = z.object({ code: z.string().max(32) });

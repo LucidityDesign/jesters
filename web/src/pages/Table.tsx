@@ -816,8 +816,9 @@ function LookBack({ game }: { game: GameDoc }) {
   );
 }
 
-const AUTO_PLAY_MINUTES = [5, 10, 60];
-const AUTO_PLAY_ROUNDS = [1, 2, 3, 5];
+/** The limits the backend accepts (see `SetAutoPlayInput`). */
+const AUTO_PLAY_MINUTES = [5, 10, 30];
+const AUTO_PLAY_ROUNDS = [1, 2, 3];
 
 /** A button that opens the choices for letting a bot play for the player. */
 function AutoPlayMenu({
@@ -839,9 +840,6 @@ function AutoPlayMenu({
       {open && (
         <div className="auto-play-menu" role="group" aria-label={t("Auto-play")}>
           <p>{t("Let a bot play for you")}</p>
-          <button disabled={disabled} onClick={() => choose({})}>
-            {t("Until I take over")}
-          </button>
           <div className="auto-play-row">
             <span>{t("Minutes")}</span>
             {AUTO_PLAY_MINUTES.map((minutes) => (

@@ -50,16 +50,18 @@ describe("AddBotInput", () => {
 });
 
 describe("SetAutoPlayInput", () => {
-  it("takes minutes or rounds, not both", () => {
-    expect(SetAutoPlayInput.safeParse({ gameId: "g1", on: true }).success).toBe(true);
-    expect(SetAutoPlayInput.safeParse({ gameId: "g1", on: true, minutes: 10 }).success).toBe(true);
-    expect(SetAutoPlayInput.safeParse({ gameId: "g1", on: true, rounds: 3 }).success).toBe(true);
-    expect(
-      SetAutoPlayInput.safeParse({ gameId: "g1", on: true, minutes: 5, rounds: 1 }).success,
-    ).toBe(false);
-    expect(SetAutoPlayInput.safeParse({ gameId: "g1", on: true, rounds: 0 }).success).toBe(false);
-    expect(SetAutoPlayInput.safeParse({ gameId: "g1", on: true, minutes: 1.5 }).success).toBe(
-      false,
-    );
+  const valid = (input: object) => SetAutoPlayInput.safeParse({ gameId: "g1", ...input }).success;
+
+  it("takes 5, 10 or 30 minutes or 1, 2 or 3 rounds, exactly one of them", () => {
+    for (const minutes of [5, 10, 30]) expect(valid({ on: true, minutes })).toBe(true);
+    for (const rounds of [1, 2, 3]) expect(valid({ on: true, rounds })).toBe(true);
+    expect(valid({ on: true })).toBe(false);
+    expect(valid({ on: true, minutes: 5, rounds: 1 })).toBe(false);
+    for (const minutes of [1, 60, 7.5]) expect(valid({ on: true, minutes })).toBe(false);
+    for (const rounds of [0, 4, 5]) expect(valid({ on: true, rounds })).toBe(false);
+  });
+
+  it("switches off without a limit", () => {
+    expect(valid({ on: false })).toBe(true);
   });
 });

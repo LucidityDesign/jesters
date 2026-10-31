@@ -133,11 +133,11 @@ test("a guest plays against two bots", async ({ browser }) => {
   await erik.reload();
   await expect(roundThree).toBeVisible();
 
-  // Auto-play: a bot plays for Erik until he takes over.
+  // Auto-play: a bot plays rounds 3 and 4 for Erik, unless he takes over first.
   await erik.getByRole("button", { name: "Auto-play" }).click();
-  await erik.getByRole("button", { name: "Until I take over" }).click();
+  await erik.getByRole("button", { name: "Rounds: 2" }).click();
   const bar = erik.locator(".auto-play-bar");
-  await expect(bar).toContainText("Auto-play is on · until you take over");
+  await expect(bar).toContainText("Auto-play is on · until the end of round 4");
   await expect(erik.getByRole("heading", { name: "Round 4 of 20" })).toBeVisible({
     timeout: 60_000,
   });
