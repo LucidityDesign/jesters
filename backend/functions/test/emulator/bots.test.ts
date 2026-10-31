@@ -104,7 +104,9 @@ describe("auto-play", () => {
   it("lets a bot play for a person for some rounds", { timeout: 120_000 }, async () => {
     const [anna] = await newPlayers("Anna");
     const { gameId } = await setUpRoom([anna]);
-    expect(await rejection(anna.call("setAutoPlay", { gameId, on: true }))).toBe("WRONG_PHASE");
+    expect(await rejection(anna.call("setAutoPlay", { gameId, on: true, rounds: 1 }))).toBe(
+      "WRONG_PHASE",
+    );
     await anna.call("addBot", { gameId });
     await anna.call("addBot", { gameId });
     await anna.call("startGame", { gameId });
@@ -140,7 +142,13 @@ describe("auto-play", () => {
     expect(game.autoPlay).toEqual({});
     expect(game.autoPlayedRounds).toEqual({ [anna.uid]: [1] });
 
-    await anna.call("setAutoPlay", { gameId, on: true, minutes: 10 });
+    // Auto-play always has a limit: 5, 10 or 30 minutes, or 1, 2 or 3 rounds.
+    for (const limit of [{}, { minutes: 60 }, { rounds: 5 }, { minutes: 5, rounds: 1 }]) {
+      expect(await rejection(anna.call("setAutoPlay", { gameId, on: true, ...limit }))).toBe(
+        "INVALID_REQUEST",
+      );
+    }
+    await anna.call("setAutoPlay", { gameId, on: true, minutes: 30 });
     await anna.call("setAutoPlay", { gameId, on: false });
     game = (await anna.read<Game>(`games/${gameId}`)) as Game;
     expect(game.autoPlay).toEqual({});

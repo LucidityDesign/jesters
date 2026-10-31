@@ -158,7 +158,6 @@ export const DE: Record<string, string> = {
   "Last trick and round": "Letzter Stich und letzte Runde",
   "Auto-play": "Autopilot",
   "Let a bot play for you": "Lass einen Bot für dich spielen",
-  "Until I take over": "Bis ich übernehme",
   Minutes: "Minuten",
   Rounds: "Runden",
   "{minutes} minutes": "{minutes} Minuten",
