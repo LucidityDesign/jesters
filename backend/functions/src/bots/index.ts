@@ -37,7 +37,7 @@ export interface Strategy {
 
 /** How much the search bots simulate per decision. Tuned with `pnpm simulate`. */
 export const SEARCH_BUDGETS: Record<Exclude<BotLevel, "easy">, SearchBudget> = {
-  medium: { playDeals: 16, bidDeals: 12, fitBids: true, maxMillis: 250 },
+  medium: { playDeals: 28, bidDeals: 18, fitBids: true, maxMillis: 250 },
   hard: { playDeals: 120, bidDeals: 60, fitBids: true, maxMillis: 600 },
 };
 
