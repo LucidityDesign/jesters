@@ -107,9 +107,7 @@ function playingSim(view: BotView, hands: Card[][]): RoundSim {
 /**
  * The bid, by simulation: each allowed bid is valued by its average round score, so the risk of
  * missing counts, not just the likely number of tricks. Every bid first gets a few deals; only
- * the close calls get the full budget (successive halving), on fresh deals: the first deals
- * picked the finalists, and counting them again favours a bid that got lucky there (with few
- * deals, mostly a high bid that happened to come off). All finalists see the same deals.
+ * the close calls get the full budget (successive halving). All bids see the same deals.
  */
 export function searchBid(
   view: BotView,
@@ -133,35 +131,28 @@ export function searchBid(
   const counts = new Map(candidates.map((bid) => [bid, 0]));
   const average = (bid: number) =>
     (totals.get(bid) as number) / Math.max(1, counts.get(bid) as number);
-  /** Deals `first` to `first + count - 1` for each of `bids`; stops early at the deadline. */
-  const simulate = (bids: number[], first: number, count: number) => {
-    for (let deal = first; deal < first + count; deal++) {
-      if (deal > first && now() > deadline) return;
+  const simulate = (bids: number[], upTo: number) => {
+    for (let deal = 0; deal < upTo; deal++) {
+      if (deal > 0 && now() > deadline) return;
       for (const bid of bids) {
+        if ((counts.get(bid) as number) > deal) continue;
         const sim = biddingSim(view, dealAt(deal), bid);
         playOut(sim);
         totals.set(bid, (totals.get(bid) as number) + scoreOf(sim, view.seat));
-        counts.set(bid, (counts.get(bid) as number) + 1);
+        counts.set(bid, deal + 1);
       }
     }
   };
 
   // First look: a third of the budget for every bid.
-  const firstLook = Math.max(4, Math.ceil(budget.bidDeals / 3));
-  simulate(candidates, 0, firstLook);
+  simulate(candidates, Math.max(4, Math.ceil(budget.bidDeals / 3)));
   const ranked = [...candidates].sort((a, b) => average(b) - average(a));
   const best = average(ranked[0] as number);
   const finalists = ranked
     .filter((bid) => average(bid) >= best - BID_CUTOFF)
     .slice(0, BID_FINALISTS);
-  // Then the full budget for the close calls, on fresh deals (unless the time is up).
-  if (finalists.length > 1 && now() <= deadline) {
-    for (const bid of finalists) {
-      totals.set(bid, 0);
-      counts.set(bid, 0);
-    }
-    simulate(finalists, firstLook, budget.bidDeals);
-  }
+  // Then the full budget for the close calls.
+  simulate(finalists, budget.bidDeals);
 
   // Ties go to the bid closest to the hand's estimate.
   const expected = estimateTricks(view.hand, view.trumpSuit, view.playerCount, view.round);
