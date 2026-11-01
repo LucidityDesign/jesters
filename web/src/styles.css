@@ -354,6 +354,33 @@ input[type="text"] {
   flex: 1;
 }
 
+/* A lobby player's name, with their reactions floating over it. */
+.row-inline > .lobby-name {
+  position: relative;
+  flex: 0 1 auto;
+  margin-right: auto;
+}
+
+.lobby-react {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.lobby-react .reactions {
+  position: relative;
+}
+
+.play-again {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.play-again p {
+  margin: 0;
+}
+
 ol.list {
   list-style: decimal inside;
 }

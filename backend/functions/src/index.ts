@@ -7,6 +7,7 @@ export {
   createRoom,
   joinRoom,
   leaveGame,
+  playAgain,
   removePlayer,
   startGame,
   updateSettings,

@@ -60,6 +60,15 @@ function toEveryone(
 
 /** Notifications caused by a change of `games/{gameId}` from `before` to `after`. */
 export function notificationsFor(gameId: string, before: GameDoc, after: GameDoc): PushMessage[] {
+  if (after.rematch && !before.rematch) {
+    // The notification opens this game, whose page offers to join the new one.
+    return toEveryone(after, gameId, [after.rematch.hostUid], {
+      titleKey: "PUSH_TITLE_GAME",
+      bodyKey: "PUSH_REMATCH",
+      args: [nameOf(after, after.rematch.hostUid)],
+    });
+  }
+
   if (after.status === "abandoned" && before.status !== "abandoned") {
     return after.expired
       ? toEveryone(after, gameId, [], {
@@ -141,12 +150,6 @@ export interface ReactionDoc {
  */
 export const REACTION_PUSH_GAP_MS = 10 * 1000;
 
-/**
- * Reactions that only show on the table, never in a notification: a rude gesture shouldn't land
- * on anyone's lock screen.
- */
-export const TABLE_ONLY_REACTIONS: ReadonlySet<string> = new Set(["🖕"]);
-
 /** Tells the other players about `uid`'s emoji reaction, unless they were just told about one. */
 export function reactionNotifications(
   gameId: string,
@@ -156,15 +159,7 @@ export function reactionNotifications(
   after: ReactionDoc,
 ): PushMessage[] {
   if (game.status === "abandoned" || !game.playerUids.includes(uid)) return [];
-  if (TABLE_ONLY_REACTIONS.has(after.emoji)) return [];
-  // A table-only reaction wasn't notified, so it doesn't hold back the next one.
-  if (
-    before &&
-    !TABLE_ONLY_REACTIONS.has(before.emoji) &&
-    after.at.toMillis() - before.at.toMillis() < REACTION_PUSH_GAP_MS
-  ) {
-    return [];
-  }
+  if (before && after.at.toMillis() - before.at.toMillis() < REACTION_PUSH_GAP_MS) return [];
   return toEveryone(game, gameId, [uid], {
     titleKey: "PUSH_TITLE_GAME",
     bodyKey: "PUSH_REACTION",

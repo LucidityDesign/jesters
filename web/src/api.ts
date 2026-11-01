@@ -31,6 +31,8 @@ export const api = {
   addBot: (gameId: string, level: BotLevel) => call("addBot", { gameId, level }),
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),
   leaveGame: (gameId: string) => call("leaveGame", { gameId }),
+  /** Starts or joins the new game after `gameId` ended. */
+  playAgain: (gameId: string) => call<{ gameId: string }>("playAgain", { gameId }),
   chooseTrump: (gameId: string, version: number, suit: Suit) =>
     call("chooseTrump", { gameId, version, suit }),
   placeBid: (gameId: string, version: number, bid: number) =>

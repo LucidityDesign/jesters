@@ -47,6 +47,24 @@ const round = (number: number) =>
   }) as GameDoc["round"];
 
 describe("notificationsFor", () => {
+  it("asks the others to play again when someone starts a new game, once", () => {
+    const over = game({ status: "finished", active: false });
+    const rematch = { gameId: "g2", hostUid: "b", uids: ["b"] };
+    const asked = { ...over, rematch };
+    const push = {
+      gameId: "g1",
+      titleKey: "PUSH_TITLE_GAME",
+      bodyKey: "PUSH_REMATCH",
+      args: ["Ben"],
+    };
+    expect(notificationsFor("g1", over, asked)).toEqual([
+      { uid: "a", ...push },
+      { uid: "c", ...push },
+    ]);
+    const joined = { ...asked, rematch: { ...rematch, uids: ["b", "a"] } };
+    expect(notificationsFor("g1", asked, joined)).toEqual([]);
+  });
+
   it("never notifies bots", () => {
     const withBot = game({
       players: [
@@ -245,13 +263,6 @@ describe("reactionNotifications", () => {
     const later = reaction("😂", 1_000_000 + REACTION_PUSH_GAP_MS);
     expect(reactionNotifications("g1", withBot, "a", first, soon)).toEqual([]);
     expect(reactionNotifications("g1", withBot, "a", first, later)).toHaveLength(1);
-  });
-
-  it("only shows the middle finger on the table, and doesn't count it for the gap", () => {
-    const rude = reaction("🖕", 1_000_000);
-    const soon = reaction("😂", 1_000_000 + 1000);
-    expect(reactionNotifications("g1", withBot, "a", undefined, rude)).toEqual([]);
-    expect(reactionNotifications("g1", withBot, "a", rude, soon)).toHaveLength(1);
   });
 
   it("skips ended games and people who are not playing", () => {

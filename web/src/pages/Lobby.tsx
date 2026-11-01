@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { api } from "../api";
 import { ErrorText, Page } from "../components/Layout";
+import { ReactionBubble, ReactionPicker } from "../components/Reactions";
 import { t } from "../i18n";
 import {
   BOT_LEVELS,
@@ -10,6 +11,7 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
 } from "../model";
+import { useReactions } from "../reactions";
 import { load, save } from "../storage";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
@@ -44,6 +46,7 @@ export function Lobby({
   const isHost = game.hostUid === uid;
   const canStart = game.players.length >= MIN_PLAYERS && !action.isSending;
   const [copied, setCopied] = useState(false);
+  const reactions = useReactions(gameId);
   const [level, setLevel] = useState<BotLevel>(() => botLevel(load(BOT_LEVEL_KEY) ?? "medium"));
   const inviteLink = `${location.origin}/join/${game.roomKey}`;
 
@@ -68,31 +71,40 @@ export function Lobby({
       <section>
         <h2>{t("Players ({count} of {max})", { count: game.players.length, max: MAX_PLAYERS })}</h2>
         <ul className="list">
-          {game.players.map((player, seat) => (
-            <li key={player.uid} className="row row-inline">
-              <span>{nameAt(game, seat)}</span>
-              <span className="hint">
-                {[
-                  player.uid === game.hostUid && t("Host"),
-                  player.uid === uid && t("You"),
-                  player.bot && `${t("Bot")} (${botLevelName(botLevel(player.bot))})`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-              {isHost && player.uid !== uid && (
-                <button
-                  className="link danger"
-                  onClick={() => action.run(() => api.removePlayer(gameId, player.uid))}
-                  disabled={action.isSending}
-                  aria-label={`${t("Remove")}: ${nameAt(game, seat)}`}
-                >
-                  {t("Remove")}
-                </button>
-              )}
-            </li>
-          ))}
+          {game.players.map((player, seat) => {
+            const reaction = reactions.get(player.uid);
+            return (
+              <li key={player.uid} className="row row-inline">
+                <span className="lobby-name">
+                  {nameAt(game, seat)}
+                  {reaction && <ReactionBubble key={reaction.key} reaction={reaction} />}
+                </span>
+                <span className="hint">
+                  {[
+                    player.uid === game.hostUid && t("Host"),
+                    player.uid === uid && t("You"),
+                    player.bot && `${t("Bot")} (${botLevelName(botLevel(player.bot))})`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+                {isHost && player.uid !== uid && (
+                  <button
+                    className="link danger"
+                    onClick={() => action.run(() => api.removePlayer(gameId, player.uid))}
+                    disabled={action.isSending}
+                    aria-label={`${t("Remove")}: ${nameAt(game, seat)}`}
+                  >
+                    {t("Remove")}
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
+        <div className="lobby-react">
+          <ReactionPicker gameId={gameId} uid={uid} />
+        </div>
         {isHost && game.players.length < MAX_PLAYERS && (
           <div className="actions">
             <fieldset className="segmented">

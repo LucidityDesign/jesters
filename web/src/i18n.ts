@@ -197,6 +197,12 @@ export const DE: Record<string, string> = {
   Close: "Schließen",
   "Small numbers: bid / tricks won": "Kleine Zahlen: Ansage / gemachte Stiche",
   "Played by auto-play": "Vom Autopilot gespielt",
+  "Play again with the same players?": "Noch eine Runde mit denselben Leuten?",
+  "Play again": "Noch einmal spielen",
+  "{name} wants to play again.": "{name} möchte noch einmal spielen.",
+  "Join the new game": "Beim neuen Spiel mitmachen",
+  "You are in the new game.": "Du bist im neuen Spiel.",
+  "Go to the new game": "Zum neuen Spiel",
   "{name} left, so the game ended early.":
     "{name} hat das Spiel verlassen, daher wurde es vorzeitig beendet.",
   "Winner: {names}": "Gewonnen: {names}",

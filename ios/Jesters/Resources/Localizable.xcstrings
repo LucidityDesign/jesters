@@ -802,6 +802,23 @@
         }
       }
     },
+    "PUSH_REMATCH": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wants to play again. Join the new game?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ möchte noch einmal spielen. Machst du mit?"
+          }
+        }
+      }
+    },
     "PUSH_REMINDER": {
       "extractionState": "manual",
       "localizations": {
