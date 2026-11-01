@@ -182,6 +182,9 @@ test("a guest plays against two bots", async ({ browser }) => {
   await erik.getByRole("button", { name: "Rounds: 2" }).click();
   const bar = erik.locator(".auto-play-bar");
   await expect(bar).toContainText("Auto-play is on · until the end of round 4");
+  // Tapping a seat in bot mode tells how long the bot keeps playing.
+  await erik.locator(".seat-name-button", { hasText: "Erik" }).click();
+  await expect(erik.getByRole("tooltip")).toHaveText("Auto-play · until the end of round 4");
   await expect(erik.getByRole("heading", { name: "Round 4 of 20" })).toBeVisible({
     timeout: 60_000,
   });

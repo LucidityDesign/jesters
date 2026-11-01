@@ -600,6 +600,36 @@ ol.list {
   text-overflow: ellipsis;
 }
 
+/* A seat in bot mode: tapping the name shows how long the bot keeps playing. */
+.seat-name-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.seat-tip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 8;
+  width: max-content;
+  max-width: 160px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.75rem;
+  text-align: center;
+  /* Not `transform`, which the pop-in animation sets. */
+  translate: -50% 0;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  animation: popover-in 0.15s ease-out;
+}
+
 .crown {
   flex-shrink: 0;
   font-size: 0.8rem;
@@ -1571,6 +1601,7 @@ ol.list {
 @media (prefers-reduced-motion: reduce) {
   .toast,
   .reaction-choices,
+  .seat-tip,
   .look-back-panel,
   .auto-play-menu,
   .auto-play-bar,
