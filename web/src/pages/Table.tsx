@@ -471,7 +471,12 @@ function Players({
             )}
             {reaction && <ReactionBubble key={reaction.key} reaction={reaction} />}
             {botNote && tipSeat === seat && (
-              <span className="seat-tip" role="tooltip" id={`seat-tip-${seat}`}>
+              <span
+                // Seats at the sides of the table open the tip toward the middle, so it stays on screen.
+                className={`seat-tip${x < 25 ? " seat-tip-start" : x > 75 ? " seat-tip-end" : ""}`}
+                role="tooltip"
+                id={`seat-tip-${seat}`}
+              >
                 {botNote}
               </span>
             )}

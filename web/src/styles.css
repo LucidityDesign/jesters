@@ -602,6 +602,8 @@ ol.list {
 
 /* A seat in bot mode: tapping the name shows how long the bot keeps playing. */
 .seat-name-button {
+  /* Not the 44px of other buttons: the whole seat is the tap target, and it keeps its size. */
+  min-height: 0;
   padding: 0;
   border: 0;
   background: none;
@@ -619,6 +621,8 @@ ol.list {
   max-width: 160px;
   padding: 4px 8px;
   border-radius: 8px;
+  /* The seat keeps names on one line; the tip wraps inside its own width. */
+  white-space: normal;
   background: var(--text);
   color: var(--bg);
   font-size: 0.75rem;
@@ -628,6 +632,19 @@ ol.list {
   transform-origin: 50% 100%;
   pointer-events: none;
   animation: popover-in 0.15s ease-out;
+}
+
+.seat-tip-start {
+  left: 0;
+  translate: none;
+  transform-origin: 0 100%;
+}
+
+.seat-tip-end {
+  left: auto;
+  right: 0;
+  translate: none;
+  transform-origin: 100% 100%;
 }
 
 .crown {

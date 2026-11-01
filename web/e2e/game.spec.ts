@@ -184,7 +184,19 @@ test("a guest plays against two bots", async ({ browser }) => {
   await expect(bar).toContainText("Auto-play is on · until the end of round 4");
   // Tapping a seat in bot mode tells how long the bot keeps playing.
   await erik.locator(".seat-name-button", { hasText: "Erik" }).click();
-  await expect(erik.getByRole("tooltip")).toHaveText("Auto-play · until the end of round 4");
+  const tip = erik.getByRole("tooltip");
+  await expect(tip).toHaveText("Auto-play · until the end of round 4");
+  // The tip wraps inside its box, stays on screen, and the seat keeps its size.
+  await expect
+    .poll(() =>
+      tip.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        return el.scrollWidth <= el.clientWidth && box.left >= 0 && box.right <= innerWidth;
+      }),
+    )
+    .toBe(true);
+  const nameBox = await erik.locator(".seat-name-button", { hasText: "Erik" }).boundingBox();
+  expect(nameBox?.height).toBeLessThan(30);
   await expect(erik.getByRole("heading", { name: "Round 4 of 20" })).toBeVisible({
     timeout: 60_000,
   });
