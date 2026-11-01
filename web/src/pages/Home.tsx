@@ -4,7 +4,7 @@ import { ErrorText, Page } from "../components/Layout";
 import { NotificationOffer } from "../components/Notifications";
 import { type GameEntry, useMyGames } from "../hooks";
 import { formatList, t } from "../i18n";
-import { type GameDoc, isMyTurn, leaders } from "../model";
+import { type GameDoc, hasLeft, isMyTurn, leaders } from "../model";
 import { Link, navigate } from "../router";
 import { useSession } from "../session";
 import { useAction } from "../useAction";
@@ -23,8 +23,10 @@ export function Home({ uid }: { uid: string }) {
   }
 
   const myTurn = games?.filter(({ game }) => isMyTurn(game, uid)) ?? [];
-  const others = games?.filter(({ game }) => game.active && !isMyTurn(game, uid)) ?? [];
-  const finished = games?.filter(({ game }) => !game.active) ?? [];
+  // A running game someone left is over for them: a bot plays their seat.
+  const done = (game: GameDoc) => !game.active || hasLeft(game, uid);
+  const others = games?.filter(({ game }) => !done(game) && !isMyTurn(game, uid)) ?? [];
+  const finished = games?.filter(({ game }) => done(game)) ?? [];
 
   return (
     <Page title="Jesters">
@@ -88,6 +90,7 @@ function statusText(game: GameDoc, uid: string): string {
     case "choosingTrump":
     case "bidding":
     case "playing": {
+      if (hasLeft(game, uid)) return t("You left · a bot plays for you");
       if (isMyTurn(game, uid)) return t("Your turn · round {round}", { round });
       const name = game.turnSeat === null ? "?" : nameAt(game, game.turnSeat);
       return t("Waiting for {name} · round {round}", { name, round });

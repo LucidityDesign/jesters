@@ -93,6 +93,17 @@ export const DE: Record<string, string> = {
     "Dieses Spiel wurde gelöscht oder du bist nicht mehr dabei.",
   "Leave game": "Spiel verlassen",
   "Leave and end the game for everyone?": "Verlassen und das Spiel für alle beenden?",
+  "Leave the game? A bot will play your seat until the end.":
+    "Spiel verlassen? Ein Bot spielt deinen Platz bis zum Ende.",
+  "You left this game": "Du hast dieses Spiel verlassen",
+  "A bot plays your seat until the end.": "Ein Bot spielt deinen Platz bis zum Ende.",
+  "You left · a bot plays for you": "Verlassen · ein Bot spielt für dich",
+  "Left the game · a bot plays": "Hat das Spiel verlassen · ein Bot spielt",
+  "You left this game. A bot plays for you.":
+    "Du hast dieses Spiel verlassen. Ein Bot spielt für dich.",
+  "Give them a little more time.": "Gib noch etwas Zeit.",
+  "{name} hasn't moved for {minutes} min.": "{name} hat seit {minutes} Min. nicht gespielt.",
+  "Let a bot move": "Bot ziehen lassen",
   "Leave this game?": "Dieses Spiel verlassen?",
   "Join my Jesters game with the room key {key}": "Spiel mit mir Jesters! Raumcode: {key}",
   "Invite players": "Mitspieler einladen",

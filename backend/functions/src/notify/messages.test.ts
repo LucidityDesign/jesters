@@ -7,6 +7,7 @@ import {
   REACTION_PUSH_GAP_MS,
   reactionNotifications,
   reminderFor,
+  stalledTurnMessages,
 } from "./messages.js";
 
 const base = {
@@ -213,6 +214,59 @@ describe("notificationsFor", () => {
       { uid: "b", bodyKey: "PUSH_EXPIRED" },
       { uid: "c", bodyKey: "PUSH_EXPIRED" },
     ]);
+  });
+});
+
+describe("leaving a running game", () => {
+  it("tells the others a bot takes over, and stops notifying the leaver", () => {
+    const running = game({ status: "bidding", turnSeat: 2, turnUid: "c", round: round(3) });
+    const left = {
+      ...running,
+      players: running.players.map((p) => (p.uid === "b" ? { ...p, left: true } : p)),
+    };
+    const push = {
+      gameId: "g1",
+      titleKey: "PUSH_TITLE_GAME",
+      bodyKey: "PUSH_LEFT_BOT",
+      args: ["Ben"],
+    };
+    expect(notificationsFor("g1", running, left)).toEqual([
+      { uid: "a", ...push },
+      { uid: "c", ...push },
+    ]);
+    const over = { ...left, status: "finished", active: false } as GameDoc;
+    expect(notificationsFor("g1", left, over).map((m) => m.uid)).toEqual(["a", "c"]);
+  });
+});
+
+describe("stalledTurnMessages", () => {
+  const at = (ms: number) => Timestamp.fromMillis(ms);
+  const t0 = 10 * 60 * 60 * 1000;
+  // Cleo has kept everyone waiting since t0, Anna moved just before, Ben hours ago.
+  const stalled = game({
+    status: "playing",
+    turnSeat: 2,
+    turnUid: "c",
+    round: round(3),
+    updatedAt: at(t0),
+    lastMoveAt: { a: at(t0 - 1000), b: at(t0 - 3 * 60 * 60 * 1000), c: at(t0 - 5000) },
+  });
+
+  it("asks the people who were just playing, not the one who stalls", () => {
+    expect(stalledTurnMessages("g1", stalled)).toEqual([
+      {
+        uid: "a",
+        gameId: "g1",
+        titleKey: "PUSH_TITLE_GAME",
+        bodyKey: "PUSH_STALLED",
+        args: ["Cleo"],
+      },
+    ]);
+  });
+
+  it("asks nobody when a bot moves anyway", () => {
+    expect(stalledTurnMessages("g1", { ...stalled, autoPlay: { c: {} } })).toEqual([]);
+    expect(stalledTurnMessages("g1", { ...stalled, active: false })).toEqual([]);
   });
 });
 

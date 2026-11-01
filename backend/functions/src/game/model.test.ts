@@ -126,6 +126,16 @@ describe("botToMove", () => {
   const at = (ms: number) => ({ toMillis: () => ms }) as Timestamp;
   const inRound = (number: number) => ({ number }) as PublicRound;
 
+  it("plays for a person who left, and for a stalled turn the others handed to a bot", () => {
+    const annasTurn = { active: true, players, turnSeat: 0, version: 7 };
+    expect(botToMove(annasTurn)).toBeNull();
+    const left = [{ ...players[0], left: true }, players[1]] as typeof players;
+    expect(botToMove({ ...annasTurn, players: left })).toBe("medium");
+    expect(botToMove({ ...annasTurn, botMoveVersion: 7 })).toBe("medium");
+    // Only for that one move.
+    expect(botToMove({ ...annasTurn, botMoveVersion: 6 })).toBeNull();
+  });
+
   it("plays for a person on auto-play", () => {
     const annasTurn = {
       active: true,

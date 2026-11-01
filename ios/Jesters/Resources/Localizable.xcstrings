@@ -785,6 +785,23 @@
         }
       }
     },
+    "PUSH_LEFT_BOT": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ left the game. A bot takes over their seat."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat das Spiel verlassen. Ein Bot übernimmt den Platz."
+          }
+        }
+      }
+    },
     "PUSH_REACTION": {
       "extractionState": "manual",
       "localizations": {
@@ -832,6 +849,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dein Spiel mit %@ wartet auf dich."
+          }
+        }
+      }
+    },
+    "PUSH_STALLED": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hasn't moved for 30 minutes. Should a bot make the move?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat seit 30 Minuten nicht gespielt. Soll ein Bot den Zug machen?"
           }
         }
       }

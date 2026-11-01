@@ -23,6 +23,8 @@ export interface Player {
   bot?: BotLevel | "beginner";
   /** A bot's temperament, -0.1 (cautious) to 0.1 (aggressive): how high it bids and how it plays. */
   aggression?: number;
+  /** Set for a person who left the running game: a bot plays their seat until the end. */
+  left?: boolean;
 }
 
 /**
@@ -34,7 +36,13 @@ export interface AutoPlay {
   untilRound?: number;
 }
 
-/** The bot level that plays for people on auto-play. People can't choose it. */
+/**
+ * How long a person's turn may wait before the others are asked whether a bot should make that
+ * move (see `letBotMove`).
+ */
+export const STALL_MS = 30 * 60 * 1000;
+
+/** The bot level that plays for people on auto-play (or who left). People can't choose it. */
 export const AUTO_PLAY_LEVEL: BotLevel = "medium";
 
 /**
@@ -59,12 +67,17 @@ export function autoPlays(
  */
 export function botToMove(
   game: Pick<GameDoc, "active" | "players" | "turnSeat"> &
-    Partial<Pick<GameDoc, "autoPlay" | "round" | "updatedAt">>,
+    Partial<Pick<GameDoc, "autoPlay" | "round" | "updatedAt" | "version" | "botMoveVersion">>,
 ): BotLevel | null {
   if (!game.active || game.turnSeat === null) return null;
   const player = game.players[game.turnSeat];
   if (!player) return null;
   if (player.bot) return normalizeLevel(player.bot) ?? "easy";
+  // A person who left, or whose stalled turn the others handed to a bot.
+  if (player.left) return AUTO_PLAY_LEVEL;
+  if (game.botMoveVersion !== undefined && game.botMoveVersion === game.version) {
+    return AUTO_PLAY_LEVEL;
+  }
   const turnBegan = game.updatedAt?.toMillis() ?? Date.now();
   return autoPlays(game, player.uid, game.round?.number ?? 1, turnBegan) ? AUTO_PLAY_LEVEL : null;
 }
@@ -128,6 +141,10 @@ export interface GameDoc extends PublicPlay {
   autoPlayedRounds?: Record<string, number[]>;
   /** The new game for playing again, once someone started it after this one (see `playAgain`). */
   rematch?: Rematch;
+  /** The version whose waiting move another player handed to a bot (see `letBotMove`). */
+  botMoveVersion?: number;
+  /** The version whose stalled turn the others were asked about (see `askAboutStalledTurns`). */
+  stallAskedVersion?: number;
 }
 
 export interface Rematch {

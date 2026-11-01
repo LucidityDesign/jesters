@@ -25,6 +25,7 @@ import {
   leaders,
   SUITS,
   sortHand,
+  stalledSeat,
   totals,
   trickLeader,
 } from "../model";
@@ -65,9 +66,15 @@ export function Table({
   const plusOne = useTrickTaken(game);
   const reactions = useReactions(gameId);
   // Auto-play runs out by the clock; a new end time needs the time now, not of the last tick.
+  // So does a waiting turn, after which the others may let a bot move for that person.
   const autoPlayKey = JSON.stringify(game.autoPlay ?? {});
-  const now = useNow(autoPlayKey === "{}" ? null : 10_000, autoPlayKey);
+  const waitingOnOther = game.turnUid !== null && game.turnUid !== uid;
+  const now = useNow(
+    autoPlayKey !== "{}" ? 10_000 : waitingOnOther ? 30_000 : null,
+    `${autoPlayKey}|${game.version}`,
+  );
   const myAutoPlay = activeAutoPlay(game, uid, now);
+  const stalled = waitingOnOther ? stalledSeat(game, now) : null;
   const round = game.round;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
@@ -121,6 +128,24 @@ export function Table({
             onClick={() => action.run(() => api.setAutoPlay(gameId, false))}
           >
             {t("Take over")}
+          </button>
+        </div>
+      )}
+
+      {stalled !== null && (
+        <div className="auto-play-bar" role="status">
+          <span>
+            {t("{name} hasn't moved for {minutes} min.", {
+              name: nameAt(game, stalled),
+              minutes: Math.floor((now - (game.updatedAt?.toMillis() ?? now)) / 60_000),
+            })}
+          </span>
+          <button
+            className="primary"
+            disabled={action.isSending}
+            onClick={() => action.run(() => api.letBotMove(gameId, game.version))}
+          >
+            {t("Let a bot move")}
           </button>
         </div>
       )}
@@ -434,7 +459,13 @@ function Players({
                   </span>
                 </span>
               )}
-              {!player.bot && activeAutoPlay(game, player.uid, now) && (
+              {player.left && (
+                <span className="badge badge-auto" title={t("Left the game · a bot plays")}>
+                  <span aria-hidden="true">🤖</span>
+                  <span className="visually-hidden">{t("Left the game · a bot plays")}</span>
+                </span>
+              )}
+              {!player.bot && !player.left && activeAutoPlay(game, player.uid, now) && (
                 <span className="badge badge-auto" title={t("Auto-play")}>
                   <span aria-hidden="true">🤖</span>
                   <span className="visually-hidden">{t("Auto-play")}</span>

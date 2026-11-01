@@ -335,11 +335,27 @@ export async function getMemberGame(
   return game;
 }
 
-/** Writes the effect of `uid` leaving `game` (see `leaveGame`). */
+/**
+ * Writes the effect of `uid` leaving `game` (see `leaveGame`): in the lobby they're gone; in a
+ * running game a bot takes over their seat, or the game ends when no other person is left.
+ */
 export function leave(tx: Transaction, gameId: string, game: GameDoc, uid: string): void {
   const gameRef = refs.game(gameId);
 
   if (game.status === "finished" || game.status === "abandoned") return;
+  if (game.players.find((p) => p.uid === uid)?.left) return;
+
+  // A bot plays on for someone who leaves a running game, as long as people are left to play.
+  const peopleLeft = game.players.filter((p) => !p.bot && !p.left && p.uid !== uid);
+  if (game.status !== "lobby" && peopleLeft.length > 0) {
+    tx.update(gameRef, {
+      players: game.players.map((p) => (p.uid === uid ? { ...p, left: true } : p)),
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.delete(refs.hand(gameId, uid));
+    return;
+  }
 
   if (game.status !== "lobby") {
     tx.update(gameRef, {

@@ -1,12 +1,31 @@
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
 import { type Action, reduce } from "../engine/index.js";
-import { type AutoPlay, stateFromSecret } from "../game/model.js";
+import {
+  type AutoPlay,
+  botToMove,
+  type GameDoc,
+  STALL_MS,
+  stateFromSecret,
+} from "../game/model.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
 import { fail, parse, requireAuth } from "./errors.js";
 import { getMemberGame } from "./rooms.js";
-import { ChooseTrumpInput, PlaceBidInput, PlayCardInput, SetAutoPlayInput } from "./schemas.js";
+import {
+  ChooseTrumpInput,
+  LetBotMoveInput,
+  PlaceBidInput,
+  PlayCardInput,
+  SetAutoPlayInput,
+} from "./schemas.js";
+
+/** Someone who left a running game has handed their seat to a bot for good. */
+function failIfLeft(game: GameDoc, uid: string): void {
+  if (game.players.find((player) => player.uid === uid)?.left) {
+    fail("LEFT_GAME", "You left this game.");
+  }
+}
 
 /** Applies a player's action to a running game in one transaction. Returns the new version. */
 async function perform(
@@ -26,6 +45,7 @@ async function perform(
     if (input.version !== undefined && input.version !== game.version) {
       fail("STALE_VERSION", "The game has changed in the meantime.");
     }
+    failIfLeft(game, uid);
 
     const state = stateFromSecret(secret);
     const result = reduce(state, action(game.playerUids.indexOf(uid)), secureRandomInt);
@@ -66,6 +86,7 @@ export const setAutoPlay = onCall(CALLABLE, async (request) => {
     const game = await getMemberGame(tx, input.gameId, uid);
     if (game.status === "lobby") fail("WRONG_PHASE", "The game has not started yet.");
     if (!game.active) fail("GAME_OVER", "This game is over.");
+    failIfLeft(game, uid);
 
     const autoPlay: AutoPlay = {};
     if (input.minutes !== undefined) {
@@ -76,6 +97,34 @@ export const setAutoPlay = onCall(CALLABLE, async (request) => {
     }
     tx.update(refs.game(input.gameId), {
       [`autoPlay.${uid}`]: input.on ? autoPlay : FieldValue.delete(),
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return { version: game.version + 1 };
+  });
+});
+
+/**
+ * Another player hands the move of a person who has kept everyone waiting for `STALL_MS` to a bot:
+ * just this one move, which `moveBot` then makes (marked as auto-played for them).
+ */
+export const letBotMove = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const input = parse(LetBotMoveInput, request.data);
+  return getFirestore().runTransaction(async (tx) => {
+    const game = await getMemberGame(tx, input.gameId, uid);
+    if (!game.active || game.status === "lobby") fail("WRONG_PHASE", "No move is waiting.");
+    if (input.version !== game.version) {
+      fail("STALE_VERSION", "The game has changed in the meantime.");
+    }
+    failIfLeft(game, uid);
+    if (game.turnUid === uid) fail("WRONG_PHASE", "It's your own turn.");
+    if (botToMove(game) !== null) fail("WRONG_PHASE", "A bot is already moving.");
+    if (Date.now() - game.updatedAt.toMillis() < STALL_MS) {
+      fail("TOO_EARLY", "Give them a little more time.");
+    }
+    tx.update(refs.game(input.gameId), {
+      botMoveVersion: game.version + 1,
       version: game.version + 1,
       updatedAt: FieldValue.serverTimestamp(),
     });

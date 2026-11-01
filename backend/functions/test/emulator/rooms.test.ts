@@ -5,7 +5,7 @@ interface Game {
   status: string;
   hostUid: string;
   roomKey: string;
-  players: { uid: string; name: string }[];
+  players: { uid: string; name: string; left?: boolean }[];
   playerUids: string[];
   settings: { noEvenBids: boolean };
   active: boolean;
@@ -141,23 +141,36 @@ describe("rooms", () => {
     );
   });
 
-  it("ends a running game for everyone when a player leaves", async () => {
+  it("lets a bot play for someone who leaves, and ends the game when no person is left", async () => {
     const players = await newPlayers("Anna", "Ben", "Cleo");
-    const [anna, ben] = players;
+    const [anna, ben, cleo] = players;
     const room = await setUpRoom(players);
-    await anna.call("startGame", { gameId: room.gameId });
+    const gameId = room.gameId;
+    await anna.call("startGame", { gameId });
 
-    await ben.call("leaveGame", { gameId: room.gameId });
-    const game = await anna.read<Game & { abandonedBy: string }>(`games/${room.gameId}`);
-    expect(game).toMatchObject({
+    // A waiting move can only be handed to a bot after 30 minutes, and not by its own player.
+    let game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    const mover = players.find((p) => p.uid === game.turnUid) as (typeof players)[number];
+    const other = players.find((p) => p.uid !== game.turnUid) as (typeof players)[number];
+    const version = game.version;
+    expect(await rejection(other.call("letBotMove", { gameId, version }))).toBe("TOO_EARLY");
+    expect(await rejection(mover.call("letBotMove", { gameId, version }))).toBe("WRONG_PHASE");
+
+    await ben.call("leaveGame", { gameId });
+    game = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    expect(game.active).toBe(true);
+    expect(game.players.find((p) => p.uid === ben.uid)?.left).toBe(true);
+    expect(await rejection(ben.call("placeBid", { gameId, bid: 0 }))).toBe("LEFT_GAME");
+
+    await cleo.call("leaveGame", { gameId });
+    await anna.call("leaveGame", { gameId });
+    expect(await anna.read<Game>(`games/${gameId}`)).toMatchObject({
       status: "abandoned",
       active: false,
-      abandonedBy: ben.uid,
+      abandonedBy: anna.uid,
       turnUid: null,
     });
-    expect(await rejection(anna.call("placeBid", { gameId: room.gameId, bid: 0 }))).toBe(
-      "GAME_OVER",
-    );
+    expect(await rejection(anna.call("placeBid", { gameId, bid: 0 }))).toBe("GAME_OVER");
   });
 
   it("lets the players of an ended game meet in a new lobby", async () => {
@@ -170,7 +183,8 @@ describe("rooms", () => {
     await anna.call("addBot", { gameId, level: "hard" });
     await anna.call("startGame", { gameId });
     expect(await rejection(ben.call("playAgain", { gameId }))).toBe("WRONG_PHASE");
-    await cleo.call("leaveGame", { gameId });
+    // The game ends once no person is left to play.
+    for (const player of [cleo, anna, ben]) await player.call("leaveGame", { gameId });
 
     // The first to ask hosts the new lobby, with the same rules and bots.
     const { gameId: nextId } = await ben.call<{ gameId: string }>("playAgain", { gameId });

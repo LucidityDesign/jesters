@@ -79,6 +79,8 @@ export function writeState(
   tx.set(refs.secret(gameId), secretDoc(next));
 
   game.playerUids.forEach((uid, seat) => {
+    // Someone who left (or deleted their data) gets no hand: a bot plays from the secret state.
+    if (game.players[seat]?.left) return;
     const hand = handDoc(next, seat);
     if (previous === null || !isDeepStrictEqual(hand, handDoc(previous, seat))) {
       tx.set(refs.hand(gameId, uid), hand);

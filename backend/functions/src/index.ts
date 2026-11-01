@@ -1,7 +1,7 @@
 import "./setup.js";
 
 export { deleteMyData } from "./api/account.js";
-export { chooseTrump, placeBid, playCard, setAutoPlay } from "./api/actions.js";
+export { chooseTrump, letBotMove, placeBid, playCard, setAutoPlay } from "./api/actions.js";
 export {
   addBot,
   createRoom,
@@ -13,5 +13,10 @@ export {
   updateSettings,
 } from "./api/rooms.js";
 export { createTransferCode, redeemTransferCode } from "./api/transfer.js";
-export { deleteEndedGames, expireStaleGames, sendTurnReminders } from "./scheduled.js";
+export {
+  askAboutStalledTurns,
+  deleteEndedGames,
+  expireStaleGames,
+  sendTurnReminders,
+} from "./scheduled.js";
 export { moveBot, onGameUpdated, onReaction } from "./triggers.js";

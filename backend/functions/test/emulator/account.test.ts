@@ -6,7 +6,7 @@ import { newPlayers, setUpRoom } from "./client.js";
 interface Game {
   status: string;
   hostUid: string;
-  players: { uid: string; name: string }[];
+  players: { uid: string; name: string; left?: boolean }[];
   playerUids: string[];
   active: boolean;
   abandonedBy?: string;
@@ -46,9 +46,11 @@ describe("deleteMyData", () => {
 
     await anna.call("deleteMyData");
 
-    const ended = (await ben.read<Game>(`games/${running.gameId}`)) as Game;
-    expect(ended).toMatchObject({ status: "abandoned", active: false, abandonedBy: anna.uid });
-    expect(ended.players.map((player) => player.name)).toEqual(["", "Ben", "Cleo"]);
+    // A bot plays on in her seat, without her name or a hand of hers.
+    const goingOn = (await ben.read<Game>(`games/${running.gameId}`)) as Game;
+    expect(goingOn).toMatchObject({ active: true });
+    expect(goingOn.players[0]).toEqual({ uid: anna.uid, name: "", left: true });
+    expect(goingOn.players.map((player) => player.name)).toEqual(["", "Ben", "Cleo"]);
     expect(await exists(`games/${running.gameId}/hands/${anna.uid}`)).toBe(false);
     expect(await exists(`games/${running.gameId}/hands/${ben.uid}`)).toBe(true);
     expect(await exists(reaction)).toBe(false);
