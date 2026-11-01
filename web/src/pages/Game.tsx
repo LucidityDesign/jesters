@@ -71,7 +71,7 @@ export function Game({ gameId, uid }: { gameId: string; uid: string }) {
       case "abandoned":
         return (
           <>
-            <GameOver game={game} uid={uid} />
+            <GameOver gameId={gameId} game={game} uid={uid} action={action} />
             <ErrorText message={action.error} />
           </>
         );

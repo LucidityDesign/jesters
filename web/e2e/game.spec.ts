@@ -53,6 +53,12 @@ test("three guests create, join and play the first two rounds", async ({ browser
 
   await expect(anna.getByRole("heading", { name: "Players (3 of 6)" })).toBeVisible();
   await expect(ben.getByText("Waiting for the host to start the game.")).toBeVisible();
+  // Reactions work in the lobby too: they float over the sender's name.
+  await ben.getByRole("button", { name: "React" }).click();
+  await ben.getByRole("button", { name: "👍" }).click();
+  await expect(
+    anna.locator(".lobby-name", { hasText: "Ben" }).getByRole("img", { name: "👍" }),
+  ).toBeVisible();
   await anna.getByRole("button", { name: "Start game" }).click();
 
   const players = [anna, ben, cleo];
@@ -97,6 +103,16 @@ test("three guests create, join and play the first two rounds", async ({ browser
   cleo.once("dialog", (dialog) => dialog.accept());
   await cleo.getByRole("button", { name: "Leave game" }).click();
   await expect(anna.getByText("Cleo left, so the game ended early.")).toBeVisible();
+
+  // Anna wants to play again and opens a new lobby; Ben joins it from the old game.
+  const oldGame = anna.url();
+  await anna.getByRole("button", { name: "Play again" }).click();
+  await expect(anna.getByRole("heading", { name: "Lobby" })).toBeVisible();
+  await ben.goto(oldGame);
+  await expect(ben.getByText("Anna wants to play again.")).toBeVisible();
+  await ben.getByRole("button", { name: "Join the new game" }).click();
+  await expect(ben.getByText("Waiting for the host to start the game.")).toBeVisible();
+  await expect(anna.getByRole("heading", { name: "Players (2 of 6)" })).toBeVisible();
 });
 
 test("a guest plays against two bots", async ({ browser }) => {

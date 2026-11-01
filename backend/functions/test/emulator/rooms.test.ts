@@ -11,6 +11,7 @@ interface Game {
   active: boolean;
   version: number;
   turnUid: string | null;
+  rematch?: { gameId: string; hostUid: string; uids: string[] };
 }
 
 describe("rooms", () => {
@@ -157,5 +158,52 @@ describe("rooms", () => {
     expect(await rejection(anna.call("placeBid", { gameId: room.gameId, bid: 0 }))).toBe(
       "GAME_OVER",
     );
+  });
+
+  it("lets the players of an ended game meet in a new lobby", async () => {
+    const players = await newPlayers("Anna", "Ben", "Cleo");
+    const [anna, ben, cleo] = players;
+    const dora = await newPlayer("Dora");
+    const room = await setUpRoom(players);
+    const gameId = room.gameId;
+    await anna.call("updateSettings", { gameId, noEvenBids: false });
+    await anna.call("addBot", { gameId, level: "hard" });
+    await anna.call("startGame", { gameId });
+    expect(await rejection(ben.call("playAgain", { gameId }))).toBe("WRONG_PHASE");
+    await cleo.call("leaveGame", { gameId });
+
+    // The first to ask hosts the new lobby, with the same rules and bots.
+    const { gameId: nextId } = await ben.call<{ gameId: string }>("playAgain", { gameId });
+    expect(nextId).not.toBe(gameId);
+    const old = (await anna.read<Game>(`games/${gameId}`)) as Game;
+    expect(old.rematch).toEqual({ gameId: nextId, hostUid: ben.uid, uids: [ben.uid] });
+    let next = (await ben.read<Game & { players: { bot?: string }[] }>(
+      `games/${nextId}`,
+    )) as Game & {
+      players: { uid: string; name: string; bot?: string }[];
+    };
+    const oldBot = old.players[3] as { uid: string; name: string };
+    expect(next).toMatchObject({
+      status: "lobby",
+      hostUid: ben.uid,
+      settings: { noEvenBids: false },
+    });
+    expect(next.players[0]).toEqual({ uid: ben.uid, name: "Ben" });
+    expect(next.players[1]).toMatchObject({ name: oldBot.name, bot: "hard" });
+    expect(next.players[1]?.uid).not.toBe(oldBot.uid);
+
+    // The others join it; asking again changes nothing.
+    expect((await anna.call<{ gameId: string }>("playAgain", { gameId })).gameId).toBe(nextId);
+    expect((await ben.call<{ gameId: string }>("playAgain", { gameId })).gameId).toBe(nextId);
+    next = (await anna.read(`games/${nextId}`)) as typeof next;
+    expect(next.playerUids).toEqual([ben.uid, next.players[1]?.uid, anna.uid]);
+    expect(((await anna.read<Game>(`games/${gameId}`)) as Game).rematch?.uids).toEqual([
+      ben.uid,
+      anna.uid,
+    ]);
+
+    expect(await rejection(dora.call("playAgain", { gameId }))).toBe("NOT_IN_GAME");
+    await ben.call("startGame", { gameId: nextId });
+    expect(await rejection(cleo.call("playAgain", { gameId }))).toBe("ALREADY_STARTED");
   });
 });

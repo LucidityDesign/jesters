@@ -9,6 +9,7 @@ import {
 import { api } from "../api";
 import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
 import { ErrorText, Page } from "../components/Layout";
+import { ReactionBubble, ReactionPicker } from "../components/Reactions";
 import { t } from "../i18n";
 import {
   type AutoPlay,
@@ -27,14 +28,7 @@ import {
   totals,
   trickLeader,
 } from "../model";
-import {
-  REACTION_COOLDOWN_MS,
-  REACTIONS,
-  reactionMotion,
-  type ShownReaction,
-  sendReaction,
-  useReactions,
-} from "../reactions";
+import { type ShownReaction, useReactions } from "../reactions";
 import {
   type Box,
   DEFAULT_TRICK_LAYOUT,
@@ -419,17 +413,7 @@ function Players({
                 +1
               </span>
             )}
-            {reaction && (
-              // Keyed by the reaction, so the same emoji pops again when it is sent twice.
-              <span
-                key={reaction.key}
-                className={`reaction reaction-${reactionMotion(reaction.emoji) ?? "float"}`}
-                role="img"
-                aria-label={reaction.emoji}
-              >
-                <span className="reaction-inner">{reaction.emoji}</span>
-              </span>
-            )}
+            {reaction && <ReactionBubble key={reaction.key} reaction={reaction} />}
             <span className="seat-name">
               {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
               {inTheLead.has(seat) && (
@@ -683,50 +667,6 @@ function Hand({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-/** A button that opens a row of emojis to react with; the emoji then floats over the own seat. */
-function ReactionPicker({ gameId, uid }: { gameId: string; uid: string }) {
-  const [open, setOpen] = useState(false);
-  const [coolingDown, setCoolingDown] = useState(false);
-  useEffect(() => {
-    if (!coolingDown) return;
-    const timer = setTimeout(() => setCoolingDown(false), REACTION_COOLDOWN_MS);
-    return () => clearTimeout(timer);
-  }, [coolingDown]);
-
-  return (
-    <div className="reactions" onKeyDown={(event) => event.key === "Escape" && setOpen(false)}>
-      {open && (
-        <div className="reaction-choices" role="group" aria-label={t("Reactions")}>
-          {REACTIONS.map((emoji) => (
-            <button
-              key={emoji}
-              className="reaction-choice"
-              disabled={coolingDown}
-              onClick={() => {
-                setOpen(false);
-                setCoolingDown(true);
-                // Reactions are a nice extra: a lost one is not worth an error message.
-                sendReaction(gameId, uid, emoji).catch(() => {});
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
-      <button
-        className="reaction-toggle"
-        aria-expanded={open}
-        aria-label={t("React")}
-        title={t("React")}
-        onClick={() => setOpen(!open)}
-      >
-        <span aria-hidden="true">😊</span>
-      </button>
     </div>
   );
 }

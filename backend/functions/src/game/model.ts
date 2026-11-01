@@ -126,6 +126,16 @@ export interface GameDoc extends PublicPlay {
   autoPlay?: Record<string, AutoPlay>;
   /** The rounds in which a bot moved for a person on auto-play, by uid (for the score sheet). */
   autoPlayedRounds?: Record<string, number[]>;
+  /** The new game for playing again, once someone started it after this one (see `playAgain`). */
+  rematch?: Rematch;
+}
+
+export interface Rematch {
+  gameId: string;
+  /** Who started it, the new game's host. */
+  hostUid: string;
+  /** Who went to the new game from this one, the host first. */
+  uids: string[];
 }
 
 /** `games/{gameId}/hands/{uid}`: readable only by that player. */

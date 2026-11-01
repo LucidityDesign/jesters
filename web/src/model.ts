@@ -96,6 +96,8 @@ export interface GameDoc {
   autoPlay?: Record<string, AutoPlay>;
   /** The rounds in which a bot moved for a person on auto-play, by uid. */
   autoPlayedRounds?: Record<string, number[]>;
+  /** The new game for playing again, once someone started it after this one. */
+  rematch?: { gameId: string; hostUid: string; uids: string[] };
 }
 
 /** `games/{gameId}/hands/{uid}`, readable only by that player. */

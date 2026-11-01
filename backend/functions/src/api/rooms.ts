@@ -1,8 +1,8 @@
 import { FieldValue, getFirestore, type Transaction } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
-import { AGGRESSION_RANGE } from "../bots/index.js";
+import { AGGRESSION_RANGE, normalizeLevel } from "../bots/index.js";
 import { createGame, MAX_PLAYERS, MIN_PLAYERS } from "../engine/index.js";
-import { type GameDoc, lobbyPlay } from "../game/model.js";
+import { type GameDoc, lobbyPlay, type Player } from "../game/model.js";
 import { generateRoomKey, normalizeRoomKey } from "../game/roomKey.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
 import { CALLABLE } from "../setup.js";
@@ -80,6 +80,15 @@ async function checkActiveGameLimit(uid: string): Promise<void> {
   }
 }
 
+/** A room key nobody uses (read in `tx`, so all of its writes must follow). */
+async function freeRoomKey(tx: Transaction): Promise<string> {
+  for (let attempt = 0; attempt < ROOM_KEY_ATTEMPTS; attempt++) {
+    const candidate = generateRoomKey(secureRandomInt);
+    if (!(await tx.get(refs.roomKey(candidate))).exists) return candidate;
+  }
+  throw new Error("Could not find a free room key.");
+}
+
 /** Creates a room in the lobby with the caller as host. Returns its id and room key. */
 export const createRoom = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
@@ -88,13 +97,7 @@ export const createRoom = onCall(CALLABLE, async (request) => {
 
   const gameRef = refs.games().doc();
   const roomKey = await getFirestore().runTransaction(async (tx) => {
-    let key: string | null = null;
-    for (let attempt = 0; attempt < ROOM_KEY_ATTEMPTS && key === null; attempt++) {
-      const candidate = generateRoomKey(secureRandomInt);
-      if (!(await tx.get(refs.roomKey(candidate))).exists) key = candidate;
-    }
-    if (key === null) throw new Error("Could not find a free room key.");
-
+    const key = await freeRoomKey(tx);
     tx.set(refs.roomKey(key), { gameId: gameRef.id });
     tx.set(gameRef, {
       ...lobbyPlay(),
@@ -208,6 +211,80 @@ export const updateSettings = onCall(CALLABLE, async (request) => {
     });
   });
   return { ok: true };
+});
+
+/**
+ * After a game: the first player to ask opens a new lobby with the same rules and bots, and becomes
+ * its host; the others who ask join that lobby. Returns the new game's id.
+ */
+export const playAgain = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const { gameId } = parse(GameInput, request.data);
+  await checkActiveGameLimit(uid);
+
+  const newRef = refs.games().doc();
+  const newGameId = await getFirestore().runTransaction(async (tx) => {
+    const game = await getMemberGame(tx, gameId, uid);
+    if (game.status !== "finished" && game.status !== "abandoned") {
+      fail("WRONG_PHASE", "This game is not over yet.");
+    }
+    const name = game.players.find((player) => player.uid === uid)?.name ?? "";
+    const rematch = game.rematch;
+
+    if (rematch) {
+      const next = (await tx.get(refs.game(rematch.gameId))).data();
+      if (!next) fail("GAME_NOT_FOUND", "The new game no longer exists.");
+      if (next.playerUids.includes(uid)) return rematch.gameId;
+      if (next.status !== "lobby") fail("ALREADY_STARTED", "The new game has already started.");
+      if (next.players.length >= MAX_PLAYERS) fail("ROOM_FULL", "The new game is full.");
+      tx.update(refs.game(rematch.gameId), {
+        players: [...next.players, { uid, name }],
+        playerUids: [...next.playerUids, uid],
+        version: next.version + 1,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      if (!rematch.uids.includes(uid)) {
+        tx.update(refs.game(gameId), {
+          "rematch.uids": FieldValue.arrayUnion(uid),
+          version: game.version + 1,
+        });
+      }
+      return rematch.gameId;
+    }
+
+    const key = await freeRoomKey(tx);
+    // The same bots, with new ids so they don't mix up the two games.
+    const bots: Player[] = game.players
+      .filter((player) => player.bot)
+      .map((bot) => ({
+        uid: `bot-${refs.games().doc().id}`,
+        name: bot.name,
+        bot: normalizeLevel(bot.bot as string) ?? "easy",
+        aggression: bot.aggression ?? randomAggression(),
+      }));
+    const players: Player[] = [{ uid, name }, ...bots];
+    tx.set(refs.roomKey(key), { gameId: newRef.id });
+    tx.set(newRef, {
+      ...lobbyPlay(),
+      roomKey: key,
+      hostUid: uid,
+      settings: game.settings,
+      players,
+      playerUids: players.map((player) => player.uid),
+      active: true,
+      version: 1,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      turnSince: null,
+    });
+    tx.update(refs.game(gameId), {
+      rematch: { gameId: newRef.id, hostUid: uid, uids: [uid] },
+      version: game.version + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return newRef.id;
+  });
+  return { gameId: newGameId };
 });
 
 /** The host removes another player or a bot from the lobby. */
