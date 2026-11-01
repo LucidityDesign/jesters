@@ -31,6 +31,8 @@ export const api = {
   addBot: (gameId: string, level: BotLevel) => call("addBot", { gameId, level }),
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),
   leaveGame: (gameId: string) => call("leaveGame", { gameId }),
+  /** Hands the move of a player who has kept everyone waiting to a bot. */
+  letBotMove: (gameId: string, version: number) => call("letBotMove", { gameId, version }),
   /** Starts or joins the new game after `gameId` ended. */
   playAgain: (gameId: string) => call<{ gameId: string }>("playAgain", { gameId }),
   chooseTrump: (gameId: string, version: number, suit: Suit) =>
@@ -73,6 +75,8 @@ const MESSAGES: Record<string, string> = {
   STALE_VERSION: "The game changed in the meantime. Please try again.",
   TOO_MANY_GAMES: "You are in too many games. Finish or leave one first.",
   NOT_YOUR_TURN: "It's not your turn.",
+  LEFT_GAME: "You left this game. A bot plays for you.",
+  TOO_EARLY: "Give them a little more time.",
   MUST_FOLLOW_SUIT: "You must follow suit.",
   BID_SUM_NOT_ALLOWED: "The total of all bids must not equal the number of cards.",
   INVALID_REQUEST: "Please check your input.",

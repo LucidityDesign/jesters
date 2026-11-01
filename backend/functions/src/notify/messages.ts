@@ -1,5 +1,5 @@
 import type { Timestamp } from "firebase-admin/firestore";
-import { botToMove, type GameDoc } from "../game/model.js";
+import { botToMove, type GameDoc, STALL_MS } from "../game/model.js";
 
 /**
  * A push notification for one player. Texts are localized on the device: `titleKey` and `bodyKey`
@@ -54,7 +54,7 @@ function toEveryone(
   message: Omit<PushMessage, "uid" | "gameId">,
 ): PushMessage[] {
   return game.players
-    .filter((player) => !player.bot && !except.includes(player.uid))
+    .filter((player) => !player.bot && !player.left && !except.includes(player.uid))
     .map((player) => ({ uid: player.uid, gameId, ...message }));
 }
 
@@ -95,6 +95,18 @@ export function notificationsFor(gameId: string, before: GameDoc, after: GameDoc
   }
 
   const messages: PushMessage[] = [];
+  for (const player of after.players) {
+    const was = before.players.find((p) => p.uid === player.uid);
+    if (player.left && was && !was.left) {
+      messages.push(
+        ...toEveryone(after, gameId, [player.uid], {
+          titleKey: "PUSH_TITLE_GAME",
+          bodyKey: "PUSH_LEFT_BOT",
+          args: [player.name],
+        }),
+      );
+    }
+  }
   if (before.status === "lobby" && after.status !== "lobby") {
     // The host started the game; whoever is first to act gets the "your turn" message instead.
     messages.push(
@@ -135,6 +147,26 @@ export function reminderFor(gameId: string, game: GameDoc, uid: string): PushMes
     bodyKey: "PUSH_REMINDER",
     args: [othersOf(game, uid)],
   };
+}
+
+/**
+ * Asks the other people whether a bot should make the move of a person who has kept them waiting
+ * for `STALL_MS`: only those who moved in the game since shortly before the wait began, so nobody
+ * is woken at night for a game everyone has left for the day.
+ */
+export function stalledTurnMessages(gameId: string, game: GameDoc): PushMessage[] {
+  const uid = game.turnUid;
+  if (!game.active || uid === null || botToMove(game) !== null) return [];
+  const since = game.updatedAt.toMillis();
+  const waiting = game.players.filter((player) => {
+    const last = player.uid === uid ? undefined : game.lastMoveAt?.[player.uid];
+    return last !== undefined && last.toMillis() >= since - STALL_MS;
+  });
+  return toEveryone(game, gameId, [uid], {
+    titleKey: "PUSH_TITLE_GAME",
+    bodyKey: "PUSH_STALLED",
+    args: [nameOf(game, uid)],
+  }).filter((message) => waiting.some((player) => player.uid === message.uid));
 }
 
 /** The emoji reactions, as allowed by firestore.rules (and REACTIONS in web/src/reactions.ts). */

@@ -78,4 +78,9 @@ export const SetAutoPlayInput = z
     message: "Choose minutes or rounds.",
   });
 
+export const LetBotMoveInput = z.object({
+  gameId: GameId,
+  version: z.number().int().nonnegative(),
+});
+
 export const RedeemTransferCodeInput = z.object({ code: z.string().max(32) });

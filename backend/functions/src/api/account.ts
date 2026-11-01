@@ -28,7 +28,10 @@ export const deleteMyData = onCall(CALLABLE, async (request) => {
       const game = (await tx.get(refs.game(gameId))).data();
       if (game?.playerUids.includes(uid)) {
         tx.update(refs.game(gameId), {
-          players: game.players.map((player) => (player.uid === uid ? { uid, name: "" } : player)),
+          // A bot keeps playing the seat of someone who left a running game.
+          players: game.players.map((player) =>
+            player.uid === uid ? { uid, name: "", ...(player.left ? { left: true } : {}) } : player,
+          ),
           version: game.version + 1,
         });
       }

@@ -2,8 +2,9 @@ import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { transferCodes } from "./api/transfer.js";
+import { STALL_MS } from "./game/model.js";
 import { refs } from "./game/store.js";
-import { reminderFor } from "./notify/messages.js";
+import { reminderFor, stalledTurnMessages } from "./notify/messages.js";
 import { sendPush, type UserDoc } from "./notify/push.js";
 import { EXPIRE_AFTER_MS, REMINDER_AFTER_MS, reminderDue } from "./notify/reminders.js";
 import { SCHEDULE_TIME_ZONE } from "./setup.js";
@@ -29,6 +30,34 @@ export const sendTurnReminders = onSchedule(
 
       await snapshot.ref.update({ lastReminderAt: FieldValue.serverTimestamp() });
       await sendPush([reminderFor(snapshot.id, game, game.turnUid)]);
+    }
+  },
+);
+
+/** Turns that waited longer than this aren't asked about any more (see `askAboutStalledTurns`). */
+const STALL_ASK_WINDOW_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * Every 5 minutes: asks the others whether a bot should move for a person who has kept them
+ * waiting for 30 minutes, once per turn.
+ */
+export const askAboutStalledTurns = onSchedule(
+  { schedule: "*/5 * * * *", timeZone: SCHEDULE_TIME_ZONE },
+  async () => {
+    const now = Date.now();
+    const stalled = await refs
+      .games()
+      .where("active", "==", true)
+      .where("updatedAt", "<=", Timestamp.fromMillis(now - STALL_MS))
+      .where("updatedAt", ">=", Timestamp.fromMillis(now - STALL_ASK_WINDOW_MS))
+      .get();
+
+    for (const snapshot of stalled.docs) {
+      const game = snapshot.data();
+      if (game.stallAskedVersion === game.version) continue;
+      // Not a change of the game: no new version, and the wait goes on.
+      await snapshot.ref.update({ stallAskedVersion: game.version });
+      await sendPush(stalledTurnMessages(snapshot.id, game));
     }
   },
 );

@@ -23,6 +23,8 @@ export interface Player {
   name: string;
   /** Set for computer players; the server makes their moves. Older games hold "beginner" (= easy). */
   bot?: string;
+  /** Left the running game: a bot plays this seat until the end. */
+  left?: boolean;
 }
 
 /** How strong the bots the host can add play. */
@@ -98,6 +100,10 @@ export interface GameDoc {
   autoPlayedRounds?: Record<string, number[]>;
   /** The new game for playing again, once someone started it after this one. */
   rematch?: { gameId: string; hostUid: string; uids: string[] };
+  /** The version whose waiting move another player handed to a bot. */
+  botMoveVersion?: number;
+  /** When the game last changed, i.e. since when the current turn has been waiting. */
+  updatedAt?: Timestamp | null;
 }
 
 /** `games/{gameId}/hands/{uid}`, readable only by that player. */
@@ -114,7 +120,28 @@ export function isRunning(status: GameStatus): boolean {
 }
 
 export function isMyTurn(game: GameDoc, uid: string): boolean {
-  return game.active && game.turnUid === uid;
+  return game.active && game.turnUid === uid && !hasLeft(game, uid);
+}
+
+/** Whether `uid` left this running game, so that a bot plays their seat. */
+export function hasLeft(game: GameDoc, uid: string): boolean {
+  return game.players.some((player) => player.uid === uid && player.left === true);
+}
+
+/** How long a turn may wait before the others may hand it to a bot (as in the backend). */
+export const STALL_MS = 30 * 60 * 1000;
+
+/**
+ * The person who has kept the others waiting for `STALL_MS` at `now` (ms), if a bot doesn't move
+ * for them anyway; else null.
+ */
+export function stalledSeat(game: GameDoc, now: number): number | null {
+  const seat = game.turnSeat;
+  const player = seat === null ? undefined : game.players[seat];
+  if (!game.active || seat === null || !player || player.bot || player.left) return null;
+  if (activeAutoPlay(game, player.uid, now) || game.botMoveVersion === game.version) return null;
+  const since = game.updatedAt?.toMillis();
+  return since !== undefined && now - since >= STALL_MS ? seat : null;
 }
 
 /**

@@ -97,15 +97,38 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await expect(lookBack.locator("tbody tr")).toHaveCount(3);
   await ben.screenshot({});
 
-  // The home screen lists the game; leaving ends it for everyone.
+  // The home screen lists the game.
+  const oldGame = anna.url();
   await ben.getByRole("link", { name: "Jesters" }).click();
   await expect(ben.getByRole("link", { name: /Anna, Ben/ })).toBeVisible();
-  cleo.once("dialog", (dialog) => dialog.accept());
+
+  // When Cleo leaves, a bot takes over her seat and the game goes on.
+  cleo.once("dialog", (dialog) => {
+    expect(dialog.message()).toContain("A bot will play your seat");
+    return dialog.accept();
+  });
   await cleo.getByRole("button", { name: "Leave game" }).click();
-  await expect(anna.getByText("Cleo left, so the game ended early.")).toBeVisible();
+  await expect(
+    anna.locator(".seat", { hasText: "Cleo" }).getByTitle("Left the game · a bot plays"),
+  ).toBeVisible();
+  await expect(cleo.getByRole("link", { name: /You left · a bot plays for you/ })).toBeVisible();
+
+  // Once no person is left playing, the game ends.
+  await ben.goto(oldGame);
+  ben.once("dialog", (dialog) => dialog.accept());
+  await ben.getByRole("button", { name: "Leave game" }).click();
+  await expect(
+    anna.locator(".seat", { hasText: "Ben" }).getByTitle("Left the game · a bot plays"),
+  ).toBeVisible();
+  anna.once("dialog", (dialog) => {
+    expect(dialog.message()).toBe("Leave and end the game for everyone?");
+    return dialog.accept();
+  });
+  await anna.getByRole("button", { name: "Leave game" }).click();
+  await anna.goto(oldGame);
+  await expect(anna.getByText("Anna left, so the game ended early.")).toBeVisible();
 
   // Anna wants to play again and opens a new lobby; Ben joins it from the old game.
-  const oldGame = anna.url();
   await anna.getByRole("button", { name: "Play again" }).click();
   await expect(anna.getByRole("heading", { name: "Lobby" })).toBeVisible();
   await ben.goto(oldGame);

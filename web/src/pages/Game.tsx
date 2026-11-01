@@ -3,7 +3,7 @@ import { ErrorText, Page } from "../components/Layout";
 import { RoundToast } from "../components/RoundToast";
 import { useDocument } from "../hooks";
 import { t } from "../i18n";
-import type { GameDoc, HandDoc } from "../model";
+import { type GameDoc, type HandDoc, hasLeft } from "../model";
 import { Link, navigate } from "../router";
 import { useAction } from "../useAction";
 import { GameOver } from "./GameOver";
@@ -34,7 +34,13 @@ export function Game({ gameId, uid }: { gameId: string; uid: string }) {
 
   const leave = async () => {
     const running = game.status !== "lobby";
-    const question = running ? t("Leave and end the game for everyone?") : t("Leave this game?");
+    // A bot plays on for the leaver while other people are still playing.
+    const othersPlay = game.players.some((p) => !p.bot && !p.left && p.uid !== uid);
+    const question = !running
+      ? t("Leave this game?")
+      : othersPlay
+        ? t("Leave the game? A bot will play your seat until the end.")
+        : t("Leave and end the game for everyone?");
     if (!window.confirm(question)) return;
     if (await action.run(() => api.leaveGame(gameId))) navigate("/");
   };
@@ -62,6 +68,14 @@ export function Game({ gameId, uid }: { gameId: string; uid: string }) {
       case "choosingTrump":
       case "bidding":
       case "playing":
+        if (hasLeft(game, uid)) {
+          return (
+            <Page title={t("You left this game")}>
+              <p>{t("A bot plays your seat until the end.")}</p>
+              <Link to="/">{t("Back to your games")}</Link>
+            </Page>
+          );
+        }
         return (
           <Table gameId={gameId} game={game} hand={hand ?? null} uid={uid} action={action}>
             {leaveButton}
