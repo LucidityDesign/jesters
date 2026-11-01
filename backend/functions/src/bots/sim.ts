@@ -118,8 +118,8 @@ export function playCard(sim: RoundSim, card: Card): void {
 }
 
 /** Plays the round to its end with the rollout policy for everyone. */
-export function playOut(sim: RoundSim): void {
-  while (sim.tricksLeft > 0) playCard(sim, rolloutCard(sim));
+export function playOut(sim: RoundSim, params: RolloutParams = ROLLOUT): void {
+  while (sim.tricksLeft > 0) playCard(sim, rolloutCard(sim, params));
 }
 
 /** A copy that can be played out without touching `sim`. */
@@ -141,30 +141,64 @@ export function scoreOf(sim: RoundSim, seat: number): number {
 // The rollout policy: every simulated player plays towards their own bid. A random policy would
 // make the search undervalue ducking, because it couldn't see the worth of saving strong cards.
 
+/** The rollout policy's thresholds. Tuned by self-play with `pnpm simulate tune`. */
+export interface RolloutParams {
+  /** Ducking with the lead: the highest side-suit rank still led as a low card. */
+  leadLowMaxRank: number;
+  /** Winning every trick: a winner this strong (see `strength`) is hard to beat for later players. */
+  hardToBeat: number;
+  /** Needing some tricks, with the lead: the lowest trump rank led as a strong card. */
+  strongLeadTrumpRank: number;
+  /** Needing some tricks, with the lead: the lowest side-suit rank led as a strong card. */
+  strongLeadSideRank: number;
+  /** Needing some tricks: the lowest trump rank whose win counts as nearly certain. */
+  nearlyCertainTrumpRank: number;
+  /** Needing some tricks: the highest side-suit rank that is cheap to win with. */
+  cheapSideMaxRank: number;
+  /** The lowest trump rank counted as a sure winner, besides Wizards (held back when ducking). */
+  sureTrumpRank: number;
+}
+
+export const ROLLOUT: RolloutParams = {
+  leadLowMaxRank: 9,
+  hardToBeat: 62,
+  strongLeadTrumpRank: 12,
+  strongLeadSideRank: 14,
+  nearlyCertainTrumpRank: 13,
+  cheapSideMaxRank: 14,
+  sureTrumpRank: 14,
+};
+
 const byStrength = (trump: Suit | null) => (a: Card, b: Card) =>
   strength(a, trump) - strength(b, trump);
 
+/** Whether the rollout policy holds `card` back as a sure winner (see `isSureWinner`). */
+function sure(card: Card, trump: Suit | null, p: RolloutParams): boolean {
+  const c = info(card);
+  return c.wizard || (c.suit !== null && c.suit === trump && c.rank >= p.sureTrumpRank);
+}
+
 /** The card the seat to move plays in a rollout, given only its own hand and the table. */
-export function rolloutCard(sim: RoundSim): Card {
+export function rolloutCard(sim: RoundSim, p: RolloutParams = ROLLOUT): Card {
   const seat = turnOf(sim);
   const hand = sim.hands[seat] as Card[];
   const legal = legalCards(hand, sim.trick).sort(byStrength(sim.trump));
   if (legal.length === 1) return legal[0] as Card;
   const needed = (sim.bids[seat] as number) - (sim.tricksWon[seat] as number);
-  if (needed <= 0) return duck(sim, legal, false);
-  if (needed >= sim.tricksLeft) return winEvery(sim, legal);
+  if (needed <= 0) return duck(sim, legal, false, p);
+  if (needed >= sim.tricksLeft) return winEvery(sim, legal, p);
   // With as many sure winners as tricks still needed, lose everything else and play them later.
-  const sure = hand.filter((card) => isSureWinner(card, sim.trump)).length;
-  if (sure >= needed) return duck(sim, legal, true);
-  return winIfCheap(sim, legal);
+  const sureCount = hand.filter((card) => sure(card, sim.trump, p)).length;
+  if (sureCount >= needed) return duck(sim, legal, true, p);
+  return winIfCheap(sim, legal, p);
 }
 
 /**
  * Loses the trick if it can, dumping the strongest card that can't win (liabilities first).
  * `keepSure` holds back sure winners, which are still needed later. `legal` is sorted weakest first.
  */
-function duck(sim: RoundSim, legal: Card[], keepSure: boolean): Card {
-  const kept = (card: Card) => keepSure && isSureWinner(card, sim.trump);
+function duck(sim: RoundSim, legal: Card[], keepSure: boolean, p: RolloutParams): Card {
+  const kept = (card: Card) => keepSure && sure(card, sim.trump, p);
   const jester = legal.find((card) => info(card).jester);
   if (sim.trick.length === 0) {
     // Whether a lead loses depends on the cards still to come: lead low, ideally a side suit.
@@ -173,7 +207,7 @@ function duck(sim: RoundSim, legal: Card[], keepSure: boolean): Card {
       return c.suit !== null && c.suit !== sim.trump;
     });
     const low = side[0];
-    if (low && info(low).rank <= 9) return low;
+    if (low && info(low).rank <= p.leadLowMaxRank) return low;
     if (jester) return jester;
     return legal.find((card) => !kept(card)) ?? (legal[0] as Card);
   }
@@ -188,7 +222,7 @@ function duck(sim: RoundSim, legal: Card[], keepSure: boolean): Card {
 }
 
 /** Every remaining trick is needed: take this one. `legal` is sorted weakest first. */
-function winEvery(sim: RoundSim, legal: Card[]): Card {
+function winEvery(sim: RoundSim, legal: Card[], p: RolloutParams): Card {
   if (sim.trick.length === 0) return legal.at(-1) as Card;
   const winners = legal.filter((card) => winsNow(sim.trick, card, sim.trump));
   if (winners.length === 0) {
@@ -198,31 +232,36 @@ function winEvery(sim: RoundSim, legal: Card[]): Card {
   const last = sim.trick.length === sim.playerCount - 1;
   if (last) return winners[0] as Card;
   // A later player may still beat a weak winner: play one that is hard to beat.
-  return winners.find((card) => strength(card, sim.trump) >= 62) ?? (winners.at(-1) as Card);
+  return (
+    winners.find((card) => strength(card, sim.trump) >= p.hardToBeat) ?? (winners.at(-1) as Card)
+  );
 }
 
 /**
  * Some tricks are needed, but not all: win only when it is cheap or nearly certain, otherwise
  * duck with the strongest card that loses, saving Wizards and high trumps for later tricks.
  */
-function winIfCheap(sim: RoundSim, legal: Card[]): Card {
+function winIfCheap(sim: RoundSim, legal: Card[], p: RolloutParams): Card {
   if (sim.trick.length === 0) {
-    // Lead a strong card that isn't a Wizard: a high trump, or a side-suit ace.
+    // Lead a strong card that isn't a Wizard: a high trump, or a high side-suit card.
     const strong = legal.filter((card) => {
       const c = info(card);
-      return (c.suit === sim.trump && c.rank >= 12) || (c.suit !== null && c.rank === 14);
+      if (c.suit === null) return false;
+      return c.suit === sim.trump
+        ? c.rank >= p.strongLeadTrumpRank
+        : c.rank >= p.strongLeadSideRank;
     });
-    return strong.at(-1) ?? duck(sim, legal, true);
+    return strong.at(-1) ?? duck(sim, legal, true, p);
   }
   const winners = legal.filter((card) => winsNow(sim.trick, card, sim.trump));
   const cheapest = winners[0];
-  if (!cheapest) return duck(sim, legal, true);
+  if (!cheapest) return duck(sim, legal, true, p);
   if (sim.trick.length === sim.playerCount - 1) return cheapest;
   const c = info(cheapest);
-  const cheap = !c.wizard && c.suit !== sim.trump;
-  const nearlyCertain = !c.wizard && c.suit === sim.trump && c.rank >= 13;
+  const cheap = !c.wizard && c.suit !== sim.trump && c.rank <= p.cheapSideMaxRank;
+  const nearlyCertain = !c.wizard && c.suit === sim.trump && c.rank >= p.nearlyCertainTrumpRank;
   if (cheap || nearlyCertain) return cheapest;
-  const ducked = duck(sim, legal, true);
+  const ducked = duck(sim, legal, true, p);
   return winsNow(sim.trick, ducked, sim.trump) ? cheapest : ducked;
 }
 
