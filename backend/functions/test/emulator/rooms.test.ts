@@ -7,7 +7,7 @@ interface Game {
   roomKey: string;
   players: { uid: string; name: string; left?: boolean }[];
   playerUids: string[];
-  settings: { noEvenBids: boolean };
+  settings: { noEvenBids: boolean; stallPenalty?: boolean };
   active: boolean;
   version: number;
   turnUid: string | null;
@@ -100,6 +100,12 @@ describe("rooms", () => {
     ).toBe("NOT_HOST");
     await anna.call("updateSettings", { gameId: room.gameId, noEvenBids: false });
     expect((await ben.read<Game>(`games/${room.gameId}`))?.settings).toEqual({ noEvenBids: false });
+    // Each rule changes on its own.
+    await anna.call("updateSettings", { gameId: room.gameId, stallPenalty: true });
+    expect((await ben.read<Game>(`games/${room.gameId}`))?.settings).toEqual({
+      noEvenBids: false,
+      stallPenalty: true,
+    });
 
     await anna.call("startGame", { gameId: room.gameId });
     expect(

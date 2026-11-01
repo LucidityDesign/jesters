@@ -159,7 +159,7 @@ export const startGame = onCall(CALLABLE, async (request) => {
     }
     const state = createGame({
       playerCount: game.players.length,
-      settings: game.settings,
+      settings: { noEvenBids: game.settings.noEvenBids },
       randomInt: secureRandomInt,
     });
     writeState(tx, gameId, game, null, state);
@@ -205,7 +205,11 @@ export const updateSettings = onCall(CALLABLE, async (request) => {
     if (game.hostUid !== uid) fail("NOT_HOST", "Only the host can change the rules.");
     if (game.status !== "lobby") fail("ALREADY_STARTED", "This game has already started.");
     tx.update(refs.game(input.gameId), {
-      settings: { ...game.settings, noEvenBids: input.noEvenBids },
+      settings: {
+        ...game.settings,
+        ...(input.noEvenBids === undefined ? {} : { noEvenBids: input.noEvenBids }),
+        ...(input.stallPenalty === undefined ? {} : { stallPenalty: input.stallPenalty }),
+      },
       version: game.version + 1,
       updatedAt: FieldValue.serverTimestamp(),
     });

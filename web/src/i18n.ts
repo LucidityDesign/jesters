@@ -104,6 +104,13 @@ export const DE: Record<string, string> = {
   "Give them a little more time.": "Gib noch etwas Zeit.",
   "{name} hasn't moved for {minutes} min.": "{name} hat seit {minutes} Min. nicht gespielt.",
   "Let a bot move": "Bot ziehen lassen",
+  "−{points} points for stalling": "−{points} Punkte fürs Warten-Lassen",
+  "When someone keeps everyone waiting for 30 minutes and the others let a bot move for them, they lose {points} points.":
+    "Wer alle 30 Minuten warten lässt und für wen die anderen dann einen Bot ziehen lassen, verliert {points} Punkte.",
+  "A bot move costs them {points} points.": "Ein Bot-Zug kostet {points} Punkte.",
+  "−{points} for stalling": "−{points} fürs Warten-Lassen",
+  "−{points} points for each move a bot made after stalling":
+    "−{points} Punkte für jeden Bot-Zug nach Warten-Lassen",
   "Leave this game?": "Dieses Spiel verlassen?",
   "Join my Jesters game with the room key {key}": "Spiel mit mir Jesters! Raumcode: {key}",
   "Invite players": "Mitspieler einladen",
