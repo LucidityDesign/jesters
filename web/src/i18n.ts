@@ -99,6 +99,9 @@ export const DE: Record<string, string> = {
   "A bot plays your seat until the end.": "Ein Bot spielt deinen Platz bis zum Ende.",
   "You left · a bot plays for you": "Verlassen · ein Bot spielt für dich",
   "Left the game · a bot plays": "Hat das Spiel verlassen · ein Bot spielt",
+  "Auto-play · {minutes} min left": "Autopilot · noch {minutes} Min.",
+  "Auto-play · until the end of round {round}": "Autopilot · bis Ende von Runde {round}",
+  "Auto-play · until they take over": "Autopilot · bis zur Übernahme",
   "You left this game. A bot plays for you.":
     "Du hast dieses Spiel verlassen. Ein Bot spielt für dich.",
   "Give them a little more time.": "Gib noch etwas Zeit.",

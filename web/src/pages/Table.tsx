@@ -300,6 +300,25 @@ function useNow(intervalMs: number | null, key: string): number {
   return now;
 }
 
+/**
+ * How long a bot keeps playing for a person, for the tooltip on their seat; null when no bot
+ * plays for them.
+ */
+function botModeNote(game: GameDoc, player: GameDoc["players"][number], now: number) {
+  if (player.bot) return null;
+  if (player.left) return t("Left the game · a bot plays");
+  const auto = activeAutoPlay(game, player.uid, now);
+  if (!auto) return null;
+  if (auto.until) {
+    const minutes = Math.max(1, Math.ceil((auto.until.toMillis() - now) / 60_000));
+    return t("Auto-play · {minutes} min left", { minutes });
+  }
+  if (auto.untilRound !== undefined) {
+    return t("Auto-play · until the end of round {round}", { round: auto.untilRound });
+  }
+  return t("Auto-play · until they take over");
+}
+
 /** When the player's auto-play ends, for the bar above the banner. */
 function autoPlayEnd(auto: AutoPlay, now: number): string {
   if (auto.until) {
@@ -412,6 +431,13 @@ function Players({
 }) {
   const scores = totals(game);
   const roundPoints = useRoundPoints(game);
+  // The seat whose bot-mode tooltip is open; it closes by itself after a while.
+  const [tipSeat, setTipSeat] = useState<number | null>(null);
+  useEffect(() => {
+    if (tipSeat === null) return;
+    const timer = setTimeout(() => setTipSeat(null), 4000);
+    return () => clearTimeout(timer);
+  }, [tipSeat]);
   const count = Math.max(game.players.length, 1);
   const dealer = t("Dealer");
   // A crown for the highest score, once there is one (not while everyone is level).
@@ -429,6 +455,8 @@ function Players({
         const { x, y } = seatPosition(seat, mySeat, count, 1);
         const made = bid !== null && won === bid;
         const reaction = reactions.get(player.uid);
+        const botNote = botModeNote(game, player, now);
+        const SeatName = botNote ? "button" : "span";
         return (
           <li
             key={player.uid}
@@ -442,7 +470,22 @@ function Players({
               </span>
             )}
             {reaction && <ReactionBubble key={reaction.key} reaction={reaction} />}
-            <span className="seat-name">
+            {botNote && tipSeat === seat && (
+              <span className="seat-tip" role="tooltip" id={`seat-tip-${seat}`}>
+                {botNote}
+              </span>
+            )}
+            <SeatName
+              className={botNote ? "seat-name seat-name-button" : "seat-name"}
+              {...(botNote
+                ? {
+                    type: "button" as const,
+                    title: botNote,
+                    "aria-describedby": tipSeat === seat ? `seat-tip-${seat}` : undefined,
+                    onClick: () => setTipSeat(tipSeat === seat ? null : seat),
+                  }
+                : {})}
+            >
               {isTurn && <span className="visually-hidden">{t("Current turn")}</span>}
               {inTheLead.has(seat) && (
                 <span className="crown" title={t("In the lead")}>
@@ -462,16 +505,10 @@ function Players({
                   </span>
                 </span>
               )}
-              {player.left && (
-                <span className="badge badge-auto" title={t("Left the game · a bot plays")}>
+              {botNote && (
+                <span className="badge badge-auto">
                   <span aria-hidden="true">🤖</span>
-                  <span className="visually-hidden">{t("Left the game · a bot plays")}</span>
-                </span>
-              )}
-              {!player.bot && !player.left && activeAutoPlay(game, player.uid, now) && (
-                <span className="badge badge-auto" title={t("Auto-play")}>
-                  <span aria-hidden="true">🤖</span>
-                  <span className="visually-hidden">{t("Auto-play")}</span>
+                  <span className="visually-hidden">{botNote}</span>
                 </span>
               )}
               {game.round?.dealerSeat === seat && (
@@ -480,7 +517,7 @@ function Players({
                   <span className="visually-hidden">{dealer}</span>
                 </span>
               )}
-            </span>
+            </SeatName>
             <span className="seat-stats">
               {/* Nothing to count before the player has bid. */}
               {bid !== null && (

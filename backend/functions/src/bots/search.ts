@@ -1,4 +1,5 @@
 import { type Card, forbiddenLastBid, type RandomInt } from "../engine/index.js";
+import { linesLeft, solveRound } from "./endgame.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
 import { sampleDeal } from "./knowledge.js";
 import {
@@ -32,6 +33,11 @@ export interface SearchBudget {
   fitBids: boolean;
   /** Stop and decide with what has been simulated so far after this long. */
   maxMillis: number;
+  /**
+   * Play the rest of a round exactly (see `endgame.ts`) once it has at most this many lines of
+   * play; 0 or unset always follows the rollout policy.
+   */
+  endgameLines?: number;
 }
 
 export interface SearchOptions {
@@ -57,6 +63,7 @@ export function searchPlay(
   const deadline = now() + budget.maxMillis;
   const random = fastRandom(randomInt(2 ** 31));
   const totals = candidates.map(() => 0);
+  const judge = judgeFor(view);
 
   for (let deal = 0; deal < budget.playDeals; deal++) {
     if (deal > 0 && now() > deadline) break;
@@ -64,11 +71,28 @@ export function searchPlay(
     candidates.forEach((card, i) => {
       const copy = cloneSim(sim);
       playCard(copy, card);
-      playOut(copy);
-      totals[i] = (totals[i] as number) + scoreOf(copy, view.seat);
+      totals[i] = (totals[i] as number) + finish(copy, view.seat, budget, judge);
     });
   }
   return pickCard(view, candidates, totals);
+}
+
+/** How the bot values the end of a round: by its own points. */
+function judgeFor(view: BotView): (scores: number[]) => number {
+  return (scores) => scores[view.seat] as number;
+}
+
+/** Plays `sim` to the end of the round (exactly, if it is short enough) and values the outcome. */
+function finish(
+  sim: RoundSim,
+  seat: number,
+  budget: SearchBudget,
+  judge: (scores: number[]) => number,
+): number {
+  const limit = budget.endgameLines ?? 0;
+  if (limit > 0 && linesLeft(sim, limit) <= limit) return judge(solveRound(sim, seat, judge));
+  playOut(sim);
+  return judge(sim.bids.map((_, s) => scoreOf(sim, s)));
 }
 
 /**
@@ -124,6 +148,7 @@ export function searchBid(
   const deadline = now() + budget.maxMillis;
   const random = fastRandom(randomInt(2 ** 31));
   const deals: Card[][][] = [];
+  const judge = judgeFor(view);
   const dealAt = (index: number) => {
     while (deals.length <= index) deals.push(sampleDeal(view, budget, random));
     return deals[index] as Card[][];
@@ -139,8 +164,7 @@ export function searchBid(
       if (deal > first && now() > deadline) return;
       for (const bid of bids) {
         const sim = biddingSim(view, dealAt(deal), bid);
-        playOut(sim);
-        totals.set(bid, (totals.get(bid) as number) + scoreOf(sim, view.seat));
+        totals.set(bid, (totals.get(bid) as number) + finish(sim, view.seat, budget, judge));
         counts.set(bid, (counts.get(bid) as number) + 1);
       }
     }
