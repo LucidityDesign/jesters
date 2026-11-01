@@ -1,5 +1,5 @@
 import type { Timestamp } from "firebase-admin/firestore";
-import { botToMove, type GameDoc, STALL_MS } from "../game/model.js";
+import { botToMove, finalTotals, type GameDoc, STALL_MS } from "../game/model.js";
 
 /**
  * A push notification for one player. Texts are localized on the device: `titleKey` and `bodyKey`
@@ -84,7 +84,7 @@ export function notificationsFor(gameId: string, before: GameDoc, after: GameDoc
   }
 
   if (after.status === "finished" && before.status !== "finished") {
-    const totals = after.results.at(-1)?.totals ?? [];
+    const totals = finalTotals(after);
     const best = Math.max(...totals);
     const winners = after.players.filter((_, seat) => totals[seat] === best).map((p) => p.name);
     return toEveryone(after, gameId, [], {

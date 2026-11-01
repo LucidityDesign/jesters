@@ -6,6 +6,7 @@ import {
   botToMove,
   type GameDoc,
   STALL_MS,
+  STALL_PENALTY,
   stateFromSecret,
 } from "../game/model.js";
 import { refs, secureRandomInt, writeState } from "../game/store.js";
@@ -123,7 +124,13 @@ export const letBotMove = onCall(CALLABLE, async (request) => {
     if (Date.now() - game.updatedAt.toMillis() < STALL_MS) {
       fail("TOO_EARLY", "Give them a little more time.");
     }
+    const round = game.round?.number ?? 1;
     tx.update(refs.game(input.gameId), {
+      ...(game.settings.stallPenalty && game.turnUid
+        ? {
+            [`stallPenalties.${game.turnUid}.${round}`]: FieldValue.increment(STALL_PENALTY),
+          }
+        : {}),
       botMoveVersion: game.version + 1,
       version: game.version + 1,
       updatedAt: FieldValue.serverTimestamp(),

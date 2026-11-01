@@ -1,13 +1,15 @@
 import type { Timestamp } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 import { gameWith, seededRandom } from "../../test/helpers.js";
-import { reduce } from "../engine/index.js";
+import { type RoundResult, reduce } from "../engine/index.js";
 import {
   botToMove,
+  finalTotals,
   handDoc,
   lobbyPlay,
   type Player,
   type PublicRound,
+  penaltyOf,
   publicPlay,
   secretDoc,
   stateFromSecret,
@@ -176,5 +178,27 @@ describe("botToMove", () => {
     expect(botToMove({ active: true, players, turnSeat: 0 })).toBeNull();
     expect(botToMove({ active: true, players, turnSeat: null })).toBeNull();
     expect(botToMove({ active: false, players, turnSeat: 1 })).toBeNull();
+  });
+});
+
+describe("stall penalties", () => {
+  const game = {
+    players: [
+      { uid: "a", name: "Anna" },
+      { uid: "b", name: "Ben" },
+    ],
+    results: [{ totals: [30, 20] }, { totals: [60, 10] }] as unknown as RoundResult[],
+    stallPenalties: { b: { "1": 5, "2": 10 } },
+  };
+
+  it("counts the points lost up to a round", () => {
+    expect(penaltyOf(game, "b", 1)).toBe(5);
+    expect(penaltyOf(game, "b")).toBe(15);
+    expect(penaltyOf(game, "a")).toBe(0);
+  });
+
+  it("takes them off the totals", () => {
+    expect(finalTotals(game)).toEqual([60, -5]);
+    expect(finalTotals({ ...game, results: [] })).toEqual([0, -15]);
   });
 });

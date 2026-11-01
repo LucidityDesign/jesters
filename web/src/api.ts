@@ -25,8 +25,8 @@ export const api = {
   createRoom: (name: string) => call<{ gameId: string; roomKey: string }>("createRoom", { name }),
   joinRoom: (roomKey: string, name: string) =>
     call<{ gameId: string }>("joinRoom", { roomKey, name }),
-  updateSettings: (gameId: string, noEvenBids: boolean) =>
-    call("updateSettings", { gameId, noEvenBids }),
+  updateSettings: (gameId: string, settings: { noEvenBids?: boolean; stallPenalty?: boolean }) =>
+    call("updateSettings", { gameId, ...settings }),
   startGame: (gameId: string) => call("startGame", { gameId }),
   addBot: (gameId: string, level: BotLevel) => call("addBot", { gameId, level }),
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),

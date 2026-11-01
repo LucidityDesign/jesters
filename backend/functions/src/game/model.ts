@@ -42,6 +42,15 @@ export interface AutoPlay {
  */
 export const STALL_MS = 30 * 60 * 1000;
 
+/** Points a person loses for each stalled move the others hand to a bot, if the host chose so. */
+export const STALL_PENALTY = 5;
+
+/** The rules of a game: the engine's, plus the table's own. */
+export interface GameSettings extends Settings {
+  /** Whether a person loses `STALL_PENALTY` points for each stalled move handed to a bot. */
+  stallPenalty?: boolean;
+}
+
 /** The bot level that plays for people on auto-play (or who left). People can't choose it. */
 export const AUTO_PLAY_LEVEL: BotLevel = "medium";
 
@@ -117,7 +126,7 @@ export interface PublicPlay {
 export interface GameDoc extends PublicPlay {
   roomKey: string;
   hostUid: string;
-  settings: Settings;
+  settings: GameSettings;
   players: Player[];
   playerUids: string[];
   /** False once finished or abandoned. Used for "my active games" queries. */
@@ -141,6 +150,8 @@ export interface GameDoc extends PublicPlay {
   autoPlayedRounds?: Record<string, number[]>;
   /** The new game for playing again, once someone started it after this one (see `playAgain`). */
   rematch?: Rematch;
+  /** Points lost for stalled moves, by uid and then by round (see `letBotMove`). */
+  stallPenalties?: Record<string, Record<string, number>>;
   /** The version whose waiting move another player handed to a bot (see `letBotMove`). */
   botMoveVersion?: number;
   /** The version whose stalled turn the others were asked about (see `askAboutStalledTurns`). */
@@ -224,4 +235,23 @@ export function stateFromSecret(doc: SecretDoc): GameState {
   const state = JSON.parse(doc.state) as GameState;
   // Games saved before the engine kept the round's tricks start their history late.
   return { ...state, roundTricks: state.roundTricks ?? [] };
+}
+
+/** The points `uid` lost for stalled moves, in rounds up to `round` (all rounds by default). */
+export function penaltyOf(
+  game: Pick<GameDoc, "stallPenalties">,
+  uid: string,
+  round = Number.POSITIVE_INFINITY,
+): number {
+  return Object.entries(game.stallPenalties?.[uid] ?? {})
+    .filter(([r]) => Number(r) <= round)
+    .reduce((sum, [, points]) => sum + points, 0);
+}
+
+/** Each seat's score: the last round's totals, less the points lost for stalled moves. */
+export function finalTotals(
+  game: Pick<GameDoc, "results" | "players" | "stallPenalties">,
+): number[] {
+  const totals = game.results.at(-1)?.totals ?? [];
+  return game.players.map((player, seat) => (totals[seat] ?? 0) - penaltyOf(game, player.uid));
 }

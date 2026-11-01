@@ -30,7 +30,11 @@ export const JoinRoomInput = z.object({
 
 export const GameInput = z.object({ gameId: GameId });
 
-export const UpdateSettingsInput = z.object({ gameId: GameId, noEvenBids: z.boolean() });
+export const UpdateSettingsInput = z.object({
+  gameId: GameId,
+  noEvenBids: z.boolean().optional(),
+  stallPenalty: z.boolean().optional(),
+});
 
 export const AddBotInput = z.object({
   gameId: GameId,

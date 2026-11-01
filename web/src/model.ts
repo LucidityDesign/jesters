@@ -80,7 +80,7 @@ export interface GameDoc {
   status: GameStatus;
   roomKey: string;
   hostUid: string;
-  settings: { noEvenBids: boolean };
+  settings: { noEvenBids: boolean; stallPenalty?: boolean };
   players: Player[];
   playerUids: string[];
   active: boolean;
@@ -100,6 +100,8 @@ export interface GameDoc {
   autoPlayedRounds?: Record<string, number[]>;
   /** The new game for playing again, once someone started it after this one. */
   rematch?: { gameId: string; hostUid: string; uids: string[] };
+  /** Points lost for stalled moves, by uid and then by round. */
+  stallPenalties?: Record<string, Record<string, number>>;
   /** The version whose waiting move another player handed to a bot. */
   botMoveVersion?: number;
   /** When the game last changed, i.e. since when the current turn has been waiting. */
@@ -176,7 +178,21 @@ export function lastRoundSummary(game: GameDoc, uid: string): RoundSummary | nul
 
 /** Current total score by seat. */
 export function totals(game: GameDoc): number[] {
-  return game.results.at(-1)?.totals ?? game.players.map(() => 0);
+  const last = game.results.at(-1)?.totals ?? [];
+  return game.players.map((player, seat) => (last[seat] ?? 0) - penaltyOf(game, player.uid));
+}
+
+/** Points a person loses for each stalled move the others hand to a bot, if the host chose so. */
+export const STALL_PENALTY = 5;
+
+/**
+ * The points `uid` lost for stalled moves in round `round` only, or in all rounds up to it
+ * (`upTo`), or in all rounds (no round). Mirrors `penaltyOf` in the backend.
+ */
+export function penaltyOf(game: GameDoc, uid: string, round?: number, upTo = false): number {
+  return Object.entries(game.stallPenalties?.[uid] ?? {})
+    .filter(([r]) => round === undefined || (upTo ? Number(r) <= round : Number(r) === round))
+    .reduce((sum, [, points]) => sum + points, 0);
 }
 
 /** Seats with the highest total. */

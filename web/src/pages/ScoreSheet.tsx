@@ -1,6 +1,6 @@
 import { Medal } from "../components/Medal";
 import { t } from "../i18n";
-import { type GameDoc, places } from "../model";
+import { type GameDoc, penaltyOf, places, STALL_PENALTY } from "../model";
 import { nameAt } from "./Home";
 
 /** Rounds × players: running total, with bid / tricks won below. 🤖 marks auto-played rounds. */
@@ -14,6 +14,7 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
   const anyAutoPlayed = game.results.some((result) =>
     game.players.some((player) => autoPlayed(player.uid, result.round)),
   );
+  const anyPenalty = game.players.some((player) => penaltyOf(game, player.uid) > 0);
   return (
     <div className="score-sheet">
       <table>
@@ -35,6 +36,7 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
               {game.players.map((player, seat) => {
                 const bid = result.bids[seat] ?? 0;
                 const won = result.won[seat] ?? 0;
+                const penalty = penaltyOf(game, player.uid, result.round);
                 return (
                   <td key={player.uid}>
                     {autoPlayed(player.uid, result.round) && (
@@ -43,7 +45,18 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
                         <span className="visually-hidden">{t("Played by auto-play")}</span>
                       </span>
                     )}
-                    {result.totals[seat] ?? 0}
+                    {penalty > 0 && (
+                      <span
+                        className="auto-played"
+                        title={t("−{points} for stalling", { points: penalty })}
+                      >
+                        <span aria-hidden="true">⏳</span>
+                        <span className="visually-hidden">
+                          {t("−{points} for stalling", { points: penalty })}
+                        </span>
+                      </span>
+                    )}
+                    {(result.totals[seat] ?? 0) - penaltyOf(game, player.uid, result.round, true)}
                     <small
                       className={(result.deltas[seat] ?? 0) > 0 ? "plus" : "minus"}
                       aria-label={t("Bid {bid}, won {won}", { bid, won })}
@@ -60,6 +73,8 @@ export function ScoreSheet({ game }: { game: GameDoc }) {
       <p className="hint">
         {t("Small numbers: bid / tricks won")}
         {anyAutoPlayed && ` · 🤖 ${t("Played by auto-play")}`}
+        {anyPenalty &&
+          ` · ⏳ ${t("−{points} points for each move a bot made after stalling", { points: STALL_PENALTY })}`}
       </p>
     </div>
   );

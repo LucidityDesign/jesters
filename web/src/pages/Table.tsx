@@ -23,6 +23,7 @@ import {
   type LastTrick,
   lastTrickOfRound,
   leaders,
+  STALL_PENALTY,
   SUITS,
   sortHand,
   stalledSeat,
@@ -139,6 +140,8 @@ export function Table({
               name: nameAt(game, stalled),
               minutes: Math.floor((now - (game.updatedAt?.toMillis() ?? now)) / 60_000),
             })}
+            {game.settings.stallPenalty &&
+              ` ${t("A bot move costs them {points} points.", { points: STALL_PENALTY })}`}
           </span>
           <button
             className="primary"

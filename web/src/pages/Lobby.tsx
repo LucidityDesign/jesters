@@ -10,6 +10,7 @@ import {
   type GameDoc,
   MAX_PLAYERS,
   MIN_PLAYERS,
+  STALL_PENALTY,
 } from "../model";
 import { useReactions } from "../reactions";
 import { load, save } from "../storage";
@@ -150,13 +151,32 @@ export function Lobby({
             type="checkbox"
             checked={game.settings.noEvenBids}
             disabled={!isHost || action.isSending}
-            onChange={(event) => action.run(() => api.updateSettings(gameId, event.target.checked))}
+            onChange={(event) =>
+              action.run(() => api.updateSettings(gameId, { noEvenBids: event.target.checked }))
+            }
           />
           <span>{t("No even bids")}</span>
         </label>
         <p className="hint">
           {t(
             "With this rule, the dealer may not bid so that the total of all bids equals the number of cards.",
+          )}
+        </p>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={game.settings.stallPenalty === true}
+            disabled={!isHost || action.isSending}
+            onChange={(event) =>
+              action.run(() => api.updateSettings(gameId, { stallPenalty: event.target.checked }))
+            }
+          />
+          <span>{t("−{points} points for stalling", { points: STALL_PENALTY })}</span>
+        </label>
+        <p className="hint">
+          {t(
+            "When someone keeps everyone waiting for 30 minutes and the others let a bot move for them, they lose {points} points.",
+            { points: STALL_PENALTY },
           )}
         </p>
       </section>

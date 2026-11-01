@@ -59,6 +59,11 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await expect(
     anna.locator(".lobby-name", { hasText: "Ben" }).getByRole("img", { name: "👍" }),
   ).toBeVisible();
+  // The host may let stalling cost points; everyone sees the rule.
+  // The box shows the server's state, so it changes once the server has it.
+  await anna.getByLabel("−5 points for stalling").click();
+  await expect(anna.getByLabel("−5 points for stalling")).toBeChecked();
+  await expect(ben.getByLabel("−5 points for stalling")).toBeChecked();
   await anna.getByRole("button", { name: "Start game" }).click();
 
   const players = [anna, ben, cleo];
