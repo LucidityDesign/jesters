@@ -90,9 +90,7 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await expect(anna.getByRole("heading", { name: "Round 3 of 20" })).toBeVisible();
 
   await anna.getByText("Scores").click();
-  // Two scored rounds, then round 3 in progress.
-  await expect(anna.locator(".score-sheet tbody tr:not(.current-round)")).toHaveCount(2);
-  await expect(anna.locator(".score-sheet .current-round th")).toContainText("3");
+  await expect(anna.locator(".score-sheet tbody tr")).toHaveCount(2);
 
   // At the start of round 3, the look back shows round 2's last trick and how round 2 went.
   await ben.getByRole("button", { name: "Last trick and round" }).click();
@@ -184,11 +182,6 @@ test("a guest plays against two bots", async ({ browser }) => {
   await erik.getByRole("button", { name: "Rounds: 2" }).click();
   const bar = erik.locator(".auto-play-bar");
   await expect(bar).toContainText("Auto-play is on · until the end of round 4");
-  // The score sheet marks the round in progress at once.
-  await erik.getByText("Scores").click();
-  await expect(
-    erik.locator(".score-sheet .current-round").getByTitle("Played by auto-play"),
-  ).toBeVisible();
   // Tapping a seat in bot mode tells how long the bot keeps playing.
   await erik.locator(".seat-name-button", { hasText: "Erik" }).click();
   const tip = erik.getByRole("tooltip");
@@ -209,11 +202,6 @@ test("a guest plays against two bots", async ({ browser }) => {
   });
   await bar.getByRole("button", { name: "Take over" }).click();
   await expect(bar).toBeHidden();
-  // And keeps the mark on the rounds the bot played for Erik.
-  const roundThreeScores = erik.locator(".score-sheet tbody tr", {
-    has: erik.getByRole("rowheader", { name: "3" }),
-  });
-  await expect(roundThreeScores.getByTitle("Played by auto-play")).toBeVisible();
 });
 
 test("a player removed from the lobby sees that the game is gone", async ({ browser }) => {

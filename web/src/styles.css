@@ -1676,12 +1676,6 @@ ol.list {
   font-size: 0.75rem;
 }
 
-/* The round in progress: totals so far, not yet scored. */
-.score-sheet .current-round {
-  color: var(--muted);
-  font-style: italic;
-}
-
 .score-sheet small {
   display: block;
   font-size: 0.75rem;

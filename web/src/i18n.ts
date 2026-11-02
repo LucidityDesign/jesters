@@ -218,8 +218,6 @@ export const DE: Record<string, string> = {
   Close: "Schließen",
   "Small numbers: bid / tricks won": "Kleine Zahlen: Ansage / gemachte Stiche",
   "Played by auto-play": "Vom Autopilot gespielt",
-  "Round in progress": "Laufende Runde",
-  "No bid yet": "Noch keine Ansage",
   "Play again with the same players?": "Noch eine Runde mit denselben Leuten?",
   "Play again": "Noch einmal spielen",
   "{name} wants to play again.": "{name} möchte noch einmal spielen.",
