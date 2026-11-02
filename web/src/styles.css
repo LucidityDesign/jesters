@@ -1450,53 +1450,6 @@ ol.list {
   }
 }
 
-/* Puffs of smoke rise from the glowing tip, at the top right in the common emoji fonts. */
-.reaction-smoke .reaction-inner {
-  position: relative;
-}
-
-.reaction-smoke .reaction-inner::before,
-.reaction-smoke .reaction-inner::after {
-  content: "";
-  position: absolute;
-  top: 5%;
-  right: 2%;
-  width: 0.3em;
-  height: 0.3em;
-  border-radius: 50%;
-  background: rgb(150 150 150 / 0.75);
-  opacity: 0;
-  animation: reaction-smoke 1.2s ease-out 0.35s infinite;
-}
-
-.reaction-smoke .reaction-inner::after {
-  animation-delay: 0.95s;
-}
-
-@keyframes reaction-smoke {
-  0% {
-    transform: translate(0, 0) scale(0.5);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(-4px, -22px) scale(1.8);
-    opacity: 0;
-  }
-}
-
-.reaction-groove .reaction-inner {
-  animation: reaction-groove 0.5s ease-in-out 0.35s 6;
-}
-
-@keyframes reaction-groove {
-  50% {
-    transform: translateY(3px) rotate(6deg);
-  }
-}
-
 /*
  * The snail crawls slowly across the top of the seat instead of floating up, the way it looks:
  * left in most emoji fonts, right in Apple's (see reactionMotion in reactions.ts).
