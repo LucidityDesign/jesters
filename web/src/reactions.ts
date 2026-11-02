@@ -20,6 +20,10 @@ export const REACTIONS = [
   "👑",
   "🐥",
   "🐌",
+  "😭",
+  "😴",
+  "🥱",
+  "🙄",
 ] as const;
 
 /**
@@ -39,6 +43,10 @@ export const REACTION_MOTION: Readonly<Record<string, string>> = {
   "👑": "crown",
   "🐥": "hop",
   "🐌": "crawl",
+  "😭": "sob",
+  "😴": "sleep",
+  "🥱": "yawn",
+  "🙄": "roll",
 };
 
 /** Apple's emoji font draws the snail facing right; the others draw it facing left. */

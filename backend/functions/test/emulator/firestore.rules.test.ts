@@ -101,6 +101,14 @@ describe("reactions", () => {
     });
     // ❤️ with its emoji variation selector, as the picker sends it.
     await assertSucceeds(react("bob", "❤️"));
+    for (const emoji of ["😭", "😴", "🥱", "🙄"]) {
+      await env.withSecurityRulesDisabled(async (context) => {
+        await updateDoc(doc(context.firestore(), "games/rules-g1/reactions/bob"), {
+          at: Timestamp.fromMillis(Date.now() - 2000),
+        });
+      });
+      await assertSucceeds(react("bob", emoji));
+    }
   });
 
   it("are readable by the game's players only", async () => {
