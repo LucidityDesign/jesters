@@ -898,6 +898,16 @@ ol.list {
   min-width: 48px;
 }
 
+.bid-picker-queue .hint {
+  margin: 0 0 6px;
+}
+
+.queued-rejected {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .trump-picker {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -6,7 +6,9 @@ import {
   forbiddenBid,
   type GameState,
   legalCardsFor,
+  type RandomInt,
   type RoundResult,
+  reduce,
   type Settings,
   type Suit,
 } from "../engine/index.js";
@@ -173,6 +175,18 @@ export interface HandDoc {
   legalCards: Card[];
   /** The bid this player may not make now ("no even bids"), or null. */
   forbiddenBid: number | null;
+  /** The bid this player queued for the current round before their turn, or null. */
+  queuedBid?: QueuedBid | null;
+}
+
+/**
+ * A bid a person chose before their turn, placed for them as soon as it is their turn. `rejected`
+ * once the rules ruled it out then ("no even bids"): the person has to bid again themselves.
+ */
+export interface QueuedBid {
+  round: number;
+  bid: number;
+  rejected?: true;
 }
 
 /** `games/{gameId}/secret/state`: not readable by clients. */
@@ -180,6 +194,8 @@ export interface SecretDoc {
   /** Engine `GameState` as JSON (Firestore cannot store nested arrays). */
   state: string;
   schema: 1;
+  /** Bids queued by uid, kept secret until they are placed. */
+  queuedBids?: Record<string, QueuedBid>;
 }
 
 export function lobbyPlay(): PublicPlay {
@@ -219,12 +235,55 @@ function lastTrick(trick: CompletedTrick): PublicLastTrick {
   return { leaderSeat: trick.leader, cards: trick.cards, winnerSeat: trick.winner };
 }
 
-export function handDoc(state: GameState, seat: number): HandDoc {
+export function handDoc(state: GameState, seat: number, queued?: QueuedBid): HandDoc {
   return {
     cards: state.hands[seat] ?? [],
     legalCards: legalCardsFor(state, seat),
     forbiddenBid: state.turn === seat ? forbiddenBid(state, seat) : null,
+    queuedBid: queued ?? null,
   };
+}
+
+/** Whether `seat` may still queue a bid: bidding (or the trump choice before it) and no bid yet. */
+export function canQueueBid(state: GameState, seat: number): boolean {
+  return (
+    (state.phase === "bidding" || state.phase === "choosingTrump") && state.bids[seat] === null
+  );
+}
+
+/**
+ * Places the queued bids of whoever's turn it is, one after another, until it is the turn of
+ * someone without one. A queued bid the rules rule out is kept as `rejected` and stops there: that
+ * person bids again themselves. Drops queued bids that no longer apply (placed, or an old round).
+ */
+export function applyQueuedBids(
+  state: GameState,
+  playerUids: readonly string[],
+  queued: Readonly<Record<string, QueuedBid>>,
+  random: RandomInt,
+): { state: GameState; queued: Record<string, QueuedBid> } {
+  const keep = (s: GameState) =>
+    Object.fromEntries(
+      Object.entries(queued).filter(([uid, q]) => {
+        const seat = playerUids.indexOf(uid);
+        return seat >= 0 && q.round === s.round && canQueueBid(s, seat);
+      }),
+    );
+  let next = state;
+  let left = keep(next);
+  while (next.phase === "bidding" && next.turn !== null) {
+    const uid = playerUids[next.turn];
+    const q = uid === undefined ? undefined : left[uid];
+    if (uid === undefined || !q || q.rejected) break;
+    const result = reduce(next, { type: "bid", seat: next.turn, bid: q.bid }, random);
+    if (!result.ok) {
+      left = { ...left, [uid]: { ...q, rejected: true } };
+      break;
+    }
+    next = result.state;
+    left = keep(next);
+  }
+  return { state: next, queued: left };
 }
 
 export function secretDoc(state: GameState): SecretDoc {

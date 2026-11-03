@@ -218,6 +218,12 @@ export const DE: Record<string, string> = {
   Close: "Schließen",
   "Small numbers: bid / tricks won": "Kleine Zahlen: Ansage / gemachte Stiche",
   "Played by auto-play": "Vom Autopilot gespielt",
+  "Your queued bid of {bid} isn't possible. Choose again.":
+    "Deine vorgemerkte Ansage {bid} ist nicht möglich. Wähle neu.",
+  "Choose your bid now: it is placed when it's your turn.":
+    "Wähle deine Ansage schon jetzt: Sie wird abgegeben, sobald du dran bist.",
+  "Your bid {bid} is placed when it's your turn. Tap it again to clear it.":
+    "Deine Ansage {bid} wird abgegeben, sobald du dran bist. Tippe sie erneut an, um sie zu löschen.",
   "Play again with the same players?": "Noch eine Runde mit denselben Leuten?",
   "Play again": "Noch einmal spielen",
   "{name} wants to play again.": "{name} möchte noch einmal spielen.",

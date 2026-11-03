@@ -19,6 +19,7 @@ import {
   cardKind,
   type GameDoc,
   type HandDoc,
+  hasLeft,
   isMyTurn,
   type LastTrick,
   lastTrickOfRound,
@@ -77,6 +78,15 @@ export function Table({
   const myAutoPlay = activeAutoPlay(game, uid, now);
   const stalled = waitingOnOther ? stalledSeat(game, now) : null;
   const round = game.round;
+  // A bid queued for this round, if any.
+  const queued = hand?.queuedBid && hand.queuedBid.round === round?.number ? hand.queuedBid : null;
+  // Before their turn, a player may choose their bid already.
+  const canQueue =
+    !myTurn &&
+    !hasLeft(game, uid) &&
+    hand !== null &&
+    (game.status === "bidding" || game.status === "choosingTrump") &&
+    (round?.bids[mySeat] ?? null) === null;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
     : "";
@@ -161,8 +171,17 @@ export function Table({
         <BidPicker
           maxBid={round.number}
           forbiddenBid={hand?.forbiddenBid ?? null}
+          rejected={queued?.rejected ? queued.bid : null}
           disabled={action.isSending}
           onBid={(bid) => action.run(() => api.placeBid(gameId, game.version, bid))}
+        />
+      )}
+      {canQueue && round && (
+        <QueueBidPicker
+          maxBid={round.number}
+          queued={queued?.bid ?? null}
+          disabled={action.isSending}
+          onQueue={(bid) => action.run(() => api.queueBid(gameId, bid))}
         />
       )}
       {myTurn && game.status === "choosingTrump" && (
@@ -900,16 +919,24 @@ function AutoPlayMenu({
 function BidPicker({
   maxBid,
   forbiddenBid,
+  rejected,
   disabled,
   onBid,
 }: {
   maxBid: number;
   forbiddenBid: number | null;
+  /** The queued bid the rules ruled out, or null. */
+  rejected: number | null;
   disabled: boolean;
   onBid(bid: number): void;
 }) {
   return (
     <div className="bid-picker">
+      {rejected !== null && (
+        <p className="queued-rejected" role="alert">
+          {t("Your queued bid of {bid} isn't possible. Choose again.", { bid: rejected })}
+        </p>
+      )}
       <div className="bids">
         {Array.from({ length: maxBid + 1 }, (_, bid) => (
           <button
@@ -930,6 +957,48 @@ function BidPicker({
           })}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * Before their turn, a player may choose their bid already: it is placed as soon as it is their
+ * turn. Tapping the chosen bid again clears it.
+ */
+function QueueBidPicker({
+  maxBid,
+  queued,
+  disabled,
+  onQueue,
+}: {
+  maxBid: number;
+  queued: number | null;
+  disabled: boolean;
+  onQueue(bid: number | null): void;
+}) {
+  return (
+    <div className="bid-picker bid-picker-queue">
+      <p className="hint">
+        {queued === null
+          ? t("Choose your bid now: it is placed when it's your turn.")
+          : t("Your bid {bid} is placed when it's your turn. Tap it again to clear it.", {
+              bid: queued,
+            })}
+      </p>
+      <div className="bids">
+        {Array.from({ length: maxBid + 1 }, (_, bid) => (
+          <button
+            // biome-ignore lint/suspicious/noArrayIndexKey: the index is the bid
+            key={bid}
+            className={bid === queued ? "primary" : undefined}
+            aria-pressed={bid === queued}
+            disabled={disabled}
+            onClick={() => onQueue(bid === queued ? null : bid)}
+          >
+            {bid}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { gameWith, seededRandom } from "../../test/helpers.js";
 import { type RoundResult, reduce } from "../engine/index.js";
 import {
+  applyQueuedBids,
   botToMove,
   finalTotals,
   handDoc,
@@ -86,7 +87,12 @@ describe("handDoc", () => {
       { type: "bid", seat: 2, bid: 0 },
     ] as const;
     let state = game;
-    expect(handDoc(state, 0)).toEqual({ cards: ["H14", "C3"], legalCards: [], forbiddenBid: null });
+    expect(handDoc(state, 0)).toEqual({
+      cards: ["H14", "C3"],
+      legalCards: [],
+      forbiddenBid: null,
+      queuedBid: null,
+    });
     for (const action of bidding) {
       const result = reduce(state, action, rng);
       if (!result.ok) throw new Error(result.error);
@@ -200,5 +206,63 @@ describe("stall penalties", () => {
   it("takes them off the totals", () => {
     expect(finalTotals(game)).toEqual([60, -5]);
     expect(finalTotals({ ...game, results: [] })).toEqual([0, -15]);
+  });
+});
+
+describe("applyQueuedBids", () => {
+  // Bob bids first, then Carol, then Alice, the dealer.
+  const afterBob = (() => {
+    const result = reduce(game, { type: "bid", seat: 1, bid: 1 }, seededRandom(1));
+    if (!result.ok) throw new Error(result.error);
+    return result.state;
+  })();
+  const random = seededRandom(2);
+
+  it("places the queued bids of whoever's turn it is, one after another", () => {
+    const { state, queued } = applyQueuedBids(
+      afterBob,
+      uids,
+      { carol: { round: 2, bid: 0 }, alice: { round: 2, bid: 0 } },
+      random,
+    );
+    expect(state.bids).toEqual([0, 1, 0]);
+    expect(state.phase).toBe("playing");
+    expect(queued).toEqual({});
+  });
+
+  it("waits for a player without a queued bid", () => {
+    const { state, queued } = applyQueuedBids(
+      afterBob,
+      uids,
+      { alice: { round: 2, bid: 0 } },
+      random,
+    );
+    expect(state).toBe(afterBob);
+    expect(queued).toEqual({ alice: { round: 2, bid: 0 } });
+  });
+
+  it("keeps a bid the rules rule out as rejected, for the player to bid again", () => {
+    // Bids 1 + 0 + 1 would equal the 2 tricks ("no even bids").
+    const { state, queued } = applyQueuedBids(
+      afterBob,
+      uids,
+      { carol: { round: 2, bid: 0 }, alice: { round: 2, bid: 1 } },
+      random,
+    );
+    expect(state.bids).toEqual([null, 1, 0]);
+    expect(state.turn).toBe(0);
+    expect(queued).toEqual({ alice: { round: 2, bid: 1, rejected: true } });
+    // It stays until Alice bids herself.
+    expect(applyQueuedBids(state, uids, queued, random).state).toBe(state);
+  });
+
+  it("drops bids queued for another round or already placed", () => {
+    const { queued } = applyQueuedBids(
+      afterBob,
+      uids,
+      { bob: { round: 2, bid: 1 }, alice: { round: 1, bid: 0 } },
+      random,
+    );
+    expect(queued).toEqual({});
   });
 });

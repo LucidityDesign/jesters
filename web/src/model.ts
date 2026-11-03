@@ -115,6 +115,11 @@ export interface HandDoc {
   legalCards: Card[];
   /** The bid this player may not make now ("no even bids"), or null. */
   forbiddenBid: number | null;
+  /**
+   * The bid this player queued before their turn. `rejected` when the rules ruled it out on their
+   * turn: they have to bid again.
+   */
+  queuedBid?: { round: number; bid: number; rejected?: boolean } | null;
 }
 
 export function isRunning(status: GameStatus): boolean {
