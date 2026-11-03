@@ -4,6 +4,7 @@ import { type Action, reduce } from "../engine/index.js";
 import {
   type AutoPlay,
   botToMove,
+  canQueueBid,
   type GameDoc,
   STALL_MS,
   STALL_PENALTY,
@@ -18,6 +19,7 @@ import {
   LetBotMoveInput,
   PlaceBidInput,
   PlayCardInput,
+  QueueBidInput,
   SetAutoPlayInput,
 } from "./schemas.js";
 
@@ -52,7 +54,7 @@ async function perform(
     const result = reduce(state, action(game.playerUids.indexOf(uid)), secureRandomInt);
     if (!result.ok) fail(result.error);
 
-    writeState(tx, input.gameId, game, state, result.state);
+    writeState(tx, input.gameId, game, state, result.state, { queued: secret.queuedBids });
     return { version: game.version + 1 };
   });
 }
@@ -67,6 +69,45 @@ export const placeBid = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(PlaceBidInput, request.data);
   return perform(uid, input, (seat) => ({ type: "bid", seat, bid: input.bid }));
+});
+
+/**
+ * Queues the caller's bid for this round before their turn (or clears it with `null`): it is
+ * placed for them as soon as it is their turn (see `writeState`). On their turn, it is placed
+ * at once. Only the caller sees it until then.
+ */
+export const queueBid = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const input = parse(QueueBidInput, request.data);
+  return getFirestore().runTransaction(async (tx) => {
+    const [game, secret] = await Promise.all([
+      getMemberGame(tx, input.gameId, uid),
+      tx.get(refs.secret(input.gameId)).then((snapshot) => snapshot.data()),
+    ]);
+    if (game.status === "lobby") fail("WRONG_PHASE", "The game has not started yet.");
+    if (!game.active || !secret) fail("GAME_OVER", "This game is over.");
+    failIfLeft(game, uid);
+
+    const state = stateFromSecret(secret);
+    const seat = game.playerUids.indexOf(uid);
+    if (!canQueueBid(state, seat)) fail("WRONG_PHASE", "You can't bid now.");
+    if (input.bid !== null && input.bid > state.round) fail("INVALID_BID");
+    const queued = { ...secret.queuedBids };
+    delete queued[uid];
+    if (input.bid !== null) queued[uid] = { round: state.round, bid: input.bid };
+
+    if (state.phase === "bidding" && state.turn === seat) {
+      // It is the caller's turn already: the queued bid is placed now, if the rules allow it.
+      if (input.bid === null) return { version: game.version };
+      const result = reduce(state, { type: "bid", seat, bid: input.bid }, secureRandomInt);
+      if (!result.ok) fail(result.error);
+      writeState(tx, input.gameId, game, state, result.state, { queued });
+      return { version: game.version + 1 };
+    }
+    tx.update(refs.secret(input.gameId), { queuedBids: queued });
+    tx.update(refs.hand(input.gameId, uid), { queuedBid: queued[uid] ?? null });
+    return { version: game.version };
+  });
 });
 
 export const playCard = onCall(CALLABLE, async (request) => {

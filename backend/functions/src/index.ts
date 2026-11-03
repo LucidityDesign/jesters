@@ -1,7 +1,14 @@
 import "./setup.js";
 
 export { deleteMyData } from "./api/account.js";
-export { chooseTrump, letBotMove, placeBid, playCard, setAutoPlay } from "./api/actions.js";
+export {
+  chooseTrump,
+  letBotMove,
+  placeBid,
+  playCard,
+  queueBid,
+  setAutoPlay,
+} from "./api/actions.js";
 export {
   addBot,
   createRoom,

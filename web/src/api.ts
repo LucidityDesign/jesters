@@ -39,6 +39,8 @@ export const api = {
     call("chooseTrump", { gameId, version, suit }),
   placeBid: (gameId: string, version: number, bid: number) =>
     call("placeBid", { gameId, version, bid }),
+  /** Queues a bid to be placed on the player's turn (placed at once on it); `null` clears it. */
+  queueBid: (gameId: string, bid: number | null) => call("queueBid", { gameId, bid }),
   playCard: (gameId: string, version: number, card: Card) =>
     call("playCard", { gameId, version, card }),
   /** Lets a bot play for the player, until they take over or for some minutes or rounds. */

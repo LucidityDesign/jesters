@@ -80,6 +80,33 @@ test("three guests create, join and play the first two rounds", async ({ browser
     ).toBeVisible();
   }
 
+  // The two players who don't move first choose their bids already; each is placed in turn.
+  const waiting: Page[] = [];
+  for (const page of players) {
+    if (await page.locator(".bid-picker-queue").isVisible()) waiting.push(page);
+  }
+  expect(waiting).toHaveLength(2);
+  for (const page of waiting) {
+    await page.locator(".bid-picker-queue").getByRole("button", { name: "0", exact: true }).click();
+    await expect(page.getByText("Your bid 0 is placed when it's your turn.")).toBeVisible();
+  }
+  // Only the one who bids first (and the dealer, if trump is chosen) acts until play starts.
+  const playing = async () => {
+    for (const page of players) {
+      if ((await page.getByRole("status").first().textContent())?.startsWith("Your turn")) {
+        return true;
+      }
+    }
+    return false;
+  };
+  for (let moves = 0; moves < 4 && !(await playing()); moves++) {
+    for (const page of waiting) {
+      await expect(page.getByText("How many tricks will you take?")).toBeHidden();
+    }
+    for (const page of players) await moveIfMyTurn(page);
+  }
+  await expect.poll(playing).toBe(true);
+
   // Play until round 3 starts: every round is dealt, bid, played and scored.
   for (let moves = 0; moves < 40; moves++) {
     if (await anna.getByRole("heading", { name: "Round 3 of 20" }).isVisible()) break;

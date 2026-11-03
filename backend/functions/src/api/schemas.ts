@@ -57,6 +57,12 @@ export const PlaceBidInput = z.object({
   bid: z.number().int().min(0).max(20),
 });
 
+export const QueueBidInput = z.object({
+  gameId: GameId,
+  /** `null` clears the queued bid. */
+  bid: z.number().int().min(0).max(20).nullable(),
+});
+
 export const PlayCardInput = z.object({
   gameId: GameId,
   version: Version,
