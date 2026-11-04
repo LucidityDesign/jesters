@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { ErrorText, Page } from "../components/Layout";
+import { ErrorText, Loading, Page } from "../components/Layout";
 import { useMyGames } from "../hooks";
 import { t } from "../i18n";
 import { navigate } from "../router";
@@ -43,7 +43,7 @@ export function Transfer() {
           onSubmit={moveHere}
         />
       ) : (
-        <p className="hint">{t("Loading…")}</p>
+        <Loading />
       )}
       <ErrorText message={action.error} />
     </Page>

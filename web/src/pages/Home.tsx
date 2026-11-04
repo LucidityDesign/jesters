@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
-import { ErrorText, Page } from "../components/Layout";
+import { ErrorText, Loading, Page } from "../components/Layout";
 import { NotificationOffer } from "../components/Notifications";
 import { type GameEntry, useMyGames } from "../hooks";
 import { formatList, t } from "../i18n";
@@ -45,6 +45,7 @@ export function Home({ uid }: { uid: string }) {
       <GameList title={t("Other games")} games={others} uid={uid} />
       <GameList title={t("Finished")} games={finished} uid={uid} />
 
+      {games === undefined && <Loading />}
       {games === null && <p className="hint">{t("Could not load your games.")}</p>}
       {games?.length === 0 && (
         <p className="hint">

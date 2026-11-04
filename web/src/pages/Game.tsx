@@ -1,5 +1,5 @@
 import { api } from "../api";
-import { ErrorText, Page } from "../components/Layout";
+import { ErrorText, Loading, Page } from "../components/Layout";
 import { RoundToast } from "../components/RoundToast";
 import { useDocument } from "../hooks";
 import { t } from "../i18n";
@@ -19,7 +19,7 @@ export function Game({ gameId, uid }: { gameId: string; uid: string }) {
   if (game === undefined) {
     return (
       <Page title="">
-        <p className="hint">{t("Loading…")}</p>
+        <Loading />
       </Page>
     );
   }

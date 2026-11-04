@@ -1,4 +1,4 @@
-import { Page } from "./components/Layout";
+import { Loading, Page } from "./components/Layout";
 import { t } from "./i18n";
 import { useNotificationSetup } from "./notifications";
 import { Game } from "./pages/Game";
@@ -30,7 +30,7 @@ export function App() {
             <button onClick={session.retrySignIn}>{t("Try again")}</button>
           </>
         ) : (
-          <p className="hint">{t("Loading…")}</p>
+          <Loading />
         )}
       </Page>
     );
