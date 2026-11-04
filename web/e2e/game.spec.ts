@@ -231,6 +231,24 @@ test("a guest plays against two bots", async ({ browser }) => {
   await expect(bar).toBeHidden();
 });
 
+test("a pressed button shows a spinner until the server answers", async ({ browser }) => {
+  const hana = await guest(browser, "Hana");
+  await hana.getByRole("button", { name: "New game" }).click();
+  await expect(hana.getByText("Invite friends or add bots.", { exact: false })).toBeVisible();
+  // Hold the call back, so the spinner has time to show.
+  await hana.route("**/addBot", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    await route.continue();
+  });
+  const addBot = hana.getByRole("button", { name: "Add bot" });
+  await addBot.click();
+  await expect(addBot).toHaveAttribute("aria-busy", "true");
+  await expect(addBot).toBeDisabled();
+  await expect(hana.locator(".list .hint", { hasText: "Bot (Medium)" })).toHaveCount(1);
+  await expect(addBot).not.toHaveAttribute("aria-busy");
+  await expect(addBot).toBeEnabled();
+});
+
 test("a player removed from the lobby sees that the game is gone", async ({ browser }) => {
   const gus = await guest(browser, "Gus");
   await gus.getByRole("button", { name: "New game" }).click();

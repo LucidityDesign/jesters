@@ -39,3 +39,13 @@ export function ErrorText({ message }: { message: string | null }) {
     </p>
   );
 }
+
+/** Shown while something is on its way from the server. */
+export function Loading() {
+  return (
+    <p className="hint loading" role="status">
+      <span className="spinner" aria-hidden="true" />
+      {t("Loading…")}
+    </p>
+  );
+}
