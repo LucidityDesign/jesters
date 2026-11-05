@@ -140,8 +140,8 @@ describe("botToMove", () => {
     const annasTurn = { active: true, players, turnSeat: 0, version: 7 };
     expect(botToMove(annasTurn)).toBeNull();
     const left = [{ ...players[0], left: true }, players[1]] as typeof players;
-    expect(botToMove({ ...annasTurn, players: left })).toBe("medium");
-    expect(botToMove({ ...annasTurn, botMoveVersion: 7 })).toBe("medium");
+    expect(botToMove({ ...annasTurn, players: left })).toBe("hard");
+    expect(botToMove({ ...annasTurn, botMoveVersion: 7 })).toBe("hard");
     // Only for that one move.
     expect(botToMove({ ...annasTurn, botMoveVersion: 6 })).toBeNull();
   });
@@ -154,7 +154,7 @@ describe("botToMove", () => {
       round: inRound(3),
       updatedAt: at(5000),
     };
-    expect(botToMove({ ...annasTurn, autoPlay: { a: {} } })).toBe("medium");
+    expect(botToMove({ ...annasTurn, autoPlay: { a: {} } })).toBe("hard");
     expect(botToMove({ ...annasTurn, autoPlay: { b: {} } })).toBeNull();
     expect(botToMove({ ...annasTurn, autoPlay: { a: {} }, active: false })).toBeNull();
   });
@@ -162,14 +162,14 @@ describe("botToMove", () => {
   it("stops auto-play at its time, decided by when the turn began", () => {
     const annasTurn = { active: true, players, turnSeat: 0, round: inRound(3) };
     const autoPlay = { a: { until: at(5000) } };
-    expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(4999) })).toBe("medium");
+    expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(4999) })).toBe("hard");
     expect(botToMove({ ...annasTurn, autoPlay, updatedAt: at(5000) })).toBeNull();
   });
 
   it("stops auto-play after its last round", () => {
     const annasTurn = { active: true, players, turnSeat: 0, updatedAt: at(0) };
     const autoPlay = { a: { untilRound: 4 } };
-    expect(botToMove({ ...annasTurn, autoPlay, round: inRound(4) })).toBe("medium");
+    expect(botToMove({ ...annasTurn, autoPlay, round: inRound(4) })).toBe("hard");
     expect(botToMove({ ...annasTurn, autoPlay, round: inRound(5) })).toBeNull();
   });
 
