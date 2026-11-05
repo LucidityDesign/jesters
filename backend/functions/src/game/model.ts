@@ -55,7 +55,7 @@ export interface GameSettings extends Settings {
 }
 
 /** The bot level that plays for people on auto-play (or who left). People can't choose it. */
-export const AUTO_PLAY_LEVEL: BotLevel = "medium";
+export const AUTO_PLAY_LEVEL: BotLevel = "hard";
 
 /**
  * Whether `uid`'s auto-play covers a turn that began at `at` (ms) in round `round`. The turn's

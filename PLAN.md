@@ -159,7 +159,7 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
   - The others' likely bids come from win rates per card measured in simulations
     (`bots/calibration.ts`, written by `pnpm simulate calibrate`); `pnpm simulate tournament`
     plays the levels against each other.
-  - **Auto-play** always plays at Medium; people can't choose its level.
+  - **Auto-play** always plays at Hard; people can't choose its level.
   - Ideas for later: LLM-based levels (plan in `docs/plans/llm-bots.md`), or a network trained
     by self-play.
 - **Abandoned games:** without turn timers, a game can stall. Mitigations in v1:
