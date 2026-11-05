@@ -230,6 +230,13 @@ export const DE: Record<string, string> = {
     "Tippe eine Karte an, um sie zu spielen, sobald du dran bist.",
   "{card} is played when it's your turn, if it's allowed then. Tap it again to clear it.":
     "{card} wird gespielt, sobald du dran bist, wenn sie dann erlaubt ist. Tippe sie erneut an, um sie zu löschen.",
+  "Blind first round": "Blinde erste Runde",
+  "In the first round, everyone sees the others' cards but not their own.":
+    "In der ersten Runde sieht jeder die Karten der anderen, aber nicht die eigene.",
+  "Round 1 is played blind: you see everyone's card but your own.":
+    "Runde 1 wird blind gespielt: Du siehst die Karten aller anderen, aber nicht deine eigene.",
+  "Your card, face down": "Deine Karte, verdeckt",
+  "Your card": "Deine Karte",
   "Play again with the same players?": "Noch eine Runde mit denselben Leuten?",
   "Play again": "Noch einmal spielen",
   "{name} wants to play again.": "{name} möchte noch einmal spielen.",

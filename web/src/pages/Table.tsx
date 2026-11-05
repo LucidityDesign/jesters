@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { api } from "../api";
-import { CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
+import { CardBack, CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
 import { ErrorText, Page } from "../components/Layout";
 import { ReactionBubble, ReactionPicker } from "../components/Reactions";
 import { t } from "../i18n";
@@ -91,6 +91,8 @@ export function Table({
   const queuedCard =
     hand?.queuedCard && hand.queuedCard.round === round?.number ? hand.queuedCard : null;
   const canQueueCard = !myTurn && !hasLeft(game, uid) && hand !== null && game.status === "playing";
+  // The first round played blind: the player's own card face down, the others' on their seats.
+  const blind = (hand?.hiddenCards ?? 0) > 0;
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
     : "";
@@ -115,6 +117,7 @@ export function Table({
             plusOne={plusOne}
             reactions={reactions}
             now={now}
+            othersCards={hand?.othersCards ?? []}
           />
         </div>
         <LookBack game={game} />
@@ -208,25 +211,34 @@ export function Table({
       {myTurn && game.status === "playing" && queuedCard?.rejected && (
         <p className="queued-rejected" role="alert">
           {t("Your chosen card {card} can't be played on this trick. Choose another.", {
-            card: cardName(queuedCard.card),
+            card: queuedCard.card === "hidden" ? t("Your card") : cardName(queuedCard.card),
           })}
         </p>
       )}
-      {canQueueCard && (hand?.cards.length ?? 0) > 0 && (
+      {canQueueCard && ((hand?.cards.length ?? 0) > 0 || blind) && (
         <p className="hint queue-hint">
           {queuedCard === null || queuedCard.rejected
             ? t("Tap a card to play it when it's your turn.")
             : t(
                 "{card} is played when it's your turn, if it's allowed then. Tap it again to clear it.",
                 {
-                  card: cardName(queuedCard.card),
+                  card: queuedCard.card === "hidden" ? t("Your card") : cardName(queuedCard.card),
                 },
               )}
         </p>
       )}
+      {blind && (
+        <p className="hint blind-hint">
+          {t("Round 1 is played blind: you see everyone's card but your own.")}
+        </p>
+      )}
       <Hand
         key={game.version}
-        cards={sortHand(hand?.cards ?? [])}
+        cards={
+          blind
+            ? Array.from({ length: hand?.hiddenCards ?? 0 }, () => "hidden" as const)
+            : sortHand(hand?.cards ?? [])
+        }
         legalCards={new Set(hand?.legalCards ?? [])}
         canPlay={myTurn && game.status === "playing" && !action.isSending}
         onPlay={(card) => action.run(() => api.playCard(gameId, game.version, card))}
@@ -466,6 +478,7 @@ function Players({
   plusOne,
   reactions,
   now,
+  othersCards,
 }: {
   game: GameDoc;
   uid: string;
@@ -473,6 +486,8 @@ function Players({
   plusOne: { seat: number; key: string | null } | null;
   reactions: ReadonlyMap<string, ShownReaction>;
   now: number;
+  /** In a blind round, the cards the others hold, by seat. */
+  othersCards: readonly (Card | null)[];
 }) {
   const scores = totals(game);
   const roundPoints = useRoundPoints(game);
@@ -502,6 +517,7 @@ function Players({
         const reaction = reactions.get(player.uid);
         const botNote = botModeNote(game, player, now);
         const SeatName = botNote ? "button" : "span";
+        const shownCard = othersCards[seat] ?? null;
         return (
           <li
             key={player.uid}
@@ -515,6 +531,11 @@ function Players({
               </span>
             )}
             {reaction && <ReactionBubble key={reaction.key} reaction={reaction} />}
+            {shownCard && (
+              <span className="seat-card">
+                <CardView card={shownCard} small />
+              </span>
+            )}
             {botNote && tipSeat === seat && (
               <span
                 // Seats at the sides of the table open the tip toward the middle, so it stays on screen.
@@ -752,17 +773,18 @@ function Hand({
   queued,
   onQueue,
 }: {
-  cards: Card[];
+  /** `"hidden"` for a card the player can't see (blind first round). */
+  cards: (Card | "hidden")[];
   legalCards: Set<Card>;
   canPlay: boolean;
-  onPlay(card: Card): void;
+  onPlay(card: Card | "hidden"): void;
   /** Before their turn, a tap chooses the card to play on it (and a second tap clears it). */
   canQueue: boolean;
-  queued: Card | null;
-  onQueue(card: Card | null): void;
+  queued: Card | "hidden" | null;
+  onQueue(card: Card | "hidden" | null): void;
 }) {
   // Reset by the parent (`key`) whenever the game changes.
-  const [selected, setSelected] = useState<Card | null>(null);
+  const [selected, setSelected] = useState<Card | "hidden" | null>(null);
   return (
     <div
       className="hand"
@@ -771,7 +793,8 @@ function Hand({
       style={{ "--count": cards.length } as CSSProperties}
     >
       {cards.map((card, index) => {
-        const playable = canPlay && legalCards.has(card);
+        // Only one card is ever dealt face down, so it is the one to play.
+        const playable = canPlay && (card === "hidden" || legalCards.has(card));
         const isQueued = queued === card;
         // Fanned out: turned and lowered a little more towards the ends.
         const turn = (index - (cards.length - 1) / 2) * Math.min(2.5, 24 / cards.length);
@@ -785,7 +808,7 @@ function Hand({
             className={`hand-card${selected === card ? " selected" : ""}${isQueued ? " queued" : ""}${canPlay && !playable ? " dimmed" : ""}`}
             disabled={!playable && !canQueue}
             aria-pressed={canQueue ? isQueued : selected === card}
-            aria-label={cardName(card)}
+            aria-label={card === "hidden" ? t("Your card, face down") : cardName(card)}
             style={style}
             onClick={() => {
               if (canQueue) onQueue(isQueued ? null : card);
@@ -793,7 +816,7 @@ function Hand({
               else setSelected(card);
             }}
           >
-            <CardView card={card} />
+            {card === "hidden" ? <CardBack /> : <CardView card={card} />}
           </button>
         );
       })}

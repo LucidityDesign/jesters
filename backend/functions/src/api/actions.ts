@@ -1,12 +1,13 @@
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
-import { type Action, reduce } from "../engine/index.js";
+import { type Action, type Card, type GameState, isBlindRound, reduce } from "../engine/index.js";
 import {
   type AutoPlay,
   botToMove,
   canQueueBid,
   canQueueCard,
   type GameDoc,
+  handDoc,
   queuedOf,
   STALL_MS,
   STALL_PENALTY,
@@ -26,6 +27,17 @@ import {
   SetAutoPlayInput,
 } from "./schemas.js";
 
+/**
+ * The card a player means: `"hidden"` is their own card they can't see (see `blindFirstRound`),
+ * which only works while they can't see it and hold just one.
+ */
+function resolveCard(state: GameState, seat: number, card: Card | "hidden"): Card {
+  if (card !== "hidden") return card;
+  const hand = state.hands[seat] ?? [];
+  if (!isBlindRound(state) || hand.length !== 1) fail("CARD_NOT_IN_HAND");
+  return hand[0] as Card;
+}
+
 /** Someone who left a running game has handed their seat to a bot for good. */
 function failIfLeft(game: GameDoc, uid: string): void {
   if (game.players.find((player) => player.uid === uid)?.left) {
@@ -37,7 +49,7 @@ function failIfLeft(game: GameDoc, uid: string): void {
 async function perform(
   uid: string,
   input: { gameId: string; version?: number | undefined },
-  action: (seat: number) => Action,
+  action: (seat: number, state: GameState) => Action,
 ): Promise<{ version: number }> {
   return getFirestore().runTransaction(async (tx) => {
     const [game, secret] = await Promise.all([
@@ -54,7 +66,7 @@ async function perform(
     failIfLeft(game, uid);
 
     const state = stateFromSecret(secret);
-    const result = reduce(state, action(game.playerUids.indexOf(uid)), secureRandomInt);
+    const result = reduce(state, action(game.playerUids.indexOf(uid), state), secureRandomInt);
     if (!result.ok) fail(result.error);
 
     writeState(tx, input.gameId, game, state, result.state, { queued: queuedOf(secret) });
@@ -145,17 +157,21 @@ export const queueCard = onCall(CALLABLE, async (request) => {
         tx.update(refs.hand(input.gameId, uid), { queuedCard: null });
         return { version: game.version };
       }
-      const result = reduce(state, { type: "play", seat, card: input.card }, secureRandomInt);
+      const card = resolveCard(state, seat, input.card);
+      const result = reduce(state, { type: "play", seat, card }, secureRandomInt);
       if (!result.ok) fail(result.error);
       writeState(tx, input.gameId, game, state, result.state, { queued: { bids, cards: queued } });
       return { version: game.version + 1 };
     }
     if (input.card !== null) {
-      if (!canQueueCard(state, seat, input.card)) fail("CARD_NOT_IN_HAND");
-      queued[uid] = { round: state.round, card: input.card };
+      const card = resolveCard(state, seat, input.card);
+      if (!canQueueCard(state, seat, card)) fail("CARD_NOT_IN_HAND");
+      queued[uid] = { round: state.round, card };
     }
     tx.update(refs.secret(input.gameId), { queuedCards: queued });
-    tx.update(refs.hand(input.gameId, uid), { queuedCard: queued[uid] ?? null });
+    tx.update(refs.hand(input.gameId, uid), {
+      queuedCard: handDoc(state, seat, { card: queued[uid] }).queuedCard ?? null,
+    });
     return { version: game.version };
   });
 });
@@ -163,7 +179,11 @@ export const queueCard = onCall(CALLABLE, async (request) => {
 export const playCard = onCall(CALLABLE, async (request) => {
   const uid = requireAuth(request.auth);
   const input = parse(PlayCardInput, request.data);
-  return perform(uid, input, (seat) => ({ type: "play", seat, card: input.card }));
+  return perform(uid, input, (seat, state) => ({
+    type: "play",
+    seat,
+    card: resolveCard(state, seat, input.card),
+  }));
 });
 
 /**

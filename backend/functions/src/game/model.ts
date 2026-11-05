@@ -5,6 +5,7 @@ import {
   type CompletedTrick,
   forbiddenBid,
   type GameState,
+  isBlindRound,
   legalCardsFor,
   type RandomInt,
   type RoundResult,
@@ -177,8 +178,18 @@ export interface HandDoc {
   forbiddenBid: number | null;
   /** The bid this player queued for the current round before their turn, or null. */
   queuedBid?: QueuedBid | null;
-  /** The card this player chose before their turn, to play on it, or null. */
-  queuedCard?: QueuedCard | null;
+  /**
+   * The card this player chose before their turn, to play on it, or null. Its card is `"hidden"`
+   * while the player can't see their own cards.
+   */
+  queuedCard?: (Omit<QueuedCard, "card"> & { card: Card | "hidden" }) | null;
+  /**
+   * How many cards this player holds without seeing them (`blindFirstRound`): `cards` and
+   * `legalCards` are empty then.
+   */
+  hiddenCards?: number;
+  /** The others' cards by seat while this player can't see their own (null for their own seat). */
+  othersCards?: (Card | null)[];
 }
 
 /**
@@ -266,12 +277,21 @@ export function handDoc(
   seat: number,
   queued: { bid?: QueuedBid | undefined; card?: QueuedCard | undefined } = {},
 ): HandDoc {
-  return {
+  const doc: HandDoc = {
     cards: state.hands[seat] ?? [],
     legalCards: legalCardsFor(state, seat),
     forbiddenBid: state.turn === seat ? forbiddenBid(state, seat) : null,
     queuedBid: queued.bid ?? null,
     queuedCard: queued.card ?? null,
+  };
+  if (!isBlindRound(state)) return doc;
+  return {
+    ...doc,
+    cards: [],
+    legalCards: [],
+    queuedCard: queued.card ? { ...queued.card, card: "hidden" } : null,
+    hiddenCards: doc.cards.length,
+    othersCards: state.hands.map((hand, s) => (s === seat ? null : (hand[0] ?? null))),
   };
 }
 

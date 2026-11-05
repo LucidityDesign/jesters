@@ -34,6 +34,7 @@ export const UpdateSettingsInput = z.object({
   gameId: GameId,
   noEvenBids: z.boolean().optional(),
   stallPenalty: z.boolean().optional(),
+  blindFirstRound: z.boolean().optional(),
 });
 
 export const AddBotInput = z.object({
@@ -63,16 +64,19 @@ export const QueueBidInput = z.object({
   bid: z.number().int().min(0).max(20).nullable(),
 });
 
+/** A card, or `"hidden"` for the player's own card they can't see (see `blindFirstRound`). */
+const CardOrHidden = z.union([z.custom<Card>(isCard, "Invalid card."), z.literal("hidden")]);
+
 export const QueueCardInput = z.object({
   gameId: GameId,
   /** `null` clears the queued card. */
-  card: z.custom<Card>(isCard, "Invalid card.").nullable(),
+  card: CardOrHidden.nullable(),
 });
 
 export const PlayCardInput = z.object({
   gameId: GameId,
   version: Version,
-  card: z.custom<Card>(isCard, "Invalid card."),
+  card: CardOrHidden,
 });
 
 /** How long auto-play may last: some minutes or some rounds, never open-ended. */

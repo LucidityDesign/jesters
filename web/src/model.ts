@@ -80,7 +80,7 @@ export interface GameDoc {
   status: GameStatus;
   roomKey: string;
   hostUid: string;
-  settings: { noEvenBids: boolean; stallPenalty?: boolean };
+  settings: { noEvenBids: boolean; stallPenalty?: boolean; blindFirstRound?: boolean };
   players: Player[];
   playerUids: string[];
   active: boolean;
@@ -124,7 +124,11 @@ export interface HandDoc {
    * The card this player chose before their turn, played on it if the rules allow it then.
    * `rejected` when they didn't: the player has to choose another card.
    */
-  queuedCard?: { round: number; card: Card; rejected?: boolean } | null;
+  queuedCard?: { round: number; card: Card | "hidden"; rejected?: boolean } | null;
+  /** How many cards this player holds without seeing them (blind first round). */
+  hiddenCards?: number;
+  /** In a blind round, the others' cards by seat (null for this player and once played). */
+  othersCards?: (Card | null)[];
 }
 
 export function isRunning(status: GameStatus): boolean {

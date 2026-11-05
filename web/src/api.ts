@@ -25,8 +25,10 @@ export const api = {
   createRoom: (name: string) => call<{ gameId: string; roomKey: string }>("createRoom", { name }),
   joinRoom: (roomKey: string, name: string) =>
     call<{ gameId: string }>("joinRoom", { roomKey, name }),
-  updateSettings: (gameId: string, settings: { noEvenBids?: boolean; stallPenalty?: boolean }) =>
-    call("updateSettings", { gameId, ...settings }),
+  updateSettings: (
+    gameId: string,
+    settings: { noEvenBids?: boolean; stallPenalty?: boolean; blindFirstRound?: boolean },
+  ) => call("updateSettings", { gameId, ...settings }),
   startGame: (gameId: string) => call("startGame", { gameId }),
   addBot: (gameId: string, level: BotLevel) => call("addBot", { gameId, level }),
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),
@@ -42,8 +44,8 @@ export const api = {
   /** Queues a bid to be placed on the player's turn (placed at once on it); `null` clears it. */
   queueBid: (gameId: string, bid: number | null) => call("queueBid", { gameId, bid }),
   /** Queues a card to be played on the player's turn, if allowed then; `null` clears it. */
-  queueCard: (gameId: string, card: Card | null) => call("queueCard", { gameId, card }),
-  playCard: (gameId: string, version: number, card: Card) =>
+  queueCard: (gameId: string, card: Card | "hidden" | null) => call("queueCard", { gameId, card }),
+  playCard: (gameId: string, version: number, card: Card | "hidden") =>
     call("playCard", { gameId, version, card }),
   /** Lets a bot play for the player, until they take over or for some minutes or rounds. */
   setAutoPlay: (gameId: string, on: boolean, limit: { minutes?: number; rounds?: number } = {}) =>
