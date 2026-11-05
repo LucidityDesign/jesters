@@ -60,6 +60,11 @@ function JesterCap() {
   );
 }
 
+/** The back of a card: the player's own card they can't see. */
+export function CardBack() {
+  return <span className="card card-back" role="img" aria-label={t("Your card, face down")} />;
+}
+
 /**
  * A card face in the suit's color (four-color deck): rank and suit in the corner, so overlapping
  * cards stay readable, and a large suit symbol in the middle. Wizards and Jesters have a tinted

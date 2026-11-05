@@ -19,6 +19,11 @@ export type Phase = "choosingTrump" | "bidding" | "playing" | "finished";
 export interface Settings {
   /** The dealer may not bid so that the total of all bids equals the number of tricks. */
   noEvenBids: boolean;
+  /**
+   * In the first round (one card each), every player sees the others' cards but not their own,
+   * until it is played.
+   */
+  blindFirstRound?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = { noEvenBids: true };
@@ -251,6 +256,11 @@ function finishRound(state: GameState, randomInt: RandomInt): GameState {
 
 function next(state: GameState, seat: number): number {
   return (seat + 1) % state.playerCount;
+}
+
+/** Whether players can't see their own cards now, only the others' (see `blindFirstRound`). */
+export function isBlindRound(state: GameState): boolean {
+  return state.settings.blindFirstRound === true && state.round === 1 && state.phase !== "finished";
 }
 
 /** The bid `seat` may not make right now because of the "no even bids" rule, or `null`. */

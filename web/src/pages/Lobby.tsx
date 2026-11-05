@@ -179,6 +179,22 @@ export function Lobby({
             { points: STALL_PENALTY },
           )}
         </p>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={game.settings.blindFirstRound === true}
+            disabled={!isHost || action.isSending}
+            onChange={(event) =>
+              action.run(() =>
+                api.updateSettings(gameId, { blindFirstRound: event.target.checked }),
+              )
+            }
+          />
+          <span>{t("Blind first round")}</span>
+        </label>
+        <p className="hint">
+          {t("In the first round, everyone sees the others' cards but not their own.")}
+        </p>
       </section>
 
       {isHost && (

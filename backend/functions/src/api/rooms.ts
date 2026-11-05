@@ -159,7 +159,10 @@ export const startGame = onCall(CALLABLE, async (request) => {
     }
     const state = createGame({
       playerCount: game.players.length,
-      settings: { noEvenBids: game.settings.noEvenBids },
+      settings: {
+        noEvenBids: game.settings.noEvenBids,
+        blindFirstRound: game.settings.blindFirstRound === true,
+      },
       randomInt: secureRandomInt,
     });
     writeState(tx, gameId, game, null, state);
@@ -209,6 +212,7 @@ export const updateSettings = onCall(CALLABLE, async (request) => {
         ...game.settings,
         ...(input.noEvenBids === undefined ? {} : { noEvenBids: input.noEvenBids }),
         ...(input.stallPenalty === undefined ? {} : { stallPenalty: input.stallPenalty }),
+        ...(input.blindFirstRound === undefined ? {} : { blindFirstRound: input.blindFirstRound }),
       },
       version: game.version + 1,
       updatedAt: FieldValue.serverTimestamp(),

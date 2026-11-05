@@ -7,6 +7,7 @@ import {
   reduce,
   type Suit,
 } from "../engine/index.js";
+import { blindBid, blindTrump } from "./blind.js";
 import * as easy from "./easy.js";
 import { type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
@@ -77,6 +78,18 @@ export function botAction(
   randomInt: RandomInt = (max) => Math.floor(Math.random() * max),
 ): Action {
   const view = viewFor(state, aggression);
+  if (view.blind) {
+    // Every level plays a blind round alike: the bid follows the chance of taking the trick, and
+    // the one card it holds, unseen, has to be played.
+    switch (view.phase) {
+      case "choosingTrump":
+        return { type: "chooseTrump", seat: view.seat, suit: blindTrump(view) };
+      case "bidding":
+        return { type: "bid", seat: view.seat, bid: blindBid(view) };
+      case "playing":
+        return { type: "play", seat: view.seat, card: state.hands[view.seat]?.[0] as Card };
+    }
+  }
   const strategy = STRATEGIES[level];
   switch (view.phase) {
     case "choosingTrump":
