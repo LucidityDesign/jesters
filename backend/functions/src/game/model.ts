@@ -177,6 +177,8 @@ export interface HandDoc {
   forbiddenBid: number | null;
   /** The bid this player queued for the current round before their turn, or null. */
   queuedBid?: QueuedBid | null;
+  /** The card this player chose before their turn, to play on it, or null. */
+  queuedCard?: QueuedCard | null;
 }
 
 /**
@@ -189,6 +191,23 @@ export interface QueuedBid {
   rejected?: true;
 }
 
+/**
+ * A card a person chose before their turn, played for them as soon as it is their turn if the rules
+ * allow it then. `rejected` when they didn't (another suit had to be followed): it is kept for the
+ * person to see until they have played themselves.
+ */
+export interface QueuedCard {
+  round: number;
+  card: Card;
+  rejected?: true;
+}
+
+/** The bids and cards people queued before their turn, by uid. */
+export interface Queued {
+  bids: Record<string, QueuedBid>;
+  cards: Record<string, QueuedCard>;
+}
+
 /** `games/{gameId}/secret/state`: not readable by clients. */
 export interface SecretDoc {
   /** Engine `GameState` as JSON (Firestore cannot store nested arrays). */
@@ -196,6 +215,13 @@ export interface SecretDoc {
   schema: 1;
   /** Bids queued by uid, kept secret until they are placed. */
   queuedBids?: Record<string, QueuedBid>;
+  /** Cards queued by uid, kept secret until they are played. */
+  queuedCards?: Record<string, QueuedCard>;
+}
+
+/** The queued bids and cards of a secret document. */
+export function queuedOf(secret: SecretDoc): Queued {
+  return { bids: secret.queuedBids ?? {}, cards: secret.queuedCards ?? {} };
 }
 
 export function lobbyPlay(): PublicPlay {
@@ -235,12 +261,17 @@ function lastTrick(trick: CompletedTrick): PublicLastTrick {
   return { leaderSeat: trick.leader, cards: trick.cards, winnerSeat: trick.winner };
 }
 
-export function handDoc(state: GameState, seat: number, queued?: QueuedBid): HandDoc {
+export function handDoc(
+  state: GameState,
+  seat: number,
+  queued: { bid?: QueuedBid | undefined; card?: QueuedCard | undefined } = {},
+): HandDoc {
   return {
     cards: state.hands[seat] ?? [],
     legalCards: legalCardsFor(state, seat),
     forbiddenBid: state.turn === seat ? forbiddenBid(state, seat) : null,
-    queuedBid: queued ?? null,
+    queuedBid: queued.bid ?? null,
+    queuedCard: queued.card ?? null,
   };
 }
 
@@ -284,6 +315,65 @@ export function applyQueuedBids(
     left = keep(next);
   }
   return { state: next, queued: left };
+}
+
+/** Whether `seat` may queue a card: during play, before their turn, with `card` in hand. */
+export function canQueueCard(state: GameState, seat: number, card: Card): boolean {
+  return state.phase === "playing" && state.turn !== seat && !!state.hands[seat]?.includes(card);
+}
+
+/**
+ * Plays the queued cards of whoever's turn it is, one after another (on into the next trick),
+ * until it is the turn of someone without one. A queued card the rules don't allow then is kept
+ * as `rejected` until that person has played. Drops queued cards that no longer apply.
+ */
+export function applyQueuedCards(
+  state: GameState,
+  playerUids: readonly string[],
+  queued: Readonly<Record<string, QueuedCard>>,
+  random: RandomInt,
+): { state: GameState; queued: Record<string, QueuedCard> } {
+  let left: Record<string, QueuedCard> = { ...queued };
+  const keep = (s: GameState) => {
+    left = Object.fromEntries(
+      Object.entries(left).filter(([uid, q]) => {
+        const seat = playerUids.indexOf(uid);
+        if (seat < 0 || s.phase !== "playing" || q.round !== s.round) return false;
+        if (!s.hands[seat]?.includes(q.card)) return false;
+        // A rejected card stays only while its player is still to play.
+        return !q.rejected || s.turn === seat;
+      }),
+    );
+  };
+  let next = state;
+  keep(next);
+  while (next.phase === "playing" && next.turn !== null) {
+    const uid = playerUids[next.turn];
+    const q = uid === undefined ? undefined : left[uid];
+    if (uid === undefined || !q || q.rejected) break;
+    const { [uid]: _played, ...others } = left;
+    const result = reduce(next, { type: "play", seat: next.turn, card: q.card }, random);
+    if (!result.ok) {
+      left = { ...others, [uid]: { ...q, rejected: true } };
+      break;
+    }
+    left = others;
+    next = result.state;
+    keep(next);
+  }
+  return { state: next, queued: left };
+}
+
+/** Places the queued bids, then plays the queued cards, of whoever's turn it comes to be. */
+export function applyQueued(
+  state: GameState,
+  playerUids: readonly string[],
+  queued: Queued,
+  random: RandomInt,
+): { state: GameState; queued: Queued } {
+  const bids = applyQueuedBids(state, playerUids, queued.bids, random);
+  const cards = applyQueuedCards(bids.state, playerUids, queued.cards, random);
+  return { state: cards.state, queued: { bids: bids.queued, cards: cards.queued } };
 }
 
 export function secretDoc(state: GameState): SecretDoc {

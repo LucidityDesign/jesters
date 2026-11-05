@@ -224,6 +224,12 @@ export const DE: Record<string, string> = {
     "Wähle deine Ansage schon jetzt: Sie wird abgegeben, sobald du dran bist.",
   "Your bid {bid} is placed when it's your turn. Tap it again to clear it.":
     "Deine Ansage {bid} wird abgegeben, sobald du dran bist. Tippe sie erneut an, um sie zu löschen.",
+  "Your chosen card {card} can't be played on this trick. Choose another.":
+    "Deine vorgemerkte Karte {card} kann in diesem Stich nicht gespielt werden. Wähle eine andere.",
+  "Tap a card to play it when it's your turn.":
+    "Tippe eine Karte an, um sie zu spielen, sobald du dran bist.",
+  "{card} is played when it's your turn, if it's allowed then. Tap it again to clear it.":
+    "{card} wird gespielt, sobald du dran bist, wenn sie dann erlaubt ist. Tippe sie erneut an, um sie zu löschen.",
   "Play again with the same players?": "Noch eine Runde mit denselben Leuten?",
   "Play again": "Noch einmal spielen",
   "{name} wants to play again.": "{name} möchte noch einmal spielen.",

@@ -4,7 +4,7 @@ import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/fire
 import { type BotLevel, botAction, thinkingMillis } from "./bots/index.js";
 import type { GameState } from "./engine/index.js";
 import { reduce } from "./engine/index.js";
-import { botToMove, type GameDoc, stateFromSecret } from "./game/model.js";
+import { botToMove, type GameDoc, queuedOf, stateFromSecret } from "./game/model.js";
 import { refs, secureRandomInt, writeState } from "./game/store.js";
 import { notificationsFor, type ReactionDoc, reactionNotifications } from "./notify/messages.js";
 import { sendPush } from "./notify/push.js";
@@ -91,7 +91,7 @@ export const moveBot = onDocumentUpdated(
       }
       writeState(tx, gameId, game, state, result.state, {
         byBot: true,
-        queued: secret.queuedBids,
+        queued: queuedOf(secret),
       });
     });
   },

@@ -41,6 +41,8 @@ export const api = {
     call("placeBid", { gameId, version, bid }),
   /** Queues a bid to be placed on the player's turn (placed at once on it); `null` clears it. */
   queueBid: (gameId: string, bid: number | null) => call("queueBid", { gameId, bid }),
+  /** Queues a card to be played on the player's turn, if allowed then; `null` clears it. */
+  queueCard: (gameId: string, card: Card | null) => call("queueCard", { gameId, card }),
   playCard: (gameId: string, version: number, card: Card) =>
     call("playCard", { gameId, version, card }),
   /** Lets a bot play for the player, until they take over or for some minutes or rounds. */

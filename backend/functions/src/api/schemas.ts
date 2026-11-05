@@ -63,6 +63,12 @@ export const QueueBidInput = z.object({
   bid: z.number().int().min(0).max(20).nullable(),
 });
 
+export const QueueCardInput = z.object({
+  gameId: GameId,
+  /** `null` clears the queued card. */
+  card: z.custom<Card>(isCard, "Invalid card.").nullable(),
+});
+
 export const PlayCardInput = z.object({
   gameId: GameId,
   version: Version,

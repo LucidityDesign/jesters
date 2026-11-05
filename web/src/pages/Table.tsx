@@ -87,6 +87,10 @@ export function Table({
     hand !== null &&
     (game.status === "bidding" || game.status === "choosingTrump") &&
     (round?.bids[mySeat] ?? null) === null;
+  // A card queued for this round, if any, and whether the player may choose one now.
+  const queuedCard =
+    hand?.queuedCard && hand.queuedCard.round === round?.number ? hand.queuedCard : null;
+  const canQueueCard = !myTurn && !hasLeft(game, uid) && hand !== null && game.status === "playing";
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
     : "";
@@ -201,12 +205,34 @@ export function Table({
       )}
       <ErrorText message={action.error} />
 
+      {myTurn && game.status === "playing" && queuedCard?.rejected && (
+        <p className="queued-rejected" role="alert">
+          {t("Your chosen card {card} can't be played on this trick. Choose another.", {
+            card: cardName(queuedCard.card),
+          })}
+        </p>
+      )}
+      {canQueueCard && (hand?.cards.length ?? 0) > 0 && (
+        <p className="hint queue-hint">
+          {queuedCard === null || queuedCard.rejected
+            ? t("Tap a card to play it when it's your turn.")
+            : t(
+                "{card} is played when it's your turn, if it's allowed then. Tap it again to clear it.",
+                {
+                  card: cardName(queuedCard.card),
+                },
+              )}
+        </p>
+      )}
       <Hand
         key={game.version}
         cards={sortHand(hand?.cards ?? [])}
         legalCards={new Set(hand?.legalCards ?? [])}
         canPlay={myTurn && game.status === "playing" && !action.isSending}
         onPlay={(card) => action.run(() => api.playCard(gameId, game.version, card))}
+        canQueue={canQueueCard && !action.isSending}
+        queued={queuedCard && !queuedCard.rejected ? queuedCard.card : null}
+        onQueue={(card) => action.run(() => api.queueCard(gameId, card))}
       />
 
       <details className="scores">
@@ -722,11 +748,18 @@ function Hand({
   legalCards,
   canPlay,
   onPlay,
+  canQueue,
+  queued,
+  onQueue,
 }: {
   cards: Card[];
   legalCards: Set<Card>;
   canPlay: boolean;
   onPlay(card: Card): void;
+  /** Before their turn, a tap chooses the card to play on it (and a second tap clears it). */
+  canQueue: boolean;
+  queued: Card | null;
+  onQueue(card: Card | null): void;
 }) {
   // Reset by the parent (`key`) whenever the game changes.
   const [selected, setSelected] = useState<Card | null>(null);
@@ -739,6 +772,7 @@ function Hand({
     >
       {cards.map((card, index) => {
         const playable = canPlay && legalCards.has(card);
+        const isQueued = queued === card;
         // Fanned out: turned and lowered a little more towards the ends.
         const turn = (index - (cards.length - 1) / 2) * Math.min(2.5, 24 / cards.length);
         const style = {
@@ -748,13 +782,14 @@ function Hand({
         return (
           <button
             key={card}
-            className={`hand-card${selected === card ? " selected" : ""}${canPlay && !playable ? " dimmed" : ""}`}
-            disabled={!playable}
-            aria-pressed={selected === card}
+            className={`hand-card${selected === card ? " selected" : ""}${isQueued ? " queued" : ""}${canPlay && !playable ? " dimmed" : ""}`}
+            disabled={!playable && !canQueue}
+            aria-pressed={canQueue ? isQueued : selected === card}
             aria-label={cardName(card)}
             style={style}
             onClick={() => {
-              if (selected === card) onPlay(card);
+              if (canQueue) onQueue(isQueued ? null : card);
+              else if (selected === card) onPlay(card);
               else setSelected(card);
             }}
           >
