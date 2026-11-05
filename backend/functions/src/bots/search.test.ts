@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
@@ -205,14 +205,47 @@ describe("the search", () => {
   });
 });
 
+describe("using the time there is", () => {
+  const view = playingView({ hand: ["H11", "H14", "C2", "S9"] });
+  /** How often the search looked at the clock: once per deal, about. */
+  const clockReads = (extra: Partial<SearchBudget>, play: boolean) => {
+    let clock = 0;
+    const now = () => clock++;
+    const small = { ...budget, playDeals: 4, bidDeals: 4, maxMillis: 1000, ...extra };
+    if (play) searchPlay(view, small, seededRandom(5), { now });
+    else
+      searchBid(
+        { ...view, phase: "bidding", bids: [null, null, null], legalCards: [] },
+        small,
+        seededRandom(5),
+        { now },
+      );
+    return clock;
+  };
+
+  it("keeps simulating until its target time when it has one", () => {
+    expect(clockReads({}, true)).toBeLessThan(15);
+    expect(clockReads({ targetMillis: 200 }, true)).toBeGreaterThan(190);
+  });
+
+  it("never thinks past its time limit, whatever the target", () => {
+    expect(clockReads({ targetMillis: 5000, maxMillis: 300 }, true)).toBeLessThan(310);
+    expect(clockReads({ targetMillis: 5000, maxMillis: 300 }, false)).toBeLessThan(400);
+  });
+});
+
 describe("the Medium and Hard bots", () => {
   it.each<BotLevel>(["medium", "hard"])(
     "play whole %s games with legal moves only",
     (level) => {
+      // A fast clock, so Hard doesn't think its full time on every move.
+      let clock = 0;
+      vi.spyOn(performance, "now").mockImplementation(() => (clock += 50));
       const randomInt = seededRandom(7);
       const state = createGame({ playerCount: 6, randomInt });
       const final = playBots(state, [level, "easy", level, "medium", level, "easy"], randomInt);
       expect(final.phase).toBe("finished");
+      vi.restoreAllMocks();
     },
     60_000,
   );
