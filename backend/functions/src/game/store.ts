@@ -10,12 +10,12 @@ import {
 } from "firebase-admin/firestore";
 import type { GameState, RandomInt } from "../engine/index.js";
 import {
-  applyQueuedBids,
+  applyQueued,
   type GameDoc,
   type HandDoc,
   handDoc,
   publicPlay,
-  type QueuedBid,
+  type Queued,
   type SecretDoc,
   secretDoc,
 } from "./model.js";
@@ -58,15 +58,15 @@ export function writeState(
   stateAfterMove: GameState,
   {
     byBot = false,
-    queued = {},
+    queued = { bids: {}, cards: {} },
   }: {
     byBot?: boolean;
-    /** The queued bids from the secret document, as read in this transaction. */
-    queued?: Readonly<Record<string, QueuedBid>>;
+    /** The queued bids and cards from the secret document, as read in this transaction. */
+    queued?: Queued;
   } = {},
 ): void {
-  // Whoever has a bid queued bids now, if it is their turn.
-  const applied = applyQueuedBids(stateAfterMove, game.playerUids, queued, secureRandomInt);
+  // Whoever has a bid or card queued moves now, if it is their turn.
+  const applied = applyQueued(stateAfterMove, game.playerUids, queued, secureRandomInt);
   const next = applied.state;
   const play = publicPlay(next, game.playerUids);
   const finished = next.phase === "finished";
@@ -88,13 +88,24 @@ export function writeState(
       ? { [`autoPlayedRounds.${person.uid}`]: FieldValue.arrayUnion(game.round.number) }
       : {}),
   });
-  tx.set(refs.secret(gameId), { ...secretDoc(next), queuedBids: applied.queued });
+  tx.set(refs.secret(gameId), {
+    ...secretDoc(next),
+    queuedBids: applied.queued.bids,
+    queuedCards: applied.queued.cards,
+  });
 
   game.playerUids.forEach((uid, seat) => {
     // Someone who left (or deleted their data) gets no hand: a bot plays from the secret state.
     if (game.players[seat]?.left) return;
-    const hand = handDoc(next, seat, applied.queued[uid]);
-    if (previous === null || !isDeepStrictEqual(hand, handDoc(previous, seat, queued[uid]))) {
+    const hand = handDoc(next, seat, {
+      bid: applied.queued.bids[uid],
+      card: applied.queued.cards[uid],
+    });
+    const before =
+      previous === null
+        ? null
+        : handDoc(previous, seat, { bid: queued.bids[uid], card: queued.cards[uid] });
+    if (!isDeepStrictEqual(hand, before)) {
       tx.set(refs.hand(gameId, uid), hand);
     }
   });

@@ -7,6 +7,7 @@ export {
   placeBid,
   playCard,
   queueBid,
+  queueCard,
   setAutoPlay,
 } from "./api/actions.js";
 export {

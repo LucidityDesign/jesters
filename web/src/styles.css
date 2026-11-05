@@ -1068,6 +1068,21 @@ ol.list {
   outline-offset: -1px;
 }
 
+/* A card chosen before the player's turn: raised, with a dashed outline until it is played. */
+.hand-card.queued,
+.hand-card.queued:hover {
+  transform: translateY(calc(var(--lower) - 18px)) rotate(var(--angle));
+}
+
+.hand-card.queued .card {
+  outline: 3px dashed var(--accent);
+  outline-offset: -1px;
+}
+
+.queue-hint {
+  margin: 0 0 4px;
+}
+
 /* Emoji reactions: floating over the sender's seat, sent from the corner of the table. */
 /* Above the trick cards (layered from 0 up to 5) while the reaction floats. */
 .seat.reacting {

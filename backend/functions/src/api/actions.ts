@@ -5,7 +5,9 @@ import {
   type AutoPlay,
   botToMove,
   canQueueBid,
+  canQueueCard,
   type GameDoc,
+  queuedOf,
   STALL_MS,
   STALL_PENALTY,
   stateFromSecret,
@@ -20,6 +22,7 @@ import {
   PlaceBidInput,
   PlayCardInput,
   QueueBidInput,
+  QueueCardInput,
   SetAutoPlayInput,
 } from "./schemas.js";
 
@@ -54,7 +57,7 @@ async function perform(
     const result = reduce(state, action(game.playerUids.indexOf(uid)), secureRandomInt);
     if (!result.ok) fail(result.error);
 
-    writeState(tx, input.gameId, game, state, result.state, { queued: secret.queuedBids });
+    writeState(tx, input.gameId, game, state, result.state, { queued: queuedOf(secret) });
     return { version: game.version + 1 };
   });
 }
@@ -92,7 +95,8 @@ export const queueBid = onCall(CALLABLE, async (request) => {
     const seat = game.playerUids.indexOf(uid);
     if (!canQueueBid(state, seat)) fail("WRONG_PHASE", "You can't bid now.");
     if (input.bid !== null && input.bid > state.round) fail("INVALID_BID");
-    const queued = { ...secret.queuedBids };
+    const { bids, cards } = queuedOf(secret);
+    const queued = { ...bids };
     delete queued[uid];
     if (input.bid !== null) queued[uid] = { round: state.round, bid: input.bid };
 
@@ -101,11 +105,57 @@ export const queueBid = onCall(CALLABLE, async (request) => {
       if (input.bid === null) return { version: game.version };
       const result = reduce(state, { type: "bid", seat, bid: input.bid }, secureRandomInt);
       if (!result.ok) fail(result.error);
-      writeState(tx, input.gameId, game, state, result.state, { queued });
+      writeState(tx, input.gameId, game, state, result.state, { queued: { bids: queued, cards } });
       return { version: game.version + 1 };
     }
     tx.update(refs.secret(input.gameId), { queuedBids: queued });
     tx.update(refs.hand(input.gameId, uid), { queuedBid: queued[uid] ?? null });
+    return { version: game.version };
+  });
+});
+
+/**
+ * Queues the caller's card before their turn (or clears it with `null`): it is played for them on
+ * their turn if the rules allow it then (see `writeState`). On their turn, it is played at once.
+ * Only the caller sees it until then.
+ */
+export const queueCard = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const input = parse(QueueCardInput, request.data);
+  return getFirestore().runTransaction(async (tx) => {
+    const [game, secret] = await Promise.all([
+      getMemberGame(tx, input.gameId, uid),
+      tx.get(refs.secret(input.gameId)).then((snapshot) => snapshot.data()),
+    ]);
+    if (game.status === "lobby") fail("WRONG_PHASE", "The game has not started yet.");
+    if (!game.active || !secret) fail("GAME_OVER", "This game is over.");
+    failIfLeft(game, uid);
+
+    const state = stateFromSecret(secret);
+    const seat = game.playerUids.indexOf(uid);
+    if (state.phase !== "playing") fail("WRONG_PHASE", "You can't play a card now.");
+    const { bids, cards } = queuedOf(secret);
+    const queued = { ...cards };
+    delete queued[uid];
+
+    if (state.turn === seat) {
+      // It is the caller's turn already: the card is played now, if the rules allow it.
+      if (input.card === null) {
+        tx.update(refs.secret(input.gameId), { queuedCards: queued });
+        tx.update(refs.hand(input.gameId, uid), { queuedCard: null });
+        return { version: game.version };
+      }
+      const result = reduce(state, { type: "play", seat, card: input.card }, secureRandomInt);
+      if (!result.ok) fail(result.error);
+      writeState(tx, input.gameId, game, state, result.state, { queued: { bids, cards: queued } });
+      return { version: game.version + 1 };
+    }
+    if (input.card !== null) {
+      if (!canQueueCard(state, seat, input.card)) fail("CARD_NOT_IN_HAND");
+      queued[uid] = { round: state.round, card: input.card };
+    }
+    tx.update(refs.secret(input.gameId), { queuedCards: queued });
+    tx.update(refs.hand(input.gameId, uid), { queuedCard: queued[uid] ?? null });
     return { version: game.version };
   });
 });

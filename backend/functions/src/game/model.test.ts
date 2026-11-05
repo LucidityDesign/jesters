@@ -4,6 +4,7 @@ import { gameWith, seededRandom } from "../../test/helpers.js";
 import { type RoundResult, reduce } from "../engine/index.js";
 import {
   applyQueuedBids,
+  applyQueuedCards,
   botToMove,
   finalTotals,
   handDoc,
@@ -92,6 +93,7 @@ describe("handDoc", () => {
       legalCards: [],
       forbiddenBid: null,
       queuedBid: null,
+      queuedCard: null,
     });
     for (const action of bidding) {
       const result = reduce(state, action, rng);
@@ -261,6 +263,71 @@ describe("applyQueuedBids", () => {
       afterBob,
       uids,
       { bob: { round: 2, bid: 1 }, alice: { round: 1, bid: 0 } },
+      random,
+    );
+    expect(queued).toEqual({});
+  });
+});
+
+describe("applyQueuedCards", () => {
+  // Bob bid 1, Carol and Alice 0; Bob leads the first trick.
+  const playing = (() => {
+    let state = game;
+    for (const action of [
+      { type: "bid", seat: 1, bid: 1 },
+      { type: "bid", seat: 2, bid: 0 },
+      { type: "bid", seat: 0, bid: 0 },
+    ] as const) {
+      const result = reduce(state, action, seededRandom(1));
+      if (!result.ok) throw new Error(result.error);
+      state = result.state;
+    }
+    return state;
+  })();
+  const play = (state: typeof game, seat: number, card: "H2" | "H9" | "D5" | "H14" | "C3") => {
+    const result = reduce(state, { type: "play", seat, card }, seededRandom(1));
+    if (!result.ok) throw new Error(result.error);
+    return result.state;
+  };
+  const random = seededRandom(2);
+
+  it("plays the queued cards of whoever's turn it is, on into the next trick", () => {
+    const afterBob = play(playing, 1, "H2");
+    const { state, queued } = applyQueuedCards(
+      afterBob,
+      uids,
+      { carol: { round: 2, card: "H9" }, alice: { round: 2, card: "H14" } },
+      random,
+    );
+    expect(state.lastTrick?.cards).toEqual(["H2", "H9", "H14"]);
+    // Alice won the trick and leads the next one herself.
+    expect(state.turn).toBe(0);
+    expect(queued).toEqual({});
+  });
+
+  it("waits for a player without a queued card", () => {
+    const queued = { alice: { round: 2, card: "C3" as const } };
+    const result = applyQueuedCards(playing, uids, queued, random);
+    expect(result.state).toBe(playing);
+    expect(result.queued).toEqual(queued);
+  });
+
+  it("keeps a card the rules don't allow as rejected until its player has played", () => {
+    const afterBob = play(playing, 1, "H2");
+    // Carol has to follow hearts with the 9.
+    const first = applyQueuedCards(afterBob, uids, { carol: { round: 2, card: "D5" } }, random);
+    expect(first.state).toBe(afterBob);
+    expect(first.queued).toEqual({ carol: { round: 2, card: "D5", rejected: true } });
+    expect(applyQueuedCards(afterBob, uids, first.queued, random).state).toBe(afterBob);
+    const afterCarol = play(afterBob, 2, "H9");
+    expect(applyQueuedCards(afterCarol, uids, first.queued, random).queued).toEqual({});
+  });
+
+  it("drops cards queued for another round or no longer in hand", () => {
+    const { queued } = applyQueuedCards(
+      play(playing, 1, "H2"),
+      uids,
+      { bob: { round: 2, card: "H2" }, alice: { round: 1, card: "H14" } },
       random,
     );
     expect(queued).toEqual({});

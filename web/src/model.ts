@@ -120,6 +120,11 @@ export interface HandDoc {
    * turn: they have to bid again.
    */
   queuedBid?: { round: number; bid: number; rejected?: boolean } | null;
+  /**
+   * The card this player chose before their turn, played on it if the rules allow it then.
+   * `rejected` when they didn't: the player has to choose another card.
+   */
+  queuedCard?: { round: number; card: Card; rejected?: boolean } | null;
 }
 
 export function isRunning(status: GameStatus): boolean {

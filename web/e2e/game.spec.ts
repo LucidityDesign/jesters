@@ -107,6 +107,24 @@ test("three guests create, join and play the first two rounds", async ({ browser
   }
   await expect.poll(playing).toBe(true);
 
+  // Round 1 has a single trick: the two who play later choose their card already, and it is
+  // played for them right after the first card.
+  const later: Page[] = [];
+  let leader: Page | undefined;
+  for (const page of players) {
+    if ((await page.getByRole("status").first().textContent())?.startsWith("Your turn")) {
+      leader = page;
+    } else later.push(page);
+  }
+  expect(later).toHaveLength(2);
+  for (const page of later) {
+    await page.locator(".hand-card").first().click();
+    await expect(page.getByText(/is played when it's your turn/)).toBeVisible();
+    await expect(page.locator(".hand-card.queued")).toHaveCount(1);
+  }
+  await moveIfMyTurn(leader as Page);
+  await expect(anna.getByRole("heading", { name: "Round 2 of 20" })).toBeVisible();
+
   // Play until round 3 starts: every round is dealt, bid, played and scored.
   for (let moves = 0; moves < 40; moves++) {
     if (await anna.getByRole("heading", { name: "Round 3 of 20" }).isVisible()) break;
