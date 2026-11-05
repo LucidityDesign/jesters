@@ -34,6 +34,11 @@ export interface SearchBudget {
   /** Stop and decide with what has been simulated so far after this long. */
   maxMillis: number;
   /**
+   * Keep simulating fresh deals beyond `playDeals` and `bidDeals` until this long has passed
+   * (never past `maxMillis`); 0 or unset stops after them.
+   */
+  targetMillis?: number;
+  /**
    * Play the rest of a round exactly (see `endgame.ts`) once it has at most this many lines of
    * play; 0 or unset always follows the rollout policy.
    */
@@ -49,6 +54,8 @@ export interface SearchOptions {
 const BID_CUTOFF = 15;
 /** At most this many bids get the full budget. */
 const BID_FINALISTS = 3;
+/** Deals per finalist added at a time while there is time left. */
+const BID_CHUNK = 10;
 
 /** The card to play, by simulation. */
 export function searchPlay(
@@ -60,13 +67,16 @@ export function searchPlay(
   const candidates = view.legalCards;
   if (candidates.length === 1) return candidates[0] as Card;
   const now = options.now ?? (() => performance.now());
-  const deadline = now() + budget.maxMillis;
+  const start = now();
+  const deadline = start + budget.maxMillis;
+  const target = start + Math.min(budget.targetMillis ?? 0, budget.maxMillis);
   const random = fastRandom(randomInt(2 ** 31));
   const totals = candidates.map(() => 0);
   const judge = judgeFor(view);
 
-  for (let deal = 0; deal < budget.playDeals; deal++) {
+  for (let deal = 0; ; deal++) {
     if (deal > 0 && now() > deadline) break;
+    if (deal >= budget.playDeals && now() >= target) break;
     const sim = playingSim(view, sampleDeal(view, budget, random));
     candidates.forEach((card, i) => {
       const copy = cloneSim(sim);
@@ -145,7 +155,9 @@ export function searchBid(
     (bid) => bid !== view.forbiddenBid,
   );
   const now = options.now ?? (() => performance.now());
-  const deadline = now() + budget.maxMillis;
+  const start = now();
+  const deadline = start + budget.maxMillis;
+  const target = start + Math.min(budget.targetMillis ?? 0, budget.maxMillis);
   const random = fastRandom(randomInt(2 ** 31));
   const deals: Card[][][] = [];
   const judge = judgeFor(view);
@@ -185,6 +197,10 @@ export function searchBid(
       counts.set(bid, 0);
     }
     simulate(finalists, firstLook, budget.bidDeals);
+    // More fresh deals while there is time.
+    for (let next = firstLook + budget.bidDeals; now() < target; next += BID_CHUNK) {
+      simulate(finalists, next, BID_CHUNK);
+    }
   }
 
   // Ties go to the bid closest to the hand's estimate.
