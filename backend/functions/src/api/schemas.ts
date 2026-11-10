@@ -103,4 +103,19 @@ export const LetBotMoveInput = z.object({
   version: z.number().int().nonnegative(),
 });
 
+/** The actions `gameAction` makes in a running game. */
+export const GAME_ACTION_NAMES = [
+  "chooseTrump",
+  "placeBid",
+  "queueBid",
+  "queueCard",
+  "playCard",
+  "setAutoPlay",
+  "letBotMove",
+] as const;
+export type GameActionName = (typeof GAME_ACTION_NAMES)[number];
+
+/** Which action, plus that action's own input (checked by the action). */
+export const GameActionInput = z.looseObject({ action: z.enum(GAME_ACTION_NAMES) });
+
 export const RedeemTransferCodeInput = z.object({ code: z.string().max(32) });

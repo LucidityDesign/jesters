@@ -10,6 +10,14 @@ async function call<Response = { ok: true }>(name: string, data: object = {}): P
   return result.data;
 }
 
+/**
+ * A move or other action in a running game. All of them go through one server function, so one
+ * warm instance answers every move (see `gameAction` in the backend).
+ */
+function gameAction(action: string, data: object): Promise<{ version: number }> {
+  return call<{ version: number }>("gameAction", { action, ...data });
+}
+
 export const api = {
   /** Stores the name, time zone and language, used for reminders at sensible local times. */
   saveProfile: (uid: string, displayName: string) =>
@@ -34,22 +42,23 @@ export const api = {
   removePlayer: (gameId: string, uid: string) => call("removePlayer", { gameId, uid }),
   leaveGame: (gameId: string) => call("leaveGame", { gameId }),
   /** Hands the move of a player who has kept everyone waiting to a bot. */
-  letBotMove: (gameId: string, version: number) => call("letBotMove", { gameId, version }),
+  letBotMove: (gameId: string, version: number) => gameAction("letBotMove", { gameId, version }),
   /** Starts or joins the new game after `gameId` ended. */
   playAgain: (gameId: string) => call<{ gameId: string }>("playAgain", { gameId }),
   chooseTrump: (gameId: string, version: number, suit: Suit) =>
-    call("chooseTrump", { gameId, version, suit }),
+    gameAction("chooseTrump", { gameId, version, suit }),
   placeBid: (gameId: string, version: number, bid: number) =>
-    call("placeBid", { gameId, version, bid }),
+    gameAction("placeBid", { gameId, version, bid }),
   /** Queues a bid to be placed on the player's turn (placed at once on it); `null` clears it. */
-  queueBid: (gameId: string, bid: number | null) => call("queueBid", { gameId, bid }),
+  queueBid: (gameId: string, bid: number | null) => gameAction("queueBid", { gameId, bid }),
   /** Queues a card to be played on the player's turn, if allowed then; `null` clears it. */
-  queueCard: (gameId: string, card: Card | "hidden" | null) => call("queueCard", { gameId, card }),
+  queueCard: (gameId: string, card: Card | "hidden" | null) =>
+    gameAction("queueCard", { gameId, card }),
   playCard: (gameId: string, version: number, card: Card | "hidden") =>
-    call("playCard", { gameId, version, card }),
+    gameAction("playCard", { gameId, version, card }),
   /** Lets a bot play for the player, until they take over or for some minutes or rounds. */
   setAutoPlay: (gameId: string, on: boolean, limit: { minutes?: number; rounds?: number } = {}) =>
-    call("setAutoPlay", { gameId, on, ...limit }),
+    gameAction("setAutoPlay", { gameId, on, ...limit }),
   /** A code to enter on another device to move this guest there (see `Transfer`). */
   createTransferCode: () => call<{ code: string; expiresAt: number }>("createTransferCode"),
   /** A sign-in token for the guest a transfer code belongs to, and their name. */
