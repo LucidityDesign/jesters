@@ -89,7 +89,9 @@ Games are **asynchronous**: a turn can take hours, and players are notified by p
 - **Server-authoritative.** Clients never write game state. Every action
   (`createRoom`, `joinRoom`, `startGame`, `placeBid`, `chooseTrump`, `playCard`, …)
   goes through a callable Cloud Function that validates it against the rules engine
-  inside a Firestore transaction.
+  inside a Firestore transaction. The moves in a running game (bids, trump, cards,
+  queued moves, auto-play) share one callable, `gameAction`, so one warm instance
+  answers them all instead of each kind of move having its own cold start.
 - **Hidden information stays hidden.** Each player's hand is stored in a private
   document that only that player can read (enforced by security rules). The public
   game document never contains other players' cards or the deck.

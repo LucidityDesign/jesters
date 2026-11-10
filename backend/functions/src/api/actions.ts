@@ -19,6 +19,8 @@ import { fail, parse, requireAuth } from "./errors.js";
 import { getMemberGame } from "./rooms.js";
 import {
   ChooseTrumpInput,
+  GameActionInput,
+  type GameActionName,
   LetBotMoveInput,
   PlaceBidInput,
   PlayCardInput,
@@ -74,26 +76,23 @@ async function perform(
   });
 }
 
-export const chooseTrump = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(ChooseTrumpInput, request.data);
+async function chooseTrumpAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(ChooseTrumpInput, data);
   return perform(uid, input, (seat) => ({ type: "chooseTrump", seat, suit: input.suit }));
-});
+}
 
-export const placeBid = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(PlaceBidInput, request.data);
+async function placeBidAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(PlaceBidInput, data);
   return perform(uid, input, (seat) => ({ type: "bid", seat, bid: input.bid }));
-});
+}
 
 /**
  * Queues the caller's bid for this round before their turn (or clears it with `null`): it is
  * placed for them as soon as it is their turn (see `writeState`). On their turn, it is placed
  * at once. Only the caller sees it until then.
  */
-export const queueBid = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(QueueBidInput, request.data);
+async function queueBidAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(QueueBidInput, data);
   return getFirestore().runTransaction(async (tx) => {
     const [game, secret] = await Promise.all([
       getMemberGame(tx, input.gameId, uid),
@@ -124,16 +123,15 @@ export const queueBid = onCall(CALLABLE, async (request) => {
     tx.update(refs.hand(input.gameId, uid), { queuedBid: queued[uid] ?? null });
     return { version: game.version };
   });
-});
+}
 
 /**
  * Queues the caller's card before their turn (or clears it with `null`): it is played for them on
  * their turn if the rules allow it then (see `writeState`). On their turn, it is played at once.
  * Only the caller sees it until then.
  */
-export const queueCard = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(QueueCardInput, request.data);
+async function queueCardAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(QueueCardInput, data);
   return getFirestore().runTransaction(async (tx) => {
     const [game, secret] = await Promise.all([
       getMemberGame(tx, input.gameId, uid),
@@ -174,26 +172,24 @@ export const queueCard = onCall(CALLABLE, async (request) => {
     });
     return { version: game.version };
   });
-});
+}
 
-export const playCard = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(PlayCardInput, request.data);
+async function playCardAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(PlayCardInput, data);
   return perform(uid, input, (seat, state) => ({
     type: "play",
     seat,
     card: resolveCard(state, seat, input.card),
   }));
-});
+}
 
 /**
  * Lets a bot play for the caller (until they take over, for some minutes or rounds), or stops it.
  * The change itself starts the bot when it is the caller's turn (see `moveBot`); a move of their
  * own also stops it (see `writeState`).
  */
-export const setAutoPlay = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(SetAutoPlayInput, request.data);
+async function setAutoPlayAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(SetAutoPlayInput, data);
   return getFirestore().runTransaction(async (tx) => {
     const game = await getMemberGame(tx, input.gameId, uid);
     if (game.status === "lobby") fail("WRONG_PHASE", "The game has not started yet.");
@@ -214,15 +210,14 @@ export const setAutoPlay = onCall(CALLABLE, async (request) => {
     });
     return { version: game.version + 1 };
   });
-});
+}
 
 /**
  * Another player hands the move of a person who has kept everyone waiting for `STALL_MS` to a bot:
  * just this one move, which `moveBot` then makes (marked as auto-played for them).
  */
-export const letBotMove = onCall(CALLABLE, async (request) => {
-  const uid = requireAuth(request.auth);
-  const input = parse(LetBotMoveInput, request.data);
+async function letBotMoveAction(uid: string, data: unknown): Promise<{ version: number }> {
+  const input = parse(LetBotMoveInput, data);
   return getFirestore().runTransaction(async (tx) => {
     const game = await getMemberGame(tx, input.gameId, uid);
     if (!game.active || game.status === "lobby") fail("WRONG_PHASE", "No move is waiting.");
@@ -248,4 +243,44 @@ export const letBotMove = onCall(CALLABLE, async (request) => {
     });
     return { version: game.version + 1 };
   });
+}
+
+/** Every move and game action a player can make, by name. */
+const GAME_ACTIONS: Record<
+  GameActionName,
+  (uid: string, data: unknown) => Promise<{ version: number }>
+> = {
+  chooseTrump: chooseTrumpAction,
+  placeBid: placeBidAction,
+  queueBid: queueBidAction,
+  queueCard: queueCardAction,
+  playCard: playCardAction,
+  setAutoPlay: setAutoPlayAction,
+  letBotMove: letBotMoveAction,
+};
+
+/**
+ * All of a running game's actions go through this one function, so a single warm instance answers
+ * every move instead of each kind of move starting its own instance after a quiet spell (a cold
+ * start takes seconds). `data.action` names the action, the rest is its input.
+ */
+export const gameAction = onCall(CALLABLE, async (request) => {
+  const uid = requireAuth(request.auth);
+  const { action, ...input } = parse(GameActionInput, request.data);
+  return GAME_ACTIONS[action](uid, input);
 });
+
+/** One action under its own old name. */
+function legacy(name: GameActionName) {
+  return onCall(CALLABLE, (request) => GAME_ACTIONS[name](requireAuth(request.auth), request.data));
+}
+
+// The same actions under their old names, for app versions loaded before `gameAction` existed.
+// Remove once those are gone (a reload picks up the new app).
+export const chooseTrump = legacy("chooseTrump");
+export const placeBid = legacy("placeBid");
+export const queueBid = legacy("queueBid");
+export const queueCard = legacy("queueCard");
+export const playCard = legacy("playCard");
+export const setAutoPlay = legacy("setAutoPlay");
+export const letBotMove = legacy("letBotMove");
