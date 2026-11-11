@@ -23,8 +23,14 @@ describe("PlayerName", () => {
 });
 
 describe("CreateRoomInput", () => {
-  it("turns on no-even-bids by default", () => {
-    expect(CreateRoomInput.parse({ name: "Anna" }).settings).toEqual({ noEvenBids: true });
+  it("turns on no-even-bids and the blind first round by default", () => {
+    expect(CreateRoomInput.parse({ name: "Anna" }).settings).toEqual({
+      noEvenBids: true,
+      blindFirstRound: true,
+    });
+    expect(
+      CreateRoomInput.parse({ name: "Anna", settings: { blindFirstRound: false } }).settings,
+    ).toEqual({ noEvenBids: true, blindFirstRound: false });
   });
 });
 

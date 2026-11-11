@@ -38,7 +38,8 @@ describe("rooms", () => {
         { uid: anna.uid, name: "Anna" },
         { uid: ben.uid, name: "Ben" },
       ],
-      settings: { noEvenBids: true },
+      // New rooms play with "no even bids" and a blind first round.
+      settings: { noEvenBids: true, blindFirstRound: true },
       active: true,
       version: 2,
     });
@@ -99,11 +100,15 @@ describe("rooms", () => {
       await rejection(ben.call("updateSettings", { gameId: room.gameId, noEvenBids: false })),
     ).toBe("NOT_HOST");
     await anna.call("updateSettings", { gameId: room.gameId, noEvenBids: false });
-    expect((await ben.read<Game>(`games/${room.gameId}`))?.settings).toEqual({ noEvenBids: false });
+    expect((await ben.read<Game>(`games/${room.gameId}`))?.settings).toEqual({
+      noEvenBids: false,
+      blindFirstRound: false,
+    });
     // Each rule changes on its own.
     await anna.call("updateSettings", { gameId: room.gameId, stallPenalty: true });
     expect((await ben.read<Game>(`games/${room.gameId}`))?.settings).toEqual({
       noEvenBids: false,
+      blindFirstRound: false,
       stallPenalty: true,
     });
 

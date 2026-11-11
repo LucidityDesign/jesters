@@ -65,14 +65,19 @@ export async function rejection(promise: Promise<unknown>): Promise<string> {
   throw new Error("Expected the call to be rejected");
 }
 
-/** Creates a room hosted by the first player and lets the others join. */
+/**
+ * Creates a room hosted by the first player and lets the others join. Unlike a room from the app,
+ * its first round is not blind unless asked for, so tests can play the cards they see.
+ */
 export async function setUpRoom(
   players: readonly TestPlayer[],
+  settings: { noEvenBids?: boolean; blindFirstRound?: boolean } = { blindFirstRound: false },
 ): Promise<{ gameId: string; roomKey: string }> {
   const [host, ...others] = players;
   if (!host) throw new Error("setUpRoom: no players");
   const room = await host.call<{ gameId: string; roomKey: string }>("createRoom", {
     name: host.name,
+    settings,
   });
   for (const player of others) {
     await player.call("joinRoom", { roomKey: room.roomKey, name: player.name });
