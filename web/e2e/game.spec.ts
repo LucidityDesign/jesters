@@ -64,6 +64,10 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await anna.getByLabel("−5 points for stalling").click();
   await expect(anna.getByLabel("−5 points for stalling")).toBeChecked();
   await expect(ben.getByLabel("−5 points for stalling")).toBeChecked();
+  // New rooms play the first round blind; this game shows its cards from the start.
+  await expect(anna.getByLabel("Blind first round")).toBeChecked();
+  await anna.getByLabel("Blind first round").click();
+  await expect(ben.getByLabel("Blind first round")).not.toBeChecked();
   await anna.getByRole("button", { name: "Start game" }).click();
 
   const players = [anna, ben, cleo];

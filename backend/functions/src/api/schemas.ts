@@ -20,7 +20,13 @@ const Version = z.number().int().nonnegative().optional();
 
 export const CreateRoomInput = z.object({
   name: PlayerName,
-  settings: z.object({ noEvenBids: z.boolean().default(true) }).default({ noEvenBids: true }),
+  /** New rooms play with "no even bids" and a blind first round unless the host turns them off. */
+  settings: z
+    .object({
+      noEvenBids: z.boolean().default(true),
+      blindFirstRound: z.boolean().default(true),
+    })
+    .default({ noEvenBids: true, blindFirstRound: true }),
 });
 
 export const JoinRoomInput = z.object({
