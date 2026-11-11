@@ -59,6 +59,14 @@ test("three guests create, join and play the first two rounds", async ({ browser
   await expect(
     anna.locator(".lobby-name", { hasText: "Ben" }).getByRole("img", { name: "👍" }),
   ).toBeVisible();
+  // "+" offers every emoji, with a search by name.
+  await cleo.getByRole("button", { name: "React" }).click();
+  await cleo.getByRole("button", { name: "More emojis" }).click();
+  await cleo.getByLabel("Search emojis").fill("pineapple");
+  await cleo.getByRole("button", { name: "🍍" }).click();
+  await expect(
+    anna.locator(".lobby-name", { hasText: "Cleo" }).getByRole("img", { name: "🍍" }),
+  ).toBeVisible();
   // The host may let stalling cost points; everyone sees the rule.
   // The box shows the server's state, so it changes once the server has it.
   await anna.getByLabel("−5 points for stalling").click();

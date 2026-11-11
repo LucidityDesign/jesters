@@ -101,7 +101,8 @@ describe("reactions", () => {
     });
     // ❤️ with its emoji variation selector, as the picker sends it.
     await assertSucceeds(react("bob", "❤️"));
-    for (const emoji of ["😭", "😴", "🥱", "🙄"]) {
+    // Any emoji from the "+" panel: flags, keycaps, families, subdivision flags.
+    for (const emoji of ["😭", "😴", "🥱", "🙄", "💩", "🇩🇪", "1️⃣", "👨‍👩‍👧‍👦", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "🫠"]) {
       await env.withSecurityRulesDisabled(async (context) => {
         await updateDoc(doc(context.firestore(), "games/rules-g1/reactions/bob"), {
           at: Timestamp.fromMillis(Date.now() - 2000),
@@ -125,7 +126,10 @@ describe("reactions", () => {
         nonce: "abc",
       }),
     );
-    await assertFails(react("alice", "💩"));
+    // Text, markup or a row of emojis is not a reaction.
+    for (const text of ["", "hi", "👍 👍", "👍hi", "<b>", "ℹ️", "👍".repeat(20)]) {
+      await assertFails(react("alice", text));
+    }
     await assertFails(react("alice", "👍", "missing"));
     const mine = doc(as("alice"), "games/rules-g1/reactions/alice");
     await assertFails(setDoc(mine, { emoji: "👍", at: Timestamp.now(), nonce: "abc" }));
