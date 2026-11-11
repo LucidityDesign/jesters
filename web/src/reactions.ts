@@ -2,7 +2,7 @@ import { collection, doc, onSnapshot, serverTimestamp, setDoc } from "firebase/f
 import { useEffect, useState } from "react";
 import { firebase } from "./firebase";
 
-/** The emojis players can react with. Keep in sync with `validReaction` in firestore.rules. */
+/** The emojis offered first; "+" offers all others (see `EmojiPanel`, and `validReaction` in firestore.rules). */
 export const REACTIONS = [
   "👍",
   "👎",

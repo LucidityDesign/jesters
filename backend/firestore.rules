@@ -25,10 +25,12 @@ service cloud.firestore {
       return request.auth.uid in get(/databases/$(database)/documents/games/$(gameId)).data.playerUids;
     }
 
-    // Keep the emojis in sync with REACTIONS in web/src/reactions.ts.
+    // Any one emoji (web/src/reactions.ts and the "+" panel): short, and no letters, spaces or
+    // markup, so a reaction can't carry a message.
     function validReaction(data) {
       return data.keys().hasOnly(['emoji', 'at', 'nonce'])
-        && data.emoji in ['👍', '👎', '👏', '🤝', '😂', '😮', '😮‍💨', '😡', '🎉', '🔥', '🤞', '🙈', '❤️', '👑', '🐥', '🐌', '😭', '😴', '🥱', '🙄']
+        && data.emoji is string && data.emoji.size() >= 1 && data.emoji.size() <= 32
+        && data.emoji.matches('^[^\\p{L}\\s<>&"]+$')
         && data.at == request.time
         && data.nonce is string && data.nonce.size() >= 1 && data.nonce.size() <= 16;
     }

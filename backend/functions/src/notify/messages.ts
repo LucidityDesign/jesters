@@ -169,7 +169,7 @@ export function stalledTurnMessages(gameId: string, game: GameDoc): PushMessage[
   }).filter((message) => waiting.some((player) => player.uid === message.uid));
 }
 
-/** The emoji reactions, as allowed by firestore.rules (and REACTIONS in web/src/reactions.ts). */
+/** An emoji reaction (any one emoji, see `validReaction` in firestore.rules). */
 export interface ReactionDoc {
   emoji: string;
   at: Timestamp;
