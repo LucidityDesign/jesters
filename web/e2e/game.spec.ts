@@ -9,8 +9,11 @@ async function guest(browser: Browser, name: string, path = "/"): Promise<Page> 
   return page;
 }
 
-/** Makes one move if it is this player's turn; returns whether it did. */
-async function moveIfMyTurn(page: Page): Promise<boolean> {
+/**
+ * Makes one move if it is this player's turn; returns whether it did. With `playCards: false`
+ * it only bids and chooses trump.
+ */
+async function moveIfMyTurn(page: Page, { playCards = true } = {}): Promise<boolean> {
   const banner = page.getByRole("status");
   // The banner alone doesn't show progress: a trick's winner leads the next trick.
   const state = async () =>
@@ -24,7 +27,7 @@ async function moveIfMyTurn(page: Page): Promise<boolean> {
       .click();
   } else if (text.includes("How many tricks")) {
     await page.locator(".bids button:enabled").first().click();
-  } else if (text.startsWith("Your turn")) {
+  } else if (text.startsWith("Your turn") && playCards) {
     const card = page.locator(".hand-card:enabled").first();
     await card.click();
     await card.click();
@@ -115,7 +118,8 @@ test("three guests create, join and play the first two rounds", async ({ browser
     for (const page of waiting) {
       await expect(page.getByText("How many tricks will you take?")).toBeHidden();
     }
-    for (const page of players) await moveIfMyTurn(page);
+    // Bids only: once the last bid is in, the first card belongs to the step below.
+    for (const page of players) await moveIfMyTurn(page, { playCards: false });
   }
   await expect.poll(playing).toBe(true);
 
