@@ -7,8 +7,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 /** Newer emojis are missing from too many phones still in use (they would show as boxes). */
 const EMOJI_VERSION = 14;
 const LANGS = ["en", "de"];
-/** Skin tone and hair swatches: not emojis on their own. */
-const COMPONENT_GROUP = 2;
+/**
+ * Groups left out: skin tone and hair swatches (not emojis on their own), symbols and flags (not
+ * what players react with).
+ */
+const LEFT_OUT_GROUPS = new Set(["component", "symbols", "flags"]);
 
 const data = (path) =>
   JSON.parse(readFileSync(new URL(`../node_modules/emojibase-data/${path}`, import.meta.url)));
@@ -21,8 +24,9 @@ const supported = new Set(
 
 for (const lang of LANGS) {
   const groups = data(`${lang}/messages.json`).groups;
+  const leftOut = new Set(groups.filter((g) => LEFT_OUT_GROUPS.has(g.key)).map((g) => g.order));
   const emojis = data(`${lang}/compact.json`)
-    .filter((e) => e.group !== undefined && e.group !== COMPONENT_GROUP)
+    .filter((e) => e.group !== undefined && !leftOut.has(e.group))
     .filter((e) => supported.has(e.hexcode))
     // Only what firestore.rules accepts as a reaction (no letters: drops ℹ️).
     .filter((e) => /^[^\p{L}\s<>&"]+$/u.test(e.unicode))
