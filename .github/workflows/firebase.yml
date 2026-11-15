@@ -142,7 +142,7 @@ jobs:
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-      - name: Prepare the project (APIs, Firestore, anonymous sign-in)
+      - name: Prepare the project (APIs, Firestore, anonymous sign-in, no guest clean-up)
         run: backend/scripts/prepare-project.sh
       - name: Configure the functions
         # App Check stays off until the apps are registered for it (README → App Check).
