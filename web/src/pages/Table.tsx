@@ -10,7 +10,7 @@ import { api } from "../api";
 import { CardBack, CardView, cardName, SUIT_SYMBOL, suitName } from "../components/CardView";
 import { ErrorText, Page } from "../components/Layout";
 import { ReactionBubble, ReactionPicker } from "../components/Reactions";
-import { t } from "../i18n";
+import { duration, t } from "../i18n";
 import {
   type AutoPlay,
   activeAutoPlay,
@@ -153,9 +153,9 @@ export function Table({
       {stalled !== null && (
         <div className="auto-play-bar" role="status">
           <span>
-            {t("{name} hasn't moved for {minutes} min.", {
+            {t("{name} hasn't moved for {time}.", {
               name: nameAt(game, stalled),
-              minutes: Math.floor((now - (game.updatedAt?.toMillis() ?? now)) / 60_000),
+              time: duration(now - (game.updatedAt?.toMillis() ?? now)),
             })}
             {game.settings.stallPenalty &&
               ` ${t("A bot move costs them {points} points.", { points: STALL_PENALTY })}`}

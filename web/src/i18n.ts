@@ -105,7 +105,15 @@ export const DE: Record<string, string> = {
   "You left this game. A bot plays for you.":
     "Du hast dieses Spiel verlassen. Ein Bot spielt für dich.",
   "Give them a little more time.": "Gib noch etwas Zeit.",
-  "{name} hasn't moved for {minutes} min.": "{name} hat seit {minutes} Min. nicht gespielt.",
+  "{name} hasn't moved for {time}.": "{name} hat seit {time} nicht gespielt.",
+  // Durations (see `duration`): German in the dative, as they follow "seit".
+  "1 day": "1 Tag",
+  "{n} days": "{n} Tagen",
+  "1 hour": "1 Stunde",
+  "{n} hours": "{n} Stunden",
+  "1 minute": "1 Minute",
+  "{n} minutes": "{n} Minuten",
+  "{a} and {b}": "{a} und {b}",
   "Let a bot move": "Bot ziehen lassen",
   "−{points} points for stalling": "−{points} Punkte fürs Warten-Lassen",
   "When someone keeps everyone waiting for 30 minutes and the others let a bot move for them, they lose {points} points.":
@@ -301,4 +309,34 @@ export function t(text: string, values?: Record<string, string | number>): strin
 /** "Anna, Ben and Cleo" / "Anna, Ben und Cleo". */
 export function formatList(items: string[]): string {
   return new Intl.ListFormat(lang, { type: "conjunction" }).format(items);
+}
+
+const UNITS = [
+  { ms: 24 * 60 * 60_000, one: "1 day", many: "{n} days" },
+  { ms: 60 * 60_000, one: "1 hour", many: "{n} hours" },
+  { ms: 60_000, one: "1 minute", many: "{n} minutes" },
+] as const;
+
+/**
+ * A time span in words, rounded down to its largest unit and the one after it: "45 minutes",
+ * "8 hours and 18 minutes", "2 days", "2 days and 3 hours". German in the dative, for "seit …".
+ */
+export function duration(ms: number, language: Lang = lang): string {
+  const counts = UNITS.map((unit, index) => {
+    const above = UNITS[index - 1];
+    const whole = Math.floor(Math.max(0, ms) / unit.ms);
+    return above ? whole % (above.ms / unit.ms) : whole;
+  });
+  // The largest unit that isn't zero (minutes if all are), and the next one unless it is zero.
+  const nonZero = counts.findIndex((n) => n > 0);
+  const first = nonZero === -1 ? UNITS.length - 1 : nonZero;
+  const shown = (counts[first + 1] ?? 0) > 0 ? [first, first + 1] : [first];
+  const parts = shown.map((index) => {
+    const unit = UNITS[index] as (typeof UNITS)[number];
+    const n = counts[index] as number;
+    return translate(language, n === 1 ? unit.one : unit.many, { n });
+  });
+  return parts.length === 2
+    ? translate(language, "{a} and {b}", { a: parts[0] as string, b: parts[1] as string })
+    : (parts[0] as string);
 }
