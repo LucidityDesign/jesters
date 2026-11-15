@@ -40,12 +40,14 @@ export interface Strategy {
 export const SEARCH_BUDGETS: Record<Exclude<BotLevel, "easy">, SearchBudget> = {
   medium: { playDeals: 28, bidDeals: 18, fitBids: true, maxMillis: 250 },
   // Hard also plays the last tricks of a round exactly, and uses the time it has for more deals.
+  // Twice the deals of 120/60 won 69 of 120 games against them (`pnpm simulate compare`).
+  // Playing for the game (`rivalry: 1`) made no difference there, so it stays off.
   hard: {
-    playDeals: 120,
-    bidDeals: 60,
+    playDeals: 240,
+    bidDeals: 120,
     fitBids: true,
-    maxMillis: 600,
-    targetMillis: 400,
+    maxMillis: 1000,
+    targetMillis: 800,
     endgameLines: 2000,
   },
 };

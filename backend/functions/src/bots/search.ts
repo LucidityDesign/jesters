@@ -1,4 +1,4 @@
-import { type Card, forbiddenLastBid, type RandomInt } from "../engine/index.js";
+import { type Card, forbiddenLastBid, type RandomInt, totalRounds } from "../engine/index.js";
 import { linesLeft, solveRound } from "./endgame.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
 import { sampleDeal } from "./knowledge.js";
@@ -39,6 +39,11 @@ export interface SearchBudget {
    */
   targetMillis?: number;
   /**
+   * How much the bot plays for the game rather than the round, at the end of the game (it grows
+   * from 0 in the first round): see `judgeFor`. 0 or unset: its own round score only.
+   */
+  rivalry?: number;
+  /**
    * Play the rest of a round exactly (see `endgame.ts`) once it has at most this many lines of
    * play; 0 or unset always follows the rollout policy.
    */
@@ -72,7 +77,7 @@ export function searchPlay(
   const target = start + Math.min(budget.targetMillis ?? 0, budget.maxMillis);
   const random = fastRandom(randomInt(2 ** 31));
   const totals = candidates.map(() => 0);
-  const judge = judgeFor(view);
+  const judge = judgeFor(view, budget.rivalry);
 
   for (let deal = 0; ; deal++) {
     if (deal > 0 && now() > deadline) break;
@@ -87,9 +92,26 @@ export function searchPlay(
   return pickCard(view, candidates, totals);
 }
 
-/** How the bot values the end of a round: by its own points. */
-function judgeFor(view: BotView): (scores: number[]) => number {
-  return (scores) => scores[view.seat] as number;
+/**
+ * How the bot values the end of a round. With `rivalry` 0: by its own points. Otherwise partly by
+ * its lead over its strongest rival (the best of the others' totals after the round), which counts
+ * more as the game goes on: it then also takes points away from the leader when that is cheap,
+ * risks more when behind and less when ahead.
+ */
+export function judgeFor(view: BotView, rivalry = 0): (scores: number[]) => number {
+  const own = (scores: number[]) => scores[view.seat] as number;
+  const weight = rivalry * (view.round / totalRounds(view.playerCount));
+  if (weight <= 0 || view.playerCount < 2) return own;
+  const totals = view.results.at(-1)?.totals ?? Array<number>(view.playerCount).fill(0);
+  return (scores) => {
+    let rival = Number.NEGATIVE_INFINITY;
+    for (let seat = 0; seat < scores.length; seat++) {
+      if (seat === view.seat) continue;
+      rival = Math.max(rival, (totals[seat] as number) + (scores[seat] as number));
+    }
+    const lead = (totals[view.seat] as number) + own(scores) - rival;
+    return (1 - weight) * own(scores) + weight * lead;
+  };
 }
 
 /** Plays `sim` to the end of the round (exactly, if it is short enough) and values the outcome. */
@@ -160,7 +182,7 @@ export function searchBid(
   const target = start + Math.min(budget.targetMillis ?? 0, budget.maxMillis);
   const random = fastRandom(randomInt(2 ** 31));
   const deals: Card[][][] = [];
-  const judge = judgeFor(view);
+  const judge = judgeFor(view, budget.rivalry);
   const dealAt = (index: number) => {
     while (deals.length <= index) deals.push(sampleDeal(view, budget, random));
     return deals[index] as Card[][];
