@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DE, detectLang, translate } from "./i18n";
+import { DE, detectLang, duration, translate } from "./i18n";
 
 /** Every literal passed to t(…), plus the error messages in api.ts. */
 function textsInSource(dir: string): string[] {
@@ -46,5 +46,34 @@ describe("translations", () => {
     expect(detectLang(["de-AT", "en"])).toBe("de");
     expect(detectLang(["fr-FR", "en-GB", "de"])).toBe("en");
     expect(detectLang(["fr"])).toBe("en");
+  });
+});
+
+describe("duration", () => {
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  it("shows the largest unit and the one after it", () => {
+    expect(duration(0, "en")).toBe("0 minutes");
+    expect(duration(minute, "en")).toBe("1 minute");
+    expect(duration(45 * minute + 59_000, "en")).toBe("45 minutes");
+    expect(duration(498 * minute, "en")).toBe("8 hours and 18 minutes");
+    expect(duration(hour, "en")).toBe("1 hour");
+    expect(duration(2 * hour + 5 * minute, "en")).toBe("2 hours and 5 minutes");
+    expect(duration(day + hour + minute, "en")).toBe("1 day and 1 hour");
+    expect(duration(3 * day + 59 * minute, "en")).toBe("3 days");
+  });
+
+  it("follows 'seit' in German", () => {
+    expect(duration(498 * minute, "de")).toBe("8 Stunden und 18 Minuten");
+    expect(duration(day + hour, "de")).toBe("1 Tag und 1 Stunde");
+    expect(duration(2 * day, "de")).toBe("2 Tagen");
+    expect(
+      translate("de", "{name} hasn't moved for {time}.", {
+        name: "Mathies",
+        time: duration(day, "de"),
+      }),
+    ).toBe("Mathies hat seit 1 Tag nicht gespielt.");
   });
 });
