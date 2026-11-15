@@ -143,12 +143,17 @@ describe("the rollout policy, counting cards", () => {
   // Seat 0 leads with one trick needed of three; trump is Spades.
   const options = { hand: ["H13", "C4", "D6"], trump: "S" as Suit, bid: 1 };
 
-  it("leads a King whose Ace is gone as a winner", () => {
-    expect(rolloutCard({ ...simWith(options), gone: new Set(["H14"]) })).toBe("H13");
+  it("leads the trump Jack as a winner once the higher trumps are gone", () => {
+    // Two tricks needed of three, so the Jack can't wait for a later trick.
+    const trumpJack = { ...options, hand: ["S11", "C4", "D6"], bid: 2 };
+    expect(rolloutCard({ ...simWith(trumpJack), gone: new Set(["S12", "S13", "S14"]) })).toBe(
+      "S11",
+    );
+    expect(rolloutCard(simWith(trumpJack))).not.toBe("S11");
   });
 
-  it("doesn't know the Ace is gone without counting", () => {
-    expect(rolloutCard(simWith(options))).not.toBe("H13");
+  it("doesn't lead a side suit's highest card left: it would get trumped", () => {
+    expect(rolloutCard({ ...simWith(options), gone: new Set(["H14"]) })).not.toBe("H13");
   });
 
   it("holds back the highest trump left once the trump Ace is gone", () => {

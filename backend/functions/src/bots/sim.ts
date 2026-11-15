@@ -259,10 +259,12 @@ function winEvery(sim: RoundSim, legal: Card[]): Card {
 function winIfCheap(sim: RoundSim, legal: Card[]): Card {
   const hand = sim.hands[turnOf(sim)] as Card[];
   if (sim.trick.length === 0) {
-    // Lead a strong card that isn't a Wizard: a high trump, or the top card of a side suit.
+    // Lead a strong card that isn't a Wizard: a high trump (or the highest one left), or a
+    // side-suit ace. (Leading a side suit's highest card left doesn't pay: it gets trumped.)
     const strong = legal.filter((card) => {
       const c = info(card);
-      return (c.suit === sim.trump && c.rank >= 12) || topOfSuit(sim, card, hand);
+      if (c.suit === sim.trump) return c.rank >= 12 || topOfSuit(sim, card, hand);
+      return c.suit !== null && c.rank === 14;
     });
     return strong.at(-1) ?? duck(sim, legal, true);
   }
