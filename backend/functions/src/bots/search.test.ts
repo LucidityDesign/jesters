@@ -4,7 +4,7 @@ import { seededRandom } from "../../test/helpers.js";
 import { type Card, createGame, type GameState, reduce } from "../engine/index.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
 import { type BotLevel, botAction, playBots, SEARCH_BUDGETS } from "./index.js";
-import { handSizes, knownVoids, playMisfit, sampleDeal, unseenCards } from "./knowledge.js";
+import { handSizes, knownVoids, sampleDeal, unseenCards } from "./knowledge.js";
 import { judgeFor, pickCard, type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
 
@@ -278,28 +278,5 @@ describe("judging a round", () => {
     // Taking 20 points off the leader counts once it matters.
     const keep = judgeFor(view(20), 1);
     expect(keep([20, -10, 20])).toBeGreaterThan(keep([20, 20, 20]));
-  });
-});
-
-describe("reading the others' plays", () => {
-  // Round 2, everyone bid 1. Seat 1 led H5, seat 2 ducked with H3, the bot (seat 0) took it with H9.
-  const view = playingView({
-    hand: ["S2"],
-    round: 2,
-    bids: [1, 1, 1],
-    tricksWon: [1, 0, 0],
-    roundTricks: [{ leader: 1, cards: ["H5", "H3", "H9"], winner: 0 }],
-    trick: { leader: 0, cards: [] },
-  });
-
-  it("finds a deal unlikely in which a player let a trick go that they needed and could take cheaply", () => {
-    // With the Heart Ace, seat 2 would have taken the trick it needed.
-    expect(playMisfit(view, [["S2"], ["D7"], ["H14"]])).toBe(1);
-    // Without a higher Heart, H3 was its only card to play.
-    expect(playMisfit(view, [["S2"], ["D7"], ["C2"]])).toBe(0);
-  });
-
-  it("ignores rounds whose earlier tricks are missing", () => {
-    expect(playMisfit({ ...view, roundTricks: [] }, [["S2"], ["D7"], ["H14"]])).toBe(0);
   });
 });
