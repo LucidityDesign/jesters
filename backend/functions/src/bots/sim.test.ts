@@ -138,3 +138,24 @@ describe("the rollout policy", () => {
     );
   });
 });
+
+describe("the rollout policy, counting cards", () => {
+  // Seat 0 leads with one trick needed of three; trump is Spades.
+  const options = { hand: ["H13", "C4", "D6"], trump: "S" as Suit, bid: 1 };
+
+  it("leads a King whose Ace is gone as a winner", () => {
+    expect(rolloutCard({ ...simWith(options), gone: new Set(["H14"]) })).toBe("H13");
+  });
+
+  it("doesn't know the Ace is gone without counting", () => {
+    expect(rolloutCard(simWith(options))).not.toBe("H13");
+  });
+
+  it("holds back the highest trump left once the trump Ace is gone", () => {
+    // Out of Hearts, one trick needed: the trump King takes this trick, unless it is sure to take
+    // a later one anyway (the trump Ace is gone), so this one can go.
+    const sim = simWith({ hand: ["S13", "C9"], trick: ["H5", "H2"], trump: "S", bid: 1 });
+    expect(rolloutCard(sim)).toBe("S13");
+    expect(rolloutCard({ ...sim, gone: new Set(["S14", "W1", "W2", "W3", "W4"]) })).toBe("C9");
+  });
+});

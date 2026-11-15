@@ -38,6 +38,8 @@ export interface SearchBudget {
    * (never past `maxMillis`); 0 or unset stops after them.
    */
   targetMillis?: number;
+  /** Let the simulated players count cards (see `RoundSim.gone`). */
+  countCards?: boolean;
   /**
    * How much the bot plays for the game rather than the round, at the end of the game (it grows
    * from 0 in the first round): see `judgeFor`. 0 or unset: its own round score only.
@@ -82,7 +84,7 @@ export function searchPlay(
   for (let deal = 0; ; deal++) {
     if (deal > 0 && now() > deadline) break;
     if (deal >= budget.playDeals && now() >= target) break;
-    const sim = playingSim(view, sampleDeal(view, budget, random));
+    const sim = playingSim(view, sampleDeal(view, budget, random), budget.countCards);
     candidates.forEach((card, i) => {
       const copy = cloneSim(sim);
       playCard(copy, card);
@@ -146,7 +148,7 @@ export function pickCard(view: BotView, candidates: Card[], totals: number[]): C
 }
 
 /** The rest of the round from the bot's view, with `hands` as the guess at the hidden cards. */
-function playingSim(view: BotView, hands: Card[][]): RoundSim {
+function playingSim(view: BotView, hands: Card[][], countCards = false): RoundSim {
   const tricksPlayed = view.tricksWon.reduce((sum, won) => sum + won, 0);
   return {
     playerCount: view.playerCount,
@@ -157,6 +159,7 @@ function playingSim(view: BotView, hands: Card[][]): RoundSim {
     trick: [...view.trick.cards],
     leader: view.trick.leader,
     tricksLeft: view.round - tricksPlayed,
+    gone: countCards ? outOfPlay(view) : undefined,
   };
 }
 
@@ -197,7 +200,7 @@ export function searchBid(
     for (let deal = first; deal < first + count; deal++) {
       if (deal > first && now() > deadline) return;
       for (const bid of bids) {
-        const sim = biddingSim(view, dealAt(deal), bid);
+        const sim = biddingSim(view, dealAt(deal), bid, budget.countCards);
         totals.set(bid, (totals.get(bid) as number) + finish(sim, view.seat, budget, judge));
         counts.set(bid, (counts.get(bid) as number) + 1);
       }
@@ -236,7 +239,7 @@ export function searchBid(
  * A round about to be played from the bot's bidding view, with `hands` as the guess at the hidden
  * cards and `bid` as the bot's bid. Players who haven't bid yet bid like `estimateBid`.
  */
-function biddingSim(view: BotView, hands: Card[][], bid: number): RoundSim {
+function biddingSim(view: BotView, hands: Card[][], bid: number, countCards = false): RoundSim {
   const n = view.playerCount;
   const bids = [...view.bids];
   bids[view.seat] = bid;
@@ -258,5 +261,14 @@ function biddingSim(view: BotView, hands: Card[][], bid: number): RoundSim {
     trick: [],
     leader: (view.dealer + 1) % n,
     tricksLeft: view.round,
+    gone: countCards ? outOfPlay(view) : undefined,
   };
+}
+
+/** The cards out of play for everyone at the table: those played this round, and the trump card. */
+function outOfPlay(view: BotView): Set<Card> {
+  const gone = new Set<Card>(view.trick.cards);
+  for (const trick of view.roundTricks) for (const card of trick.cards) gone.add(card);
+  if (view.trumpCard) gone.add(view.trumpCard);
+  return gone;
 }

@@ -26,6 +26,12 @@ export interface RoundSim {
   leader: number;
   /** Tricks still to be completed, including the current one. */
   tricksLeft: number;
+  /**
+   * With this set (the cards out of play: played this round, and the trump card), the rollout
+   * policy counts cards: a card no outstanding card can beat counts as a winner, not just Wizards
+   * and the trump ace. Unset: the plain policy.
+   */
+  gone?: Set<Card>;
 }
 
 interface CardInfo {
@@ -109,6 +115,7 @@ export function playCard(sim: RoundSim, card: Card): void {
   const hand = sim.hands[seat] as Card[];
   hand.splice(hand.indexOf(card), 1);
   sim.trick.push(card);
+  sim.gone?.add(card);
   if (sim.trick.length < sim.playerCount) return;
   const winner = (sim.leader + winnerIndex(sim.trick, sim.trump)) % sim.playerCount;
   sim.tricksWon[winner] = (sim.tricksWon[winner] as number) + 1;
@@ -130,6 +137,7 @@ export function cloneSim(sim: RoundSim): RoundSim {
     bids: [...sim.bids],
     tricksWon: [...sim.tricksWon],
     trick: [...sim.trick],
+    gone: sim.gone && new Set(sim.gone),
   };
 }
 
@@ -144,6 +152,41 @@ export function scoreOf(sim: RoundSim, seat: number): number {
 const byStrength = (trump: Suit | null) => (a: Card, b: Card) =>
   strength(a, trump) - strength(b, trump);
 
+/** The plain cards of each suit by rank (index 0 = rank 1, unused). */
+const BY_SUIT = new Map<Suit, Card[]>();
+for (const card of createDeck()) {
+  const c = info(card);
+  if (c.suit === null) continue;
+  const list = BY_SUIT.get(c.suit) ?? [];
+  list[c.rank] = card;
+  BY_SUIT.set(c.suit, list);
+}
+
+/**
+ * Whether no card the holder can't see beats `card` in its own suit: every higher card of the suit
+ * is out of play or in `hand`. Needs `sim.gone`; without it, only aces count.
+ */
+function topOfSuit(sim: RoundSim, card: Card, hand: readonly Card[]): boolean {
+  const c = info(card);
+  if (c.suit === null) return false;
+  if (!sim.gone) return c.rank === 14;
+  const cards = BY_SUIT.get(c.suit) as Card[];
+  for (let rank = c.rank + 1; rank <= 14; rank++) {
+    const higher = cards[rank] as Card;
+    if (!sim.gone.has(higher) && !hand.includes(higher)) return false;
+  }
+  return true;
+}
+
+/**
+ * A card that wins whenever it is wanted, as far as its holder can tell: a Wizard, or the highest
+ * trump still out (only Wizards beat it). With card counting off, the trump ace.
+ */
+function isSure(sim: RoundSim, card: Card, hand: readonly Card[]): boolean {
+  const c = info(card);
+  return c.wizard || (c.suit !== null && c.suit === sim.trump && topOfSuit(sim, card, hand));
+}
+
 /** The card the seat to move plays in a rollout, given only its own hand and the table. */
 export function rolloutCard(sim: RoundSim): Card {
   const seat = turnOf(sim);
@@ -154,7 +197,7 @@ export function rolloutCard(sim: RoundSim): Card {
   if (needed <= 0) return duck(sim, legal, false);
   if (needed >= sim.tricksLeft) return winEvery(sim, legal);
   // With as many sure winners as tricks still needed, lose everything else and play them later.
-  const sure = hand.filter((card) => isSureWinner(card, sim.trump)).length;
+  const sure = hand.filter((card) => isSure(sim, card, hand)).length;
   if (sure >= needed) return duck(sim, legal, true);
   return winIfCheap(sim, legal);
 }
@@ -164,7 +207,8 @@ export function rolloutCard(sim: RoundSim): Card {
  * `keepSure` holds back sure winners, which are still needed later. `legal` is sorted weakest first.
  */
 function duck(sim: RoundSim, legal: Card[], keepSure: boolean): Card {
-  const kept = (card: Card) => keepSure && isSureWinner(card, sim.trump);
+  const hand = sim.hands[turnOf(sim)] as Card[];
+  const kept = (card: Card) => keepSure && isSure(sim, card, hand);
   const jester = legal.find((card) => info(card).jester);
   if (sim.trick.length === 0) {
     // Whether a lead loses depends on the cards still to come: lead low, ideally a side suit.
@@ -198,7 +242,14 @@ function winEvery(sim: RoundSim, legal: Card[]): Card {
   const last = sim.trick.length === sim.playerCount - 1;
   if (last) return winners[0] as Card;
   // A later player may still beat a weak winner: play one that is hard to beat.
-  return winners.find((card) => strength(card, sim.trump) >= 62) ?? (winners.at(-1) as Card);
+  const hand = sim.hands[turnOf(sim)] as Card[];
+  return (
+    winners.find(
+      (card) =>
+        strength(card, sim.trump) >= 62 ||
+        (info(card).suit === sim.trump && topOfSuit(sim, card, hand)),
+    ) ?? (winners.at(-1) as Card)
+  );
 }
 
 /**
@@ -206,11 +257,12 @@ function winEvery(sim: RoundSim, legal: Card[]): Card {
  * duck with the strongest card that loses, saving Wizards and high trumps for later tricks.
  */
 function winIfCheap(sim: RoundSim, legal: Card[]): Card {
+  const hand = sim.hands[turnOf(sim)] as Card[];
   if (sim.trick.length === 0) {
-    // Lead a strong card that isn't a Wizard: a high trump, or a side-suit ace.
+    // Lead a strong card that isn't a Wizard: a high trump, or the top card of a side suit.
     const strong = legal.filter((card) => {
       const c = info(card);
-      return (c.suit === sim.trump && c.rank >= 12) || (c.suit !== null && c.rank === 14);
+      return (c.suit === sim.trump && c.rank >= 12) || topOfSuit(sim, card, hand);
     });
     return strong.at(-1) ?? duck(sim, legal, true);
   }
@@ -220,7 +272,8 @@ function winIfCheap(sim: RoundSim, legal: Card[]): Card {
   if (sim.trick.length === sim.playerCount - 1) return cheapest;
   const c = info(cheapest);
   const cheap = !c.wizard && c.suit !== sim.trump;
-  const nearlyCertain = !c.wizard && c.suit === sim.trump && c.rank >= 13;
+  const nearlyCertain =
+    !c.wizard && c.suit === sim.trump && (c.rank >= 13 || topOfSuit(sim, cheapest, hand));
   if (cheap || nearlyCertain) return cheapest;
   const ducked = duck(sim, legal, true);
   return winsNow(sim.trick, ducked, sim.trump) ? cheapest : ducked;
