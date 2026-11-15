@@ -77,7 +77,8 @@ All regional resources live in **`europe-west3` (Frankfurt)**; see PLAN.md §2 f
    - upgrade to the **Blaze** plan (required for Cloud Functions),
    - whenever the console asks for a location (default resource location, Firestore, Cloud Scheduler), choose `europe-west3`,
    - accept Google's data processing terms (GDPR) in the project's privacy settings,
-   - enable **Authentication → Anonymous**,
+   - enable **Authentication → Anonymous**, and leave **Authentication → Settings → User account
+     cleanup** off: it would delete every guest account (with its games) 30 days after it was created,
    - create **Firestore** in `europe-west3` (Frankfurt), the same region as the functions,
    - add an **iOS app** with bundle ID `design.lucidity.jesters`, download `GoogleService-Info.plist`
      and put it in `ios/Jesters/Resources/` (it is git-ignored),
@@ -154,8 +155,8 @@ The `Firebase` workflow checks the backend and the web app, then deploys both (f
 Firestore rules and indexes, hosting) to the project `PROJECT_ID` (a repository variable or
 secret; as a variable, the log shows the web app's address) on every push to `main`, or by hand
 under **Actions → Firebase → Run workflow**. Before deploying, it prepares the project where its
-account is allowed to: it enables the APIs, creates Firestore in `europe-west3` and turns on
-anonymous sign-in, and otherwise names the console step to do by hand
+account is allowed to: it enables the APIs, creates Firestore in `europe-west3`, turns on
+anonymous sign-in and keeps the automatic clean-up of guest accounts off, and otherwise names the console step to do by hand
 (`backend/scripts/prepare-project.sh`). Afterwards it checks that the web app answers.
 
 To save Actions minutes, the `Firebase` and `iOS` workflows don't run for feature branches or

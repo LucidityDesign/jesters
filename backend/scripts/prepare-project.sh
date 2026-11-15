@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Prepares the Firebase project for a deploy, as far as the deploy account is allowed to:
-# enables the APIs, creates Firestore in europe-west3, turns on anonymous sign-in and lets the
-# functions sign in guests on another device (transfer codes).
+# enables the APIs, creates Firestore in europe-west3, turns on anonymous sign-in, keeps guest
+# accounts from being deleted automatically and lets the functions sign in guests on another device
+# (transfer codes).
 # Everything is idempotent. What the account may not do is reported with the manual step.
 #
 # Needs: PROJECT_ID, a signed-in gcloud (the CI auth step), curl and jq.
@@ -64,7 +65,18 @@ else
   problem "Turn on anonymous sign-in: Firebase console → Authentication → Get started → Sign-in method → Anonymous."
 fi
 
-# 4. Transfer codes: the functions sign sign-in tokens with their own service account (the
+# 4. Guest accounts stay: Identity Platform can delete anonymous accounts 30 days after they
+# were created, however much they play, which takes their games away. Keep it off.
+if api "$config_url" | jq -e 'has("name") and .autodeleteAnonymousUsers != true' >/dev/null 2>&1; then
+  note "Guest accounts are never deleted automatically"
+elif api -X PATCH "$config_url?updateMask=autodeleteAnonymousUsers" \
+  -d '{"autodeleteAnonymousUsers":false}' | jq -e 'has("name") and .autodeleteAnonymousUsers != true' >/dev/null 2>&1; then
+  note "Turned off the automatic deletion of guest accounts"
+else
+  problem "Turn off the automatic clean-up of anonymous accounts: Firebase console → Authentication → Settings → User account cleanup. Otherwise every guest loses their games after 30 days."
+fi
+
+# 5. Transfer codes: the functions sign sign-in tokens with their own service account (the
 # Compute Engine default account), which needs the role Service Account Token Creator on itself.
 # Without it only moving to another device fails, so this is a warning, not a problem.
 number=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)" 2>/dev/null)
