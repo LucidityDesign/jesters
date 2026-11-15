@@ -1,5 +1,6 @@
 import {
   type Card,
+  type CompletedTrick,
   createDeck,
   ledSuit,
   type RandomInt,
@@ -8,6 +9,7 @@ import {
   suitOf,
 } from "../engine/index.js";
 import { estimateTricks } from "./estimate.js";
+import { type RoundSim, rolloutCard, winsNow } from "./sim.js";
 import type { BotView } from "./view.js";
 
 // What a bot can work out about the hidden cards from the table, and random deals of them that
@@ -58,6 +60,96 @@ export function knownVoids(view: BotView): Set<Suit>[] {
 export interface DealOptions {
   /** Prefer deals in which each opponent's hand fits their bid (the Hard bot). */
   fitBids: boolean;
+  /**
+   * Also prefer deals in which the others' earlier plays this round make sense (see `playMisfit`):
+   * how much one play that doesn't counts against a deal, next to bids that don't fit by a trick.
+   * 0 or unset: plays only tell which suits a player has run out of.
+   */
+  fitPlays?: number;
+}
+
+/** One card another player played this round, with what they knew when they played it. */
+interface PastPlay {
+  seat: number;
+  card: Card;
+  /** The cards already in the trick. */
+  before: Card[];
+  leader: number;
+  tricksWon: number[];
+  tricksLeft: number;
+  /** The cards this seat played from this one on, so its hand back then is its hand now plus these. */
+  playedSince: Card[];
+}
+
+/**
+ * The others' plays this round that followed a card already in the trick (leads say too little).
+ * Empty when the round's earlier tricks are missing (games from older versions).
+ */
+function pastPlays(view: BotView): PastPlay[] {
+  const completed = view.tricksWon.reduce((sum, won) => sum + won, 0);
+  if (view.roundTricks.length !== completed) return [];
+  const n = view.playerCount;
+  const tricks = [...view.roundTricks, view.trick];
+  const plays: PastPlay[] = [];
+  const tricksWon = Array<number>(n).fill(0);
+  tricks.forEach((trick, t) => {
+    trick.cards.forEach((card, i) => {
+      const seat = (trick.leader + i) % n;
+      if (seat === view.seat || i === 0) return;
+      const playedSince = tricks
+        .slice(t)
+        .flatMap((later, laterIndex) =>
+          later.cards.filter(
+            (_, j) => (later.leader + j) % n === seat && (laterIndex > 0 || j >= i),
+          ),
+        );
+      plays.push({
+        seat,
+        card,
+        before: trick.cards.slice(0, i),
+        leader: trick.leader,
+        tricksWon: [...tricksWon],
+        tricksLeft: view.round - t,
+        playedSince,
+      });
+    });
+    const winner = (trick as Partial<CompletedTrick>).winner;
+    if (winner !== undefined) tricksWon[winner] = (tricksWon[winner] as number) + 1;
+  });
+  return plays;
+}
+
+/**
+ * How many of the others' plays this round the rollout policy (`sim.ts`) would not have made with
+ * the hands in `hands`: it would have taken the trick where they let it go, or the other way round.
+ * A deal in which a player who still needed tricks ducked while holding a cheap winner is less
+ * likely than one in which they had none.
+ */
+export function playMisfit(view: BotView, hands: Card[][], plays = pastPlays(view)): number {
+  let misfit = 0;
+  for (const play of plays) {
+    const hand = [...(hands[play.seat] as Card[]), ...play.playedSince];
+    const sim: RoundSim = {
+      playerCount: view.playerCount,
+      trump: view.trumpSuit,
+      hands: Array.from({ length: view.playerCount }, (_, seat) =>
+        seat === play.seat ? hand : [],
+      ),
+      bids: view.bids as number[],
+      tricksWon: play.tricksWon,
+      trick: play.before,
+      leader: play.leader,
+      tricksLeft: play.tricksLeft,
+    };
+    const expected = rolloutCard(sim);
+    if (
+      winsNow(play.before, expected, view.trumpSuit) !==
+      winsNow(play.before, play.card, view.trumpSuit)
+    ) {
+      misfit++;
+    }
+  }
+  return misfit;
 }
 
 /**
@@ -106,12 +198,18 @@ export function sampleDeal(view: BotView, options: DealOptions, randomInt: Rando
   };
 
   if (!options.fitBids) return consistent();
-  // Keep the deal whose hands fit the bids best; the tolerance widens as attempts fail.
+  // Keep the deal whose hands fit the bids (and plays) best; the tolerance for bids widens as
+  // attempts fail.
+  const playWeight = options.fitPlays ?? 0;
+  const plays = playWeight > 0 ? pastPlays(view) : [];
+  const misfitOf = (hands: Card[][], extraTolerance: number) =>
+    bidMisfit(view, hands, extraTolerance) +
+    (plays.length > 0 ? playWeight * playMisfit(view, hands, plays) : 0);
   let best = consistent();
-  let bestMisfit = bidMisfit(view, best, 0);
+  let bestMisfit = misfitOf(best, 0);
   for (let attempt = 1; attempt < 30 && bestMisfit > 0; attempt++) {
     const hands = consistent();
-    const misfit = bidMisfit(view, hands, Math.floor(attempt / 10) * 0.5);
+    const misfit = misfitOf(hands, Math.floor(attempt / 10) * 0.5);
     if (misfit < bestMisfit) {
       best = hands;
       bestMisfit = misfit;

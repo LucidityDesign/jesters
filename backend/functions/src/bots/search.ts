@@ -31,6 +31,8 @@ export interface SearchBudget {
   bidDeals: number;
   /** Deal opponents hands that fit their bids. */
   fitBids: boolean;
+  /** With `fitBids`, also hands that fit their plays this round (see `DealOptions.fitPlays`). */
+  fitPlays?: number;
   /** Stop and decide with what has been simulated so far after this long. */
   maxMillis: number;
   /**
