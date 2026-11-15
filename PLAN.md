@@ -157,10 +157,11 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
     (`bots/sim.ts`), and pick the move with the best average round score. Only the current round
     is simulated: rounds are scored on their own. Bids get a first look with a few deals each,
     then the close calls get the rest (successive halving). Hard simulates more and may think up
-    to 0.6 s per move, Medium 0.25 s; the thinking time comes off the pause before the move.
+    to 1 s per move, Medium 0.25 s; the thinking time comes off the pause before the move.
   - The others' likely bids come from win rates per card measured in simulations
     (`bots/calibration.ts`, written by `pnpm simulate calibrate`); `pnpm simulate tournament`
-    plays the levels against each other.
+    plays the levels against each other, and `pnpm simulate compare` two versions of a search
+    bot in duplicate (each deal played twice with the seats swapped), to tune them.
   - **Auto-play** always plays at Hard; people can't choose its level.
   - Ideas for later: LLM-based levels (plan in `docs/plans/llm-bots.md`), or a network trained
     by self-play.

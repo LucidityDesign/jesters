@@ -5,7 +5,7 @@ import { type Card, createGame, type GameState, reduce } from "../engine/index.j
 import { estimateBid, estimateTricks } from "./estimate.js";
 import { type BotLevel, botAction, playBots, SEARCH_BUDGETS } from "./index.js";
 import { handSizes, knownVoids, sampleDeal, unseenCards } from "./knowledge.js";
-import { pickCard, type SearchBudget, searchBid, searchPlay } from "./search.js";
+import { judgeFor, pickCard, type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
 
 const budget: SearchBudget = { playDeals: 40, bidDeals: 30, fitBids: false, maxMillis: 10_000 };
@@ -253,5 +253,30 @@ describe("the Medium and Hard bots", () => {
   it("think within their time limits", () => {
     expect(SEARCH_BUDGETS.medium.maxMillis).toBeLessThan(SEARCH_BUDGETS.hard.maxMillis);
     expect(SEARCH_BUDGETS.hard.maxMillis).toBeLessThanOrEqual(1000);
+  });
+});
+
+describe("judging a round", () => {
+  // 3 players have 20 rounds; before this round the bot (seat 0) has 100, seat 1 120, seat 2 50.
+  const totals = [100, 120, 50];
+  const view = (round: number) =>
+    playingView({
+      hand: ["H2"],
+      round,
+      results: [{ round: round - 1, bids: [0, 0, 0], won: [0, 0, 0], deltas: [0, 0, 0], totals }],
+    });
+
+  it("counts only the bot's own points by default", () => {
+    expect(judgeFor(view(20))([30, -10, 20])).toBe(30);
+  });
+
+  it("weighs the lead over the strongest rival more as the game goes on", () => {
+    // After the last round: 130 against the best of 110 and 70, a lead of 20.
+    expect(judgeFor(view(20), 1)([30, -10, 20])).toBe(20);
+    // Halfway, half of each: (30 + 20) / 2.
+    expect(judgeFor(view(10), 1)([30, -10, 20])).toBe(25);
+    // Taking 20 points off the leader counts once it matters.
+    const keep = judgeFor(view(20), 1);
+    expect(keep([20, -10, 20])).toBeGreaterThan(keep([20, 20, 20]));
   });
 });
