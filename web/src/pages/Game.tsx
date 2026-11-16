@@ -1,20 +1,46 @@
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { ErrorText, Loading, Page } from "../components/Layout";
 import { RoundToast } from "../components/RoundToast";
 import { useDocument } from "../hooks";
 import { t } from "../i18n";
-import { type GameDoc, type HandDoc, hasLeft } from "../model";
+import { type GameDoc, type HandDoc, hasLeft, isRunning } from "../model";
 import { Link, navigate } from "../router";
 import { useAction } from "../useAction";
 import { GameOver } from "./GameOver";
 import { Lobby } from "./Lobby";
 import { Table } from "./Table";
 
+/** How long the table stays up after the last trick, before the final results. */
+export const FINAL_TRICK_MS = 5000;
+
+/**
+ * Whether the game just finished while the player watched: then the table, with the last trick
+ * on it, stays for `FINAL_TRICK_MS` before the results. A game that was already over when it was
+ * opened shows its results at once.
+ */
+function useJustFinished(game: GameDoc | null | undefined): boolean {
+  const status = game?.status;
+  const [previous, setPrevious] = useState(status);
+  const [holding, setHolding] = useState(false);
+  if (status !== previous) {
+    setPrevious(status);
+    if (status === "finished" && previous !== undefined && isRunning(previous)) setHolding(true);
+  }
+  useEffect(() => {
+    if (!holding) return;
+    const timer = setTimeout(() => setHolding(false), FINAL_TRICK_MS);
+    return () => clearTimeout(timer);
+  }, [holding]);
+  return holding;
+}
+
 /** Shows the lobby, the table or the result, depending on the game's state. */
 export function Game({ gameId, uid }: { gameId: string; uid: string }) {
   const game = useDocument<GameDoc>(`games/${gameId}`);
   const hand = useDocument<HandDoc>(`games/${gameId}/hands/${uid}`);
   const action = useAction();
+  const justFinished = useJustFinished(game);
 
   if (game === undefined) {
     return (
@@ -83,6 +109,13 @@ export function Game({ gameId, uid }: { gameId: string; uid: string }) {
         );
       case "finished":
       case "abandoned":
+        if (justFinished && !hasLeft(game, uid)) {
+          return (
+            <Table gameId={gameId} game={game} hand={hand ?? null} uid={uid} action={action}>
+              {leaveButton}
+            </Table>
+          );
+        }
         return (
           <>
             <GameOver gameId={gameId} game={game} uid={uid} action={action} />

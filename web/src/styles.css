@@ -1358,6 +1358,24 @@ ol.list {
   z-index: 5;
 }
 
+/* On the final results: a button in the flow of the page, its panel opening below it. */
+.game-over-look-back {
+  margin: 8px 0;
+}
+
+.game-over-look-back .look-back {
+  position: relative;
+  width: max-content;
+}
+
+.look-back-toggle.look-back-labelled {
+  display: inline-flex;
+  gap: 8px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 1rem;
+}
+
 .look-back-toggle {
   display: grid;
   place-items: center;
