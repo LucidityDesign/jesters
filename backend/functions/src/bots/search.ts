@@ -55,6 +55,13 @@ export interface SearchOptions {
   now?: () => number;
 }
 
+/**
+ * How many points per trick bid a bot's aggression is worth when it chooses its bid: at 0.2, a bid
+ * one trick higher may cost it 8 points on average and still win. So bold bots bid higher on close
+ * calls, cautious ones lower, as Easy bots do.
+ */
+export const AGGRESSION_POINTS_PER_TRICK = 40;
+
 /** Bids further below the best one than this, after the first look, get no more deals. */
 const BID_CUTOFF = 15;
 /** At most this many bids get the full budget. */
@@ -192,6 +199,9 @@ export function searchBid(
   const counts = new Map(candidates.map((bid) => [bid, 0]));
   const average = (bid: number) =>
     (totals.get(bid) as number) / Math.max(1, counts.get(bid) as number);
+  // The bot's temperament tips the balance towards higher or lower bids.
+  const lean = view.aggression * AGGRESSION_POINTS_PER_TRICK;
+  const worth = (bid: number) => average(bid) + lean * bid;
   /** Deals `first` to `first + count - 1` for each of `bids`; stops early at the deadline. */
   const simulate = (bids: number[], first: number, count: number) => {
     for (let deal = first; deal < first + count; deal++) {
@@ -207,11 +217,9 @@ export function searchBid(
   // First look: a third of the budget for every bid.
   const firstLook = Math.max(4, Math.ceil(budget.bidDeals / 3));
   simulate(candidates, 0, firstLook);
-  const ranked = [...candidates].sort((a, b) => average(b) - average(a));
-  const best = average(ranked[0] as number);
-  const finalists = ranked
-    .filter((bid) => average(bid) >= best - BID_CUTOFF)
-    .slice(0, BID_FINALISTS);
+  const ranked = [...candidates].sort((a, b) => worth(b) - worth(a));
+  const best = worth(ranked[0] as number);
+  const finalists = ranked.filter((bid) => worth(bid) >= best - BID_CUTOFF).slice(0, BID_FINALISTS);
   // Then the full budget for the close calls, on fresh deals (unless the time is up).
   if (finalists.length > 1 && now() <= deadline) {
     for (const bid of finalists) {
@@ -228,7 +236,7 @@ export function searchBid(
   // Ties go to the bid closest to the hand's estimate.
   const expected = estimateTricks(view.hand, view.trumpSuit, view.playerCount, view.round);
   return finalists.sort(
-    (a, b) => average(b) - average(a) || Math.abs(a - expected) - Math.abs(b - expected),
+    (a, b) => worth(b) - worth(a) || Math.abs(a - expected) - Math.abs(b - expected),
   )[0] as number;
 }
 

@@ -280,3 +280,26 @@ describe("judging a round", () => {
     expect(keep([20, -10, 20])).toBeGreaterThan(keep([20, 20, 20]));
   });
 });
+
+describe("a search bot's temperament", () => {
+  it("bids higher when bold and lower when cautious", () => {
+    const small: SearchBudget = { playDeals: 8, bidDeals: 8, fitBids: true, maxMillis: 10_000 };
+    const totals = { cautious: 0, neutral: 0, bold: 0 };
+    for (let seed = 1; seed <= 30; seed++) {
+      // A bid in round 3 or later, after some Easy moves.
+      let state = midRound(seed, 30);
+      for (let i = 0; i < 200 && state.phase !== "bidding"; i++) {
+        const result = reduce(state, botAction(state, "easy"), seededRandom(seed + i));
+        if (result.ok) state = result.state;
+      }
+      if (state.phase !== "bidding") continue;
+      const bid = (aggression: number) =>
+        searchBid(viewFor(state, aggression), small, seededRandom(seed));
+      totals.cautious += bid(-0.2);
+      totals.neutral += bid(0);
+      totals.bold += bid(0.2);
+    }
+    expect(totals.cautious).toBeLessThan(totals.neutral);
+    expect(totals.neutral).toBeLessThan(totals.bold);
+  });
+});

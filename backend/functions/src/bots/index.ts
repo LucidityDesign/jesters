@@ -27,7 +27,7 @@ export function normalizeLevel(level: string): BotLevel | null {
 }
 
 /** How cautious (negative) or aggressive (positive) a bot can be; each bot gets its own. */
-export const AGGRESSION_RANGE = { min: -0.1, max: 0.1 };
+export const AGGRESSION_RANGE = { min: -0.2, max: 0.2 };
 
 /** How a bot decides. Each level is one strategy; it only sees its own `BotView`. */
 export interface Strategy {

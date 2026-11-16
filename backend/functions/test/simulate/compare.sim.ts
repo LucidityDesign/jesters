@@ -16,6 +16,7 @@ import { seededRandom } from "../helpers.js";
 // (`targetMillis` 0), so the result doesn't depend on how fast the machine is; give `targetMillis`
 // and `maxMillis` to compare by time. GAMES (deals, each played twice), PLAYERS (table size) and
 // SEED (first deal) choose the games; split a long run into several processes with other SEEDs.
+// AGGRESSION_A and AGGRESSION_B give each version a temperament (default 0).
 
 const games = Number(process.env.GAMES ?? 20);
 const playerCount = Number(process.env.PLAYERS ?? 4);
@@ -32,14 +33,17 @@ const budgetB: SearchBudget = {
   ...JSON.parse(process.env.B ?? "{}"),
 };
 
-/** Plays one game; `budgets` by seat. The deals depend only on `seed`, not on the bots. */
-function play(seed: number, budgets: SearchBudget[]): number[] {
+const aggressionA = Number(process.env.AGGRESSION_A ?? 0);
+const aggressionB = Number(process.env.AGGRESSION_B ?? 0);
+
+/** Plays one game; `budgets` and `aggression` by seat. The deals depend only on `seed`, not on the bots. */
+function play(seed: number, budgets: SearchBudget[], aggression: number[]): number[] {
   // Separate random streams: the shuffles (the deals) are the same whoever plays.
   const dealRandom = seededRandom(seed);
   const botRandom = seededRandom(seed * 7919 + 1);
   let state: GameState = createGame({ playerCount, randomInt: dealRandom });
   while (state.phase !== "finished") {
-    const view = viewFor(state);
+    const view = viewFor(state, aggression[state.turn as number] ?? 0);
     const budget = budgets[view.seat] as SearchBudget;
     const action =
       view.phase === "choosingTrump"
@@ -66,7 +70,10 @@ it("compares two search budgets", () => {
       const budgets = Array.from({ length: playerCount }, (_, seat) =>
         isA(seat) ? budgetA : budgetB,
       );
-      const totals = play(seed, budgets);
+      const aggression = Array.from({ length: playerCount }, (_, seat) =>
+        isA(seat) ? aggressionA : aggressionB,
+      );
+      const totals = play(seed, budgets, aggression);
       const mean = (pick: (seat: number) => boolean) => {
         const seats = totals.map((_, seat) => seat).filter(pick);
         return seats.reduce((sum, seat) => sum + (totals[seat] as number), 0) / seats.length;

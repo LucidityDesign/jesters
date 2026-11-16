@@ -42,7 +42,7 @@ export interface BotView {
   /** The bid this bot may not make now ("no even bids"), or `null`. */
   forbiddenBid: number | null;
   results: RoundResult[];
-  /** This bot's temperament, -0.1 (cautious) to 0.1 (aggressive); see `Player.aggression`. */
+  /** This bot's temperament, -0.2 (cautious) to 0.2 (aggressive); see `Player.aggression`. */
   aggression: number;
 }
 
