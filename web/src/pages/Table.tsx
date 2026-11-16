@@ -271,6 +271,8 @@ function bannerText(game: GameDoc, myTurn: boolean): string {
       return myTurn
         ? t("Your turn: click a card, then click it again to play")
         : t("Waiting for {name} to play", { name });
+    case "finished":
+      return t("Game over");
     default:
       return "";
   }
@@ -828,7 +830,7 @@ function Hand({
  * A button that opens the last completed trick (also the previous round's last one at the start
  * of a round) and how everyone did in the last scored round.
  */
-function LookBack({ game }: { game: GameDoc }) {
+export function LookBack({ game, withLabel = false }: { game: GameDoc; withLabel?: boolean }) {
   const [open, setOpen] = useState(false);
   const trick = game.lastTrick;
   const result = game.results.at(-1);
@@ -897,13 +899,14 @@ function LookBack({ game }: { game: GameDoc }) {
         </div>
       )}
       <button
-        className="look-back-toggle"
+        className={`look-back-toggle${withLabel ? " look-back-labelled" : ""}`}
         aria-expanded={open}
         aria-label={label}
         title={label}
         onClick={() => setOpen(!open)}
       >
         <span aria-hidden="true">🕘</span>
+        {withLabel && <span aria-hidden="true">{label}</span>}
       </button>
     </div>
   );

@@ -7,6 +7,7 @@ import { Link, navigate } from "../router";
 import type { useAction } from "../useAction";
 import { nameAt } from "./Home";
 import { ScoreSheet } from "./ScoreSheet";
+import { LookBack } from "./Table";
 
 export function GameOver({
   gameId,
@@ -56,6 +57,10 @@ export function GameOver({
           ))}
         </ol>
       </section>
+
+      <div className="game-over-look-back">
+        <LookBack game={game} withLabel />
+      </div>
 
       <section>
         <h2>{t("Score sheet")}</h2>
