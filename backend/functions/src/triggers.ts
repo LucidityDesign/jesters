@@ -41,6 +41,21 @@ export const BOT_MOVE_DELAY_MS = { min: 500, max: 2000 };
  */
 export const BOT_NEW_ROUND_DELAY_MS = 5000;
 
+/**
+ * After a trick is taken, a bot that leads the next one (it took the trick) waits this long, plus
+ * its thinking, so people can see the trick on the table.
+ */
+export const BOT_AFTER_TRICK_MS = 3000;
+
+/** Whether the move from `before` to `after` completed a trick. */
+export function trickCompleted(before: GameDoc | undefined, after: GameDoc): boolean {
+  return (
+    before !== undefined &&
+    after.lastTrick !== null &&
+    JSON.stringify(after.lastTrick) !== JSON.stringify(before.lastTrick)
+  );
+}
+
 /** How long a bot waits after the move from `before` to `after`, before its own move. */
 export function botDelayMs(
   before: GameDoc | undefined,
@@ -50,7 +65,25 @@ export function botDelayMs(
   const { min, max } = BOT_MOVE_DELAY_MS;
   const delay = min + random() * (max - min);
   const roundScored = before !== undefined && after.results.length > before.results.length;
-  return roundScored ? Math.max(delay, BOT_NEW_ROUND_DELAY_MS) : delay;
+  if (roundScored) return Math.max(delay, BOT_NEW_ROUND_DELAY_MS);
+  return trickCompleted(before, after) ? Math.max(delay, BOT_AFTER_TRICK_MS) : delay;
+}
+
+/**
+ * How long the bot waits before it starts thinking. Its thinking usually comes off the pause, but
+ * not after a trick within a round: then the taken trick stays on the table for the whole pause.
+ */
+export function botWaitMs(
+  before: GameDoc | undefined,
+  after: GameDoc,
+  sinceLastMove: number,
+  thinking: number,
+  random: () => number = Math.random,
+): number {
+  const delay = botDelayMs(before, after, random);
+  const roundScored = before !== undefined && after.results.length > before.results.length;
+  const thinkingFirst = trickCompleted(before, after) && !roundScored ? 0 : thinking;
+  return Math.max(0, Math.min(delay, delay - sinceLastMove) - thinkingFirst);
 }
 
 /**
@@ -66,10 +99,13 @@ export const moveBot = onDocumentUpdated(
     const toMove = after && botToMove(after);
     if (!after || !toMove) return;
 
-    const delay = botDelayMs(event.data?.before.data() as GameDoc | undefined, after);
-    const sinceLastMove = Date.now() - after.updatedAt.toMillis();
-    // The bot thinks after the wait, so the time it may think comes off the wait.
-    const wait = Math.max(0, Math.min(delay, delay - sinceLastMove) - thinkingMillis(toMove));
+    // The bot thinks after the wait, so the time it may think mostly comes off the wait.
+    const wait = botWaitMs(
+      event.data?.before.data() as GameDoc | undefined,
+      after,
+      Date.now() - after.updatedAt.toMillis(),
+      thinkingMillis(toMove),
+    );
     await new Promise((resolve) => setTimeout(resolve, wait));
 
     const gameId = event.params.gameId;
