@@ -58,10 +58,11 @@ export interface SearchOptions {
 
 /**
  * How many points per trick bid a bot's aggression is worth when it chooses its bid: at 0.2, a bid
- * one trick higher may cost it 8 points on average and still win. So bold bots bid higher on close
- * calls, cautious ones lower, as Easy bots do.
+ * one trick higher may cost it 3 points on average and still win. So bold bots bid higher on close
+ * calls, cautious ones lower, as Easy bots do. In duplicate games a Hard bot at 0.2 lost 3.2 ± 6.3
+ * points per game to a neutral one this way (8 points per trick at 0.2 lost 76).
  */
-export const AGGRESSION_POINTS_PER_TRICK = 40;
+export const AGGRESSION_POINTS_PER_TRICK = 15;
 
 /** Bids further below the best one than this, after the first look, get no more deals. */
 const BID_CUTOFF = 15;
