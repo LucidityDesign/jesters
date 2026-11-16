@@ -1,6 +1,7 @@
 import { type Card, forbiddenLastBid, type RandomInt, totalRounds } from "../engine/index.js";
 import { linesLeft, solveRound } from "./endgame.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
+import { minimumBid } from "./floor.js";
 import { sampleDeal } from "./knowledge.js";
 import {
   cloneSim,
@@ -180,9 +181,13 @@ export function searchBid(
   randomInt: RandomInt,
   options: SearchOptions = {},
 ): number {
-  const candidates = Array.from({ length: view.round + 1 }, (_, bid) => bid).filter(
+  // Never below the Wizards and high trumps in hand (see `floor.ts`).
+  const minimum = minimumBid(view);
+  const allowed = Array.from({ length: view.round + 1 }, (_, bid) => bid).filter(
     (bid) => bid !== view.forbiddenBid,
   );
+  const atLeast = allowed.filter((bid) => bid >= minimum);
+  const candidates = atLeast.length > 0 ? atLeast : [minimum];
   const now = options.now ?? (() => performance.now());
   const start = now();
   const deadline = start + budget.maxMillis;
