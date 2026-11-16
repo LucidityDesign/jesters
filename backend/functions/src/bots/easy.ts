@@ -12,7 +12,7 @@ import type { BotView } from "./view.js";
 
 // The easy bot: simple rules of thumb, no card counting. It bids what its strong cards
 // should win, given what the others have bid, then tries to take tricks while it needs them and
-// to lose them otherwise. Its aggression (-0.1 to 0.1) makes it bid higher or lower and take
+// to lose them otherwise. Its aggression (-0.2 to 0.2) makes it bid higher or lower and take
 // tricks with stronger or cheaper cards; while playing, the total of the bids shifts it.
 
 /** Picks the suit it holds the most of (ties: the higher ranks). */

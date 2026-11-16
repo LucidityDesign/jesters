@@ -147,7 +147,7 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
   only bots left is deleted. Bots get no notifications. Strategies live in `functions/src/bots/` and see only a `BotView`
   (their own hand plus the table, including the cards played this round), so they can't cheat.
   - **Easy** follows simple rules of thumb: it bids what its cards should win given the bids so
-    far, keeps its Jesters for tricks it must lose, and has a random aggression (-0.1 to 0.1,
+    far, keeps its Jesters for tricks it must lose, and has a random aggression (-0.2 to 0.2,
     `aggression` on the player) that makes it bid higher or lower and take tricks with stronger or
     cheaper cards; while playing, more bids than cards make it more aggressive, fewer more cautious.
   - **Medium** and **Hard** use Monte Carlo search (`bots/search.ts`): for each possible bid or
@@ -156,12 +156,16 @@ time zone. Server schedules are defined in `Europe/Berlin`, so they follow dayli
     the bids), play each deal to the end of the round with a bid-aware rollout policy
     (`bots/sim.ts`), and pick the move with the best average round score. Only the current round
     is simulated: rounds are scored on their own. Bids get a first look with a few deals each,
-    then the close calls get the rest (successive halving). Hard simulates more and may think up
+    then the close calls get the rest (successive halving). Their aggression tips close calls
+    towards higher or lower bids (worth 3 points per trick bid at ±0.2). Hard simulates more and may think up
     to 1 s per move, Medium 0.25 s; the thinking time comes off the pause before the move.
   - The others' likely bids come from win rates per card measured in simulations
     (`bots/calibration.ts`, written by `pnpm simulate calibrate`); `pnpm simulate tournament`
     plays the levels against each other, and `pnpm simulate compare` two versions of a search
     bot in duplicate (each deal played twice with the seats swapped), to tune them.
+  - Every bot counts each Wizard and each trump above 11 (Queen, King, Ace) as a trick in its bid,
+    whatever its simulations or rules of thumb say (`bots/floor.ts`); one up if that bid isn't
+    allowed.
   - **Auto-play** always plays at Hard; people can't choose its level.
   - Ideas for later: LLM-based levels (plan in `docs/plans/llm-bots.md`), or a network trained
     by self-play.

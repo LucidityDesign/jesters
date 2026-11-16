@@ -24,7 +24,7 @@ export interface Player {
   name: string;
   /** Set for computer players, which the server moves for. Older games may hold `"beginner"` (= easy). */
   bot?: BotLevel | "beginner";
-  /** A bot's temperament, -0.1 (cautious) to 0.1 (aggressive): how high it bids and how it plays. */
+  /** A bot's temperament, -0.2 (cautious) to 0.2 (aggressive): how high it bids and how it plays. */
   aggression?: number;
   /** Set for a person who left the running game: a bot plays their seat until the end. */
   left?: boolean;

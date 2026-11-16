@@ -9,6 +9,7 @@ import {
 } from "../engine/index.js";
 import { blindBid, blindTrump } from "./blind.js";
 import * as easy from "./easy.js";
+import { atLeastMinimum } from "./floor.js";
 import { type SearchBudget, searchBid, searchPlay } from "./search.js";
 import { type BotView, viewFor } from "./view.js";
 
@@ -27,7 +28,7 @@ export function normalizeLevel(level: string): BotLevel | null {
 }
 
 /** How cautious (negative) or aggressive (positive) a bot can be; each bot gets its own. */
-export const AGGRESSION_RANGE = { min: -0.1, max: 0.1 };
+export const AGGRESSION_RANGE = { min: -0.2, max: 0.2 };
 
 /** How a bot decides. Each level is one strategy; it only sees its own `BotView`. */
 export interface Strategy {
@@ -97,7 +98,12 @@ export function botAction(
     case "choosingTrump":
       return { type: "chooseTrump", seat: view.seat, suit: strategy.chooseTrump(view, randomInt) };
     case "bidding":
-      return { type: "bid", seat: view.seat, bid: strategy.bid(view, randomInt) };
+      // Wizards and high trumps are always bid, at every level (see `floor.ts`).
+      return {
+        type: "bid",
+        seat: view.seat,
+        bid: atLeastMinimum(strategy.bid(view, randomInt), view),
+      };
     case "playing":
       return { type: "play", seat: view.seat, card: strategy.play(view, randomInt) };
   }

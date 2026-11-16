@@ -44,7 +44,7 @@ describe("bots", () => {
     expect(new Set(botNames).size).toBe(4);
     expect(botNames).not.toContain("Bot");
     for (const player of game.players.slice(2)) {
-      expect(Math.abs(player.aggression as number)).toBeLessThanOrEqual(0.1);
+      expect(Math.abs(player.aggression as number)).toBeLessThanOrEqual(0.2);
     }
 
     await anna.call("removePlayer", { gameId, uid: game.playerUids[2] });

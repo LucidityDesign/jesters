@@ -1,6 +1,7 @@
 import { type Card, forbiddenLastBid, type RandomInt, totalRounds } from "../engine/index.js";
 import { linesLeft, solveRound } from "./endgame.js";
 import { estimateBid, estimateTricks } from "./estimate.js";
+import { minimumBid } from "./floor.js";
 import { sampleDeal } from "./knowledge.js";
 import {
   cloneSim,
@@ -54,6 +55,14 @@ export interface SearchOptions {
   /** The clock for `maxMillis`; replaceable in tests. */
   now?: () => number;
 }
+
+/**
+ * How many points per trick bid a bot's aggression is worth when it chooses its bid: at 0.2, a bid
+ * one trick higher may cost it 3 points on average and still win. So bold bots bid higher on close
+ * calls, cautious ones lower, as Easy bots do. In duplicate games a Hard bot at 0.2 lost 3.2 ± 6.3
+ * points per game to a neutral one this way (8 points per trick at 0.2 lost 76).
+ */
+export const AGGRESSION_POINTS_PER_TRICK = 15;
 
 /** Bids further below the best one than this, after the first look, get no more deals. */
 const BID_CUTOFF = 15;
@@ -173,9 +182,13 @@ export function searchBid(
   randomInt: RandomInt,
   options: SearchOptions = {},
 ): number {
-  const candidates = Array.from({ length: view.round + 1 }, (_, bid) => bid).filter(
+  // Never below the Wizards and high trumps in hand (see `floor.ts`).
+  const minimum = minimumBid(view);
+  const allowed = Array.from({ length: view.round + 1 }, (_, bid) => bid).filter(
     (bid) => bid !== view.forbiddenBid,
   );
+  const atLeast = allowed.filter((bid) => bid >= minimum);
+  const candidates = atLeast.length > 0 ? atLeast : [minimum];
   const now = options.now ?? (() => performance.now());
   const start = now();
   const deadline = start + budget.maxMillis;
@@ -192,6 +205,9 @@ export function searchBid(
   const counts = new Map(candidates.map((bid) => [bid, 0]));
   const average = (bid: number) =>
     (totals.get(bid) as number) / Math.max(1, counts.get(bid) as number);
+  // The bot's temperament tips the balance towards higher or lower bids.
+  const lean = view.aggression * AGGRESSION_POINTS_PER_TRICK;
+  const worth = (bid: number) => average(bid) + lean * bid;
   /** Deals `first` to `first + count - 1` for each of `bids`; stops early at the deadline. */
   const simulate = (bids: number[], first: number, count: number) => {
     for (let deal = first; deal < first + count; deal++) {
@@ -207,11 +223,9 @@ export function searchBid(
   // First look: a third of the budget for every bid.
   const firstLook = Math.max(4, Math.ceil(budget.bidDeals / 3));
   simulate(candidates, 0, firstLook);
-  const ranked = [...candidates].sort((a, b) => average(b) - average(a));
-  const best = average(ranked[0] as number);
-  const finalists = ranked
-    .filter((bid) => average(bid) >= best - BID_CUTOFF)
-    .slice(0, BID_FINALISTS);
+  const ranked = [...candidates].sort((a, b) => worth(b) - worth(a));
+  const best = worth(ranked[0] as number);
+  const finalists = ranked.filter((bid) => worth(bid) >= best - BID_CUTOFF).slice(0, BID_FINALISTS);
   // Then the full budget for the close calls, on fresh deals (unless the time is up).
   if (finalists.length > 1 && now() <= deadline) {
     for (const bid of finalists) {
@@ -228,7 +242,7 @@ export function searchBid(
   // Ties go to the bid closest to the hand's estimate.
   const expected = estimateTricks(view.hand, view.trumpSuit, view.playerCount, view.round);
   return finalists.sort(
-    (a, b) => average(b) - average(a) || Math.abs(a - expected) - Math.abs(b - expected),
+    (a, b) => worth(b) - worth(a) || Math.abs(a - expected) - Math.abs(b - expected),
   )[0] as number;
 }
 
