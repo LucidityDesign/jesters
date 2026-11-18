@@ -27,6 +27,11 @@ async function moveIfMyTurn(page: Page, { playCards = true } = {}): Promise<bool
       .click();
   } else if (text.includes("How many tricks")) {
     await page.locator(".bids button:enabled").first().click();
+  } else if (
+    playCards &&
+    (await page.getByText("Your only playable card is played in a moment.").isVisible())
+  ) {
+    // The only card the rules allow is played for the player after a moment.
   } else if (text.startsWith("Your turn") && playCards) {
     const card = page.locator(".hand-card:enabled").first();
     await card.click();
@@ -138,7 +143,10 @@ test("three guests create, join and play the first two rounds", async ({ browser
     await expect(page.getByText(/is played when it's your turn/)).toBeVisible();
     await expect(page.locator(".hand-card.queued")).toHaveCount(1);
   }
-  await moveIfMyTurn(leader as Page);
+  // The leader's only card is played for them after a moment.
+  await expect(
+    (leader as Page).getByText("Your only playable card is played in a moment."),
+  ).toBeVisible();
   await expect(anna.getByRole("heading", { name: "Round 2 of 20" })).toBeVisible();
 
   // Play until round 3 starts: every round is dealt, bid, played and scored.
