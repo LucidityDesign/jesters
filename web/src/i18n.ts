@@ -115,6 +115,8 @@ export const DE: Record<string, string> = {
   "{n} minutes": "{n} Minuten",
   "{a} and {b}": "{a} und {b}",
   "Let a bot move": "Bot ziehen lassen",
+  "Your only playable card is played in a moment.":
+    "Deine einzige spielbare Karte wird gleich gespielt.",
   "−{points} points for stalling": "−{points} Punkte fürs Warten-Lassen",
   "When someone keeps everyone waiting for 30 minutes and the others let a bot move for them, they lose {points} points.":
     "Wer alle 30 Minuten warten lässt und für wen die anderen dann einen Bot ziehen lassen, verliert {points} Punkte.",
