@@ -226,6 +226,9 @@ test("a guest plays against two bots", async ({ browser }) => {
 
   await expect(erik.getByRole("heading", { name: "Round 1 of 20" })).toBeVisible();
   await expect(erik.locator(".players .badge", { hasText: "Bot" })).toHaveCount(2);
+  // Tapping a bot's seat shows its level.
+  await erik.locator(".seat-name-button", { hasText: "Bot (Hard)" }).click();
+  await expect(erik.getByRole("tooltip")).toHaveText("Bot (Hard)");
   // Only Erik ever has to move: the bots answer one after another. Stop as soon as round 3 is
   // dealt, as the bots take a while to start it and the toast about round 2 only shows for 6 s.
   const roundThree = erik.getByRole("heading", { name: "Round 3 of 20" });

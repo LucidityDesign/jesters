@@ -519,7 +519,7 @@ function Players({
 }) {
   const scores = totals(game);
   const roundPoints = useRoundPoints(game);
-  // The seat whose bot-mode tooltip is open; it closes by itself after a while.
+  // The seat whose bot tooltip is open (its level, or why a bot plays it); it closes by itself.
   const [tipSeat, setTipSeat] = useState<number | null>(null);
   useEffect(() => {
     if (tipSeat === null) return;
@@ -544,7 +544,10 @@ function Players({
         const made = bid !== null && won === bid;
         const reaction = reactions.get(player.uid);
         const botNote = botModeNote(game, player, now);
-        const SeatName = botNote ? "button" : "span";
+        // Tapping a bot's or a bot-played seat says who plays it: a bot's level, or why a bot moves.
+        const botLabel = player.bot ? `${t("Bot")} (${botLevelName(botLevel(player.bot))})` : null;
+        const tip = botNote ?? botLabel;
+        const SeatName = tip ? "button" : "span";
         const shownCard = othersCards[seat] ?? null;
         return (
           <li
@@ -564,22 +567,22 @@ function Players({
                 <CardView card={shownCard} small />
               </span>
             )}
-            {botNote && tipSeat === seat && (
+            {tip && tipSeat === seat && (
               <span
                 // Seats at the sides of the table open the tip toward the middle, so it stays on screen.
                 className={`seat-tip${x < 25 ? " seat-tip-start" : x > 75 ? " seat-tip-end" : ""}`}
                 role="tooltip"
                 id={`seat-tip-${seat}`}
               >
-                {botNote}
+                {tip}
               </span>
             )}
             <SeatName
-              className={botNote ? "seat-name seat-name-button" : "seat-name"}
-              {...(botNote
+              className={tip ? "seat-name seat-name-button" : "seat-name"}
+              {...(tip
                 ? {
                     type: "button" as const,
-                    title: botNote,
+                    title: tip,
                     "aria-describedby": tipSeat === seat ? `seat-tip-${seat}` : undefined,
                     onClick: () => setTipSeat(tipSeat === seat ? null : seat),
                   }
@@ -593,15 +596,10 @@ function Players({
                 </span>
               )}
               <span className={player.uid === uid ? "me" : undefined}>{nameAt(game, seat)}</span>
-              {player.bot && (
-                <span
-                  className="badge"
-                  title={`${t("Bot")} (${botLevelName(botLevel(player.bot))})`}
-                >
+              {botLabel && (
+                <span className="badge" title={botLabel}>
                   <span aria-hidden="true">🤖</span>
-                  <span className="visually-hidden">
-                    {`${t("Bot")} (${botLevelName(botLevel(player.bot))})`}
-                  </span>
+                  <span className="visually-hidden">{botLabel}</span>
                 </span>
               )}
               {botNote && (
