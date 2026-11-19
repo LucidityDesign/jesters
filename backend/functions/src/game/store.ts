@@ -58,9 +58,12 @@ export function writeState(
   stateAfterMove: GameState,
   {
     byBot = false,
+    forced = false,
     queued = { bids: {}, cards: {} },
   }: {
     byBot?: boolean;
+    /** The server played a person's only playable card for them: not a move of their own. */
+    forced?: boolean;
     /** The queued bids and cards from the secret document, as read in this transaction. */
     queued?: Queued;
   } = {},
@@ -79,9 +82,11 @@ export function writeState(
     version: game.version + 1,
     updatedAt: FieldValue.serverTimestamp(),
     ...(play.turnUid !== game.turnUid ? { turnSince: FieldValue.serverTimestamp() } : {}),
-    ...(person && !byBot ? { [`lastMoveAt.${person.uid}`]: FieldValue.serverTimestamp() } : {}),
+    ...(person && !byBot && !forced
+      ? { [`lastMoveAt.${person.uid}`]: FieldValue.serverTimestamp() }
+      : {}),
     // A person who moves themselves has taken over from their auto-play.
-    ...(person && !byBot && game.autoPlay?.[person.uid]
+    ...(person && !byBot && !forced && game.autoPlay?.[person.uid]
       ? { [`autoPlay.${person.uid}`]: FieldValue.delete() }
       : {}),
     ...(person && byBot && game.round

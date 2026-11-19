@@ -3,7 +3,7 @@ import { logger } from "firebase-functions/v2";
 import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { type BotLevel, botAction, thinkingMillis } from "./bots/index.js";
 import type { GameState } from "./engine/index.js";
-import { reduce } from "./engine/index.js";
+import { legalCardsFor, reduce } from "./engine/index.js";
 import { botToMove, type GameDoc, queuedOf, stateFromSecret } from "./game/model.js";
 import { refs, secureRandomInt, writeState } from "./game/store.js";
 import { notificationsFor, type ReactionDoc, reactionNotifications } from "./notify/messages.js";
@@ -96,8 +96,12 @@ export const moveBot = onDocumentUpdated(
   { document: "games/{gameId}", retry: true, cpu: 1, memory: "512MiB" },
   async (event) => {
     const after = event.data?.after.data() as GameDoc | undefined;
-    const toMove = after && botToMove(after);
-    if (!after || !toMove) return;
+    if (!after) return;
+    const toMove = botToMove(after);
+    if (!toMove) {
+      await playOnlyCard(event.params.gameId, after);
+      return;
+    }
 
     // The bot thinks after the wait, so the time it may think mostly comes off the wait.
     const wait = botWaitMs(
@@ -142,4 +146,44 @@ function decide(state: GameState, level: BotLevel, aggression: number, gameId: s
     logger.error(`The ${level} bot failed, the easy bot moves instead`, { gameId, error });
     return botAction(state, "easy", aggression, secureRandomInt);
   }
+}
+
+/**
+ * How long a person whose rules allow just one card has, from the start of their turn, before it is
+ * played for them.
+ */
+export const ONLY_CARD_MS = 3000;
+
+/**
+ * Plays a person's only playable card for them after `ONLY_CARD_MS`, unless they (or anyone) moved
+ * in the meantime. On the server, so it happens while their app is in the background or closed.
+ */
+async function playOnlyCard(gameId: string, after: GameDoc): Promise<void> {
+  const seat = after.turnSeat;
+  if (!after.active || after.status !== "playing" || seat === null) return;
+  // The leader of a trick may play any card: with more than one, there is a choice.
+  const handSize = after.round?.handSizes[seat] ?? 0;
+  if ((after.trick?.cards.length ?? 0) === 0 && handSize > 1) return;
+  const secret = (await refs.secret(gameId).get()).data();
+  if (!secret || legalCardsFor(stateFromSecret(secret), seat).length !== 1) return;
+
+  const sinceTurnBegan = Date.now() - after.updatedAt.toMillis();
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, ONLY_CARD_MS - sinceTurnBegan)));
+
+  await getFirestore().runTransaction(async (tx) => {
+    const [game, secret] = await Promise.all([
+      tx.get(refs.game(gameId)).then((snapshot) => snapshot.data()),
+      tx.get(refs.secret(gameId)).then((snapshot) => snapshot.data()),
+    ]);
+    if (!game || !secret || game.version !== after.version || game.turnSeat !== seat) return;
+    const state = stateFromSecret(secret);
+    const [card, ...others] = legalCardsFor(state, seat);
+    if (card === undefined || others.length > 0) return;
+    const result = reduce(state, { type: "play", seat, card }, secureRandomInt);
+    if (!result.ok) {
+      logger.error(`Playing the only card was rejected: ${result.error}`, { gameId });
+      return;
+    }
+    writeState(tx, gameId, game, state, result.state, { forced: true, queued: queuedOf(secret) });
+  });
 }

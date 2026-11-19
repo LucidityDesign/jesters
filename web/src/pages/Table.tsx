@@ -93,26 +93,12 @@ export function Table({
   const canQueueCard = !myTurn && !hasLeft(game, uid) && hand !== null && game.status === "playing";
   // The first round played blind: the player's own card face down, the others' on their seats.
   const blind = (hand?.hiddenCards ?? 0) > 0;
-  // With only one card the rules allow, it is played for the player after a moment.
-  const onlyCard: Card | "hidden" | null =
-    !myTurn || game.status !== "playing" || !hand
-      ? null
-      : blind
-        ? (hand.hiddenCards ?? 0) === 1
-          ? "hidden"
-          : null
-        : hand.legalCards.length === 1
-          ? (hand.legalCards[0] as Card)
-          : null;
-  useEffect(() => {
-    if (onlyCard === null) return;
-    // Another tab or a tap of their own may be quicker: that is fine, so no error is shown.
-    const timer = setTimeout(
-      () => api.playCard(gameId, game.version, onlyCard).catch(() => {}),
-      ONLY_CARD_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [onlyCard, gameId, game.version]);
+  // With only one card the rules allow, the server plays it for the player after a moment.
+  const onlyCard =
+    myTurn &&
+    game.status === "playing" &&
+    hand !== null &&
+    (blind ? (hand.hiddenCards ?? 0) === 1 : hand.legalCards.length === 1);
   const title = round
     ? t("Round {number} of {total}", { number: round.number, total: round.totalRounds })
     : "";
@@ -247,7 +233,7 @@ export function Table({
               )}
         </p>
       )}
-      {onlyCard !== null && (
+      {onlyCard && (
         <p className="hint only-card-hint">{t("Your only playable card is played in a moment.")}</p>
       )}
       {blind && (
@@ -364,9 +350,6 @@ function useTrickLayout(
 }
 
 /** The seats around the table: name, bot and dealer badges, tricks won of the bid, and score. */
-/** How long a player's only playable card waits before it is played for them. */
-export const ONLY_CARD_MS = 3000;
-
 /** The current time, renewed every `intervalMs` (not at all with null) and when `key` changes. */
 function useNow(intervalMs: number | null, key: string): number {
   const [now, setNow] = useState(() => Date.now());
