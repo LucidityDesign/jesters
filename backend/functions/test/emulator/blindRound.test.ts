@@ -65,4 +65,37 @@ describe("the blind first round", () => {
     expect((await hand(first)).cards).toHaveLength(2);
     expect((await hand(first)).othersCards).toBeUndefined();
   });
+
+  it("plays a player's only card for them when they wait", async () => {
+    const players = await newPlayers("Dora", "Emil", "Fritz");
+    const [dora] = players;
+    const { gameId } = await setUpRoom(players);
+    await dora.call("updateSettings", { gameId, blindFirstRound: true });
+    await dora.call("startGame", { gameId });
+
+    const read = async () => (await dora.read<Game>(`games/${gameId}`)) as Game;
+    let game = await read();
+    const at = (seat: number) => players.find((p) => p.uid === game.playerUids[seat]) as TestPlayer;
+    const dealerSeat = game.round?.dealerSeat as number;
+    if (game.status === "choosingTrump") {
+      await at(dealerSeat).call("chooseTrump", { gameId, version: game.version, suit: "H" });
+    }
+    for (const offset of [1, 2, 0]) {
+      game = await read();
+      await at((dealerSeat + offset) % 3).call("placeBid", {
+        gameId,
+        version: game.version,
+        bid: 0,
+      });
+    }
+
+    // Nobody plays: each of the three single cards is played for its player after 3 s.
+    const deadline = Date.now() + 20_000;
+    while ((await read()).round?.number !== 2 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    game = await read();
+    expect(game.round?.number).toBe(2);
+    expect(game.lastTrick?.cards).toHaveLength(3);
+  }, 30_000);
 });
