@@ -217,6 +217,12 @@ games/{gameId}/secret/state             // readable by no client (functions only
   schema: 1
 ```
 
+**Leaderboard and statistics** (web, `/stats`) are computed in the browser from the player's 500
+most recent ended games (`playerUids` contains them, `active == false`, newest first; the existing
+index), counting only finished ones. A player can read only games they played in, so the others'
+records come from the games they played together; bots count as one opponent per level. Bid
+accuracy leaves out rounds a bot played for the person (`autoPlayedRounds`) and seats that left.
+
 `Card` is encoded as a compact string: `"H14"` (Ace of hearts), `"S2"`, `"W1"`–`"W4"`
 (Wizards), `"J1"`–`"J4"` (Jesters).
 

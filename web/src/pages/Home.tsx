@@ -37,6 +37,9 @@ export function Home({ uid }: { uid: string }) {
         <Link to="/join" className="button">
           {t("Join with key")}
         </Link>
+        <Link to="/stats" className="button">
+          {t("Leaderboard")}
+        </Link>
       </div>
       <ErrorText message={create.error} />
       <NotificationOffer uid={uid} />

@@ -7,6 +7,7 @@ import { Join } from "./pages/Join";
 import { NameScreen } from "./pages/NameScreen";
 import { Privacy } from "./pages/Privacy";
 import { Profile } from "./pages/Profile";
+import { Stats } from "./pages/Stats";
 import { Transfer } from "./pages/Transfer";
 import { Link, useRoute } from "./router";
 import { useSession } from "./session";
@@ -45,6 +46,8 @@ export function App() {
       return <Game key={route.gameId} gameId={route.gameId} uid={session.uid} />;
     case "profile":
       return <Profile />;
+    case "stats":
+      return <Stats uid={session.uid} />;
     case "notFound":
       return (
         <Page title={t("Page not found")}>
