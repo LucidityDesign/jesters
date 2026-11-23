@@ -75,6 +75,25 @@ export const DE: Record<string, string> = {
   "Other games": "Andere Spiele",
   Finished: "Beendet",
   "Show all": "Alle anzeigen",
+  // Leaderboard and statistics
+  Leaderboard: "Bestenliste",
+  "Finish a game to see your statistics here.":
+    "Beende ein Spiel, um hier deine Statistik zu sehen.",
+  "Your statistics": "Deine Statistik",
+  Games: "Spiele",
+  Wins: "Siege",
+  "Average points": "Punkte im Schnitt",
+  "Best game": "Bestes Spiel",
+  "Average place": "Platz im Schnitt",
+  "Bids made": "Ansagen erfüllt",
+  "{hits} of {rounds} rounds": "{hits} von {rounds} Runden",
+  "Too many tricks": "Zu viele Stiche",
+  "Too few tricks": "Zu wenige Stiche",
+  "Rounds a bot played for you don't count for your bids.":
+    "Runden, die ein Bot für dich gespielt hat, zählen nicht für deine Ansagen.",
+  "Everyone you have played with, from your games together. You: games you finished ahead of them – behind them.":
+    "Alle, mit denen du gespielt hast, aus euren gemeinsamen Spielen. Du: Spiele, in denen du vor – hinter ihnen lagst.",
+  Bids: "Ansagen",
   "Could not load your games.": "Deine Spiele konnten nicht geladen werden.",
   "No games yet. Start a new game and invite your friends with the room key.":
     "Noch keine Spiele. Starte ein neues Spiel und lade deine Freunde mit dem Raumcode ein.",

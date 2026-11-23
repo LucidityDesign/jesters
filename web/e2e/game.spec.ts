@@ -364,6 +364,13 @@ test("a guest deletes their data and starts over", async ({ browser }) => {
   await expect(dora.getByText("No games yet.", { exact: false })).toBeVisible();
 });
 
+test("the leaderboard waits for a finished game", async ({ browser }) => {
+  const finn = await guest(browser, "Finn");
+  await finn.getByRole("link", { name: "Leaderboard" }).click();
+  await expect(finn.getByRole("heading", { name: "Leaderboard" })).toBeVisible();
+  await expect(finn.getByText("Finish a game to see your statistics here.")).toBeVisible();
+});
+
 test("shows the privacy policy without signing in", async ({ page }) => {
   await page.goto("/privacy");
   await expect(page.getByRole("heading", { name: /Privacy Policy/ })).toBeVisible();

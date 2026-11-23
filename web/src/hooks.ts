@@ -1,4 +1,13 @@
-import { collection, doc, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { reportStale } from "./connection";
 import { firebase } from "./firebase";
@@ -91,6 +100,40 @@ export function useMyGames(uid: string): Loaded<GameEntry[]> {
     return () => {
       unsubscribe();
       reportStale(listener, false);
+    };
+  }, [uid]);
+  return state.uid === uid ? state.games : undefined;
+}
+
+/** How many of a player's most recent ended games the statistics count. */
+export const STATS_GAMES = 500;
+
+/** The player's most recent ended games, newest first, read once; `null` if they could not be loaded. */
+export function useEndedGames(uid: string): Loaded<GameDoc[]> {
+  const [state, setState] = useState<{ uid: string; games: Loaded<GameDoc[]> }>({
+    uid,
+    games: undefined,
+  });
+  useEffect(() => {
+    let current = true;
+    const games = query(
+      collection(firebase().db, "games"),
+      where("playerUids", "array-contains", uid),
+      where("active", "==", false),
+      orderBy("updatedAt", "desc"),
+      limit(STATS_GAMES),
+    );
+    getDocs(games).then(
+      (snapshot) => {
+        if (current)
+          setState({ uid, games: snapshot.docs.map((entry) => entry.data() as GameDoc) });
+      },
+      () => {
+        if (current) setState({ uid, games: null });
+      },
+    );
+    return () => {
+      current = false;
     };
   }, [uid]);
   return state.uid === uid ? state.games : undefined;
